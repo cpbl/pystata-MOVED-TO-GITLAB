@@ -1,5 +1,5 @@
-from cpblStata import *
-from codecs import open  # What?! I need to do this just to get encoding= option in open() ?!
+from pystata import *
+from codecs import open  # I need to do this just to get encoding= option in open() ?.
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
 
@@ -10,12 +10,12 @@ class latexRegressionFile():  #  # # # # #    MAJOR CLASS    # # # # #  #
     #######################################################################################
     """ Open a file and write some headers. The file will act as a .tex file with a regression table in it.
 As a class, it's a wrapper for some of my python-stata-latex programs that convert Stata output to latex.
-It also compiles the file when it is closed!!
+It also compiles the file when it is closed..
 
 April 2008: the "suppressSE" argument throughout this class and etc just became obselete: LaTeX now uses a facultative \useSEs{}{} to choose between showing standard errors or not.
 
 Dec 2009:
-Allow specification of a "main survey" and a "main data file". This makes it easier to do a half-decent guess job at constructing the right descriptive statistics tables. That is, if we know a survey to use, we can look up the PDF codebook to find descriptions/questions.  If we know the the right data file, we can calculate stats using the right/final/regression-ready data. Because these ideas do not always make sense (multiple surveys or files!), one can also call descriptive stats tables along the way with these things specified.
+Allow specification of a "main survey" and a "main data file". This makes it easier to do a half-decent guess job at constructing the right descriptive statistics tables. That is, if we know a survey to use, we can look up the PDF codebook to find descriptions/questions.  If we know the the right data file, we can calculate stats using the right/final/regression-ready data. Because these ideas do not always make sense (multiple surveys or files.), one can also call descriptive stats tables along the way with these things specified.
 
 """
     # Caution: If you define variables here, before __init__, you can access them with latexinstance.avar , but those are common to the entire class, not to an instance.
@@ -40,10 +40,10 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         self.captureNoObservations=None # Dec 2010: update. This should really be default true, as there's no harm now. I use Stata's "capture noisily" to test whether we need to introduce a dummy regression when a regression fails with no samples.
         self.skipStataForCompletedTables=False # This sets all regTable calls not to call Stata for any tables which have been completed, even if they are old. That is, either DO NOT TURN THIS ON or actually delete the Stata .log files in the texPath that you wish to update/overwrite. So this is also a debugging tool, basically, to focus on tables that are causing trouble when you may be doing many tables all in one program. The trick, then, if you're using large data files, is to make sure that the data files are loaded as part of the first model's "code" element, in order that it doesn't get called if the table is to be skipped... So there's a tradeoff if you're making many tables from the same data.
         self.skipSavingExistingFigures=None # If not set, this will follow skipStataForCompletedTables. Otherwise, it can separately choose whether to update figures or not (saving is often the slowest part, and is often done through a call to this class).
-        self.usingDisclosedData=False # This means never run stata, since only log files are available, not data. (ie we're analysiing RDC disclosures). So this can just be used as a double check to enforce no stata. Not fully implemented yet! (2010 July)
+        self.usingDisclosedData=False # This means never run stata, since only log files are available, not data. (ie we're analysiing RDC disclosures). So this can just be used as a double check to enforce no stata. Not fully implemented yet. (2010 July)
 
         self.skipAllDerivedTables=False # ie if True, ignore all table calls (or just output) whenevr "skipStata=True" flag is used. So this is for making a more compact PDF for exporting results from RDC. Conversely, when set to True it also ignores any skipLaTeX=True calls, since those might be the original/main regression call.  Also, it does not produce CRC tables unless forced to with "onlyCRC" or etc.
-        self.variableOrder=None # This is a default variable order to override what's in cpblStata module. This simplifies things so one doesn't need to specify it for every single table, though it can also be done per table.
+        self.variableOrder=None # This is a default variable order to override what's in pystata module. This simplifies things so one doesn't need to specify it for every single table, though it can also be done per table.
 
         self.txtNamesUsed=[]
         self.variablesUsed='' # Collect all variables from regressions, useful for choosing what to display as desc stats at end.
@@ -105,7 +105,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
 
         eliminated: colnames,colnums,coefrows, hiderows and landscape,...        rowmodelNams
 
-        sourceLogfile: Nov 2010: Now it also accepts (should demand?) the filename of the source stata log file! This entire logfile is duplicated, commented out, inside any latex file created.
+        sourceLogfile: Nov 2010: Now it also accepts (should demand?) the filename of the source stata log file. This entire logfile is duplicated, commented out, inside any latex file created.
 
         June 2011: Needs to be altered to use new two-formats-in-one-tex-file ability of cpblTableC style. For instance, I could have it so that the automated choice of transposed or not still here still uses the cpblTableC files as untransposed as first (default) option, and simple changes the wrapper.
         """
@@ -131,7 +131,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         if tableFilePath.endswith('.tex'):
             tableFilePath=tableFilePath[:-4]
 
-        # Add all caution comments for this table to the table Caption!?
+        # Add all caution comments for this table to the table Caption.?
         if sourceLogfile is None:
             sourceLogfile=['']
         else:
@@ -156,7 +156,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         fout=open(tableFilePath+'.tex','wt',encoding='utf-8')
         fout.write(includedTex+ '\n\n%'+'% '.join(sourceLogfile)) # Append entire Stata log file to end of each LaTeX table file.
         fout.close()
-        # 2010 Jan: Also create a .csv file *from* the .tex!
+        # 2010 Jan: Also create a .csv file *from* the .tex.
         ###from cpblUtilities import cpblTableToCSV
         from cpblTablesTex import tableToTSV
         fout=open(tableFilePath+'-tex.csv','wt')
@@ -168,11 +168,11 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         
         ###################################################################################
         # Add this table as in include in a master LaTeX file that includes all the tables...
-        # Do landscape, if desired. Decide this separately for each table!
+        # Do landscape, if desired. Decide this separately for each table.
 
         # Following lscape stuff should be moved to texopening/closing.: trash me/it
         #lscapeb,lscapee='',''
-        #if landscape==True or (len(models)>9): # Choose it automatically! if not forced
+        #if landscape==True or (len(models)>9): # Choose it automatically. if not forced
         #    lscapeb,lscapee=r'\begin{landscape}',r'\end{landscape}'
         self.append(r'\newpage  '+wrapperTex.replace('PUT-TABLETEX-FILEPATH-HERE',tableFilePath.replace(defaults['paths']['tex'],r'\texdocs '))+'\n\n')
 
@@ -188,7 +188,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         ###
         #######################################################################################
         # Add this table as in include in a master LaTeX file that includes all the tables...
-        # Do landscape, if desired. Decide this separately for each table!
+        # Do landscape, if desired. Decide this separately for each table.
         # Create the actual latex file that is to be included, as well, through a call to composeLaTeXtable
         """
         If rowModelNames is specified, use them for transposed tables only.
@@ -228,14 +228,14 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         
         ###################################################################################
         # Add this table as in include in a master LaTeX file that includes all the tables...
-        # Do landscape, if desired. Decide this separately for each table!
+        # Do landscape, if desired. Decide this separately for each table.
 
         # Following lscape stuff should be moved to texopening/closing.: trash me/it
         #lscapeb,lscapee='',''
-        #if landscape==True or (len(models)>9): # Choose it automatically! if not forced
+        #if landscape==True or (len(models)>9): # Choose it automatically. if not forced
         #    lscapeb,lscapee=r'\begin{landscape}',r'\end{landscape}'
         self.append(r'\newpage  '+wrapperTex.replace('PUT-TABLETEX-FILEPATH-HERE',tableFilePath.replace(defaults['paths']['tex'],r'\texdocs '))+'\n\n')
-##         if 1: # 18 Marc 2008: seems to be a bug in my use of include, so I am eliminating it for now! #:(
+##         if 1: # 18 Marc 2008: seems to be a bug in my use of include, so I am eliminating it for now. #:(
 ##             self.append(wrapperTex''.join([ texOpening, tableFilePath , texClosing]))
 ##         else:
 ##             self.append('\n'.join([ texOpening, includedTex , texClosing]))
@@ -252,7 +252,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         defaultValues is an alternative form for setting fields that are explicitly listed as the other optional parameters.
         nov 2009: this is completely obselete, since the old format is no longer allowed. there are new methods and conversions for "do file format" (string) and for "defaultModel" in other... See regTable()...
 
-        may 2010: Actually, not quite obselete! bySurvey() still uses it ...
+        may 2010: Actually, not quite obselete. bySurvey() still uses it ...
         """
 
         # It might be easily identifiable as a list of old-format models:
@@ -324,8 +324,8 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         """
 
 To test this:    
-import cpblStata
-L=cpblStata.latexRegressionFile('tmp1234')
+import pystata
+L=pystata.latexRegressionFile('tmp1234')
 mmm=L.withCellDummies([['','lsatis da_stuff etc if 1',[['survey','EDS']]],  ['','lsatis da_stuff etcother if 1',[['survey','GSS17']]]],['DAuid'])
 
 
@@ -346,7 +346,7 @@ Let this function work on just one line of a model. Then the byCR function can u
 
         Unless specified otherwise, clustering is turned on at the cell level, using the options-specification feature of regseries.
 
-        16 April 2008: Adding a Stata "if" statement to condition the regression on successful generation of cell dummies!
+        16 April 2008: Adding a Stata "if" statement to condition the regression on successful generation of cell dummies.
 
         [2010: Really?? It looks like this comment is for withCR, not withCell] Ah, what the real problem is is that if the model includes
         other conditions ("if"s), they reduce the group size of some,
@@ -359,7 +359,7 @@ Let this function work on just one line of a model. Then the byCR function can u
     If surveys are specified as attributes, the cells will be only within those surveys; the surveys restriction can also exist in the if clause of the model description, though.
 
 
-    Oh dear IO have to create a 5th element in model lines! this will be stata code which gets written before the regression is done...
+    Oh dear IO have to create a 5th element in model lines. this will be stata code which gets written before the regression is done...
     ugh.
 
 Aug 2008: I am adding "depvar" as an option: you can specify a default depvar to fill in unfilled field depvar for each model. 
@@ -402,7 +402,7 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
 
         # So now we are sure that we have just a list of models (in dict or old form), though the list could be length one.
 
-        if not cellVariables: # Facility for degenerate use of this function: e.g. a loop might have a case without any cell variables. Then just return what we got!
+        if not cellVariables: # Facility for degenerate use of this function: e.g. a loop might have a case without any cell variables. Then just return what we got.
             return(lines)
         
 
@@ -433,7 +433,7 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
                 surveys=[sss for sss in surv[0].replace(' ',',').split(',') if not 'all~' in sss]
                 if len(surveys)>0:
                     dsurveys=' ('+ ' | '.join(['d%s==1'%ss for ss in surveys]) + ') '
-            # Surely the above is redundant! if the survey selection is already in the if clause. Why do this here?
+            # Surely the above is redundant. if the survey selection is already in the if clause. Why do this here?
 
             # Find regressors; find if conditions:
             if ' if ' not in model['model']:
@@ -443,8 +443,8 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
             regressors=[pp for pp in parts[0].split(' ') if pp]
             # Construct appropriate dummy: for this specified set of variables ("cellVariables") and for this survey or these surveys:
 
-            # Does not apply to this function!:
-            # Also, remove any regressors which look like they are at this (or higher!!!) CR level:
+            # Does not apply to this function.:
+            # Also, remove any regressors which look like they are at this (or higher...) CR level:
             # useRegressors=[rr for rr in regressors if not rr[0:3].lower() in higherLevels[aCR] and not rr[0:4].lower() in higherLevels[aCR]]
             useRegressors=regressors
             if dropvars==None:
@@ -488,13 +488,13 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
             drop dcelltmp
             """
 
-            # Condition doing the regressions on success of this dummy generation!
+            # Condition doing the regressions on success of this dummy generation.
             stataBeforeOut+="\n capture noisily confirm numeric variable ddd_"+cellName+"1, exact\n if _rc==0 & r(N)>"+ '%d'%minSampleSize+" & r(r)>1  { * Condition on number of respondents, number of clusters, and existence of some "+cellName+" dummies\n" 
-            # If there are not enough samples, create a blank line in eventual output, showing number of samples. (In fact, the line below is safe to the possibility that ddd_cellname could not even be created!: in that case, the number of samples will be all-encompassoing)
+            # If there are not enough samples, create a blank line in eventual output, showing number of samples. (In fact, the line below is safe to the possibility that ddd_cellname could not even be created.: in that case, the number of samples will be all-encompassoing)
             stataAfterOut+='\n }\n else { \n reg dummyOne dummyOne \n capture reg dummyOne dummyOne ddd_'+cellName+'* \n } \n matrix est=e(b) \n est\n'
 
             # Wrap up:
-            # Aghhh. so far must be one survey exactly!!
+            # Aghhh. so far must be one survey exactly..
 
             model['model']=' '+ ' '.join(useRegressors) + ' ddd_'+cellName +'* if ' +parts[1]
             if isinstance(model.get('flags',''),dict):
@@ -545,8 +545,8 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
 
 
 to test this: same as prev function, except:
-import cpblStata
-L=cpblStata.latexRegressionFile('tmp1234')
+import pystata
+L=pystata.latexRegressionFile('tmp1234')
 mmm=L.withCRdummies([convertMtoDict(['','lsatis da_stuff pr_this csd_that if 1',[['survey','EDS']]]), convertMtoDict(  ['','lsatis da_stuff pr_this csd_that if 1',[['survey','GSS17']]]), ],['PR','CSD'])
 
 
@@ -618,7 +618,7 @@ manualDrops = ??
         else:
             debugprint('so must have a list of lists, or else the models are not in dict format?')
 
-        # This will fail if models are passed not in dict form!!
+        # This will fail if models are passed not in dict form.!
         if not isinstance(models,dict) and not isinstance(models[0],dict):
             debugprint ('withCRdummies is recursively looping over %d elements\n'%len(models))
             for modelOrGroup in models:
@@ -657,8 +657,8 @@ manualDrops = ??
         for aCR in higherLevels: # Add underscores to these; I use them for variable prefixes.
             higherLevels[aCR]= [cc.lower()+'_' for cc in higherLevels[aCR]]
 
-        if each==True: #(!!!? huh?)
-            #assert 0 # This assert added Setp2009 since it looks like this is a not-implemented feature?! Well, actually I'll leave it for now. Do not understand.
+        if each==True: #(...? huh?)
+            #assert 0 # This assert added Setp2009 since it looks like this is a not-implemented feature?. Well, actually I'll leave it for now. Do not understand.
             return
 
         # Ensure all models are in the modern format:
@@ -727,7 +727,7 @@ manualDrops = ??
                     assert len(parts)<3
 
                     regressors=[pp for pp in parts[0].split(' ') if pp]
-                    # Also, remove any regressors which look like they are at this (or higher!!!) CR level:
+                    # Also, remove any regressors which look like they are at this (or higher...) CR level:
                     useRegressors=[rr for rr in regressors if not rr[0:3].lower() in higherLevels[aCR] and not rr[0:4].lower() in higherLevels[aCR] and rr not in manualDrops.get(aCR,[])]
                     model['model']=' '.join(useRegressors)+' if '+parts[1]
                     if aCR in crlist:
@@ -836,7 +836,7 @@ manualDrops = ??
 
         2008 July: If the dependent variable is also a regressor, the latter will be removed. This feature should not really be here. Should be in regTable.. Move it -->O
 
-        2008 June: if the dependent variable is not in the survey data, the model will simply be dropped!
+        2008 June: if the dependent variable is not in the survey data, the model will simply be dropped.
 
         2008 March 12: 
 
@@ -1001,7 +1001,7 @@ manualDrops = ??
             trows=[tt for tt in trows if not tt[0] == 'R-squared']
             for tt in trows:
                 tt[0]=tt[0].replace('Observations','e(N)').replace('_','-')
-            # WTF!? Above line does not change trows!?!?
+            #  Above line does not change trows.?.?
             assert not any([tt[0]=='R-squared' for tt in trows])
         if any([tt[0] in ['e(r2-a)','r2_a'] for tt in trows]):
             trows=[tt for tt in trows if not tt[0]=='e(r2)']
@@ -1013,7 +1013,7 @@ manualDrops = ??
             if row[0].startswith('z-'):
                 row[0]=row[0][2:]
 
-        # Strip out HERE ?!?! empty pairs??? (no, it's done later. If things seem buggy, maybe there are >100 variables)
+        # Strip out HERE ?.?. empty pairs??? (no, it's done later. If things seem buggy, maybe there are >100 variables)
         
             """
 	(1)	(2)	(3)	(4)
@@ -1026,20 +1026,20 @@ lnincomeh2	0.326***	0.309***	0.362***	0.389***
 
 
     def str2models(self,statacode,defaultModel=None,before='before'):
-        """ Oct 2009: allow regTable to accept what is essentially a do-file of regressions!!!!!!
+        """ Oct 2009: allow regTable to accept what is essentially a do-file of regressions......
         This started out accepting only 
 
 Nov 2009: Now adding defaultModel as a way to add flags...
 
 
-Dec 2009: add facility for statacode to be a list! some can be dicts (models), or '|', or strings of stata code!!
+Dec 2009: add facility for statacode to be a list. some can be dicts (models), or '|', or strings of stata code..
 
 
 2010 Feb: Added new option 'before' which can be used to specify which type of 'code' element the inter-regression text becomes.  For instance, you may very well want to set it to be 'loadData' to make it come before anything else.
 
 2010 March: take new comment: *flag:string   at beginning of line sets "string" to True as a flag for the subsequent model.
 
-2011 May: adding "*storeestimates:name" (if name: already given, will just use that! but colon needed no matter what)
+2011 May: adding "*storeestimates:name" (if name: already given, will just use that. but colon needed no matter what)
 
 I've added various other flag/settings specified starting with *.
 
@@ -1062,11 +1062,11 @@ I've added various other flag/settings specified starting with *.
         models=[]
         precode=''
         moreCodes={}
-        extraFields={}# Some fields can be specified by string!
+        extraFields={}# Some fields can be specified by string.
         if not defaultModel:
             defaultModel={}
         for aline in lines:
-            if aline in ['|','*|']:# Syntax to put a divider line between two models!
+            if aline in ['|','*|']:# Syntax to put a divider line between two models.
                 #assert models
                 self.addSeparator(models)
                 continue
@@ -1127,7 +1127,7 @@ I've added various other flag/settings specified starting with *.
                     extraFields['flags'][aflag]=1
             elif aline.startswith('*flags:'): # Syntax to add a flag to next model
                 # Example with three flags: *flag:CR=foo:thisone=yes:robust
-                # This means you cannot have a colon in a flag value! Oh no! I think I should retract that feature. Okay, I'm changing it so that you can use "flags" if you want more than one, but none with a colon.
+                # This means you cannot have a colon in a flag value. Oh no. I think I should retract that feature. Okay, I'm changing it so that you can use "flags" if you want more than one, but none with a colon.
                 for aflag in aline.split(':')[1:]:
                     extraFields['flags']=extraFields.get('flags',{})
                     if '=' in aflag:
@@ -1168,7 +1168,7 @@ I've added various other flag/settings specified starting with *.
                         defflags=parseFlags(defaultModel['flags'])
                         modelflags=parseFlags(amodel['flags'])
                         for ff in defflags:
-                            assert ff not in modelflags # You can use defaultModel to add extra flags, but not to overwrite existing flags!
+                            assert ff not in modelflags # You can use defaultModel to add extra flags, but not to overwrite existing flags.
                             modelflags[ff]=defflags[ff]
                         amodel['flags']=modelflags
                     if field not in amodel:
@@ -1181,7 +1181,7 @@ I've added various other flag/settings specified starting with *.
         ###
         #######################################################################################
         # 2009Sept: Following section seems obselete now that I am not using est2tex. Let's keep the three-letter prefix anyway, but no longer truncate the rest of the filename. I'll do this just by changing the name length parameter from 25 to 100
-        # Following section gives a semi-unique name for the table, but if ever the assert catches, I should just change code to  rename the output file when it's done (est2tex requires the file to have the same, length-limited name as the matrix!!!).  output .txt file then will get renamed to tablenamelongform when done.
+        # Following section gives a semi-unique name for the table, but if ever the assert catches, I should just change code to  rename the output file when it's done (est2tex requires the file to have the same, length-limited name as the matrix...).  output .txt file then will get renamed to tablenamelongform when done.
         aa='ABCDEFGHIJKLMNOPQRSTUVWXZY'
         maxnamelength=100
         tablePrefixes=[a for a in aa]
@@ -1192,7 +1192,7 @@ I've added various other flag/settings specified starting with *.
         pref=tablePrefixes[sum([ord(a)^2 for a in tablename]) % len(tablePrefixes)]
         tablenamel=pref+'-'+''.join([c for c in tablename if c not in ' ():;"|-'])[0:(maxnamelength-3-1-len(self.modelVersion)-len(self.regressionVersion))]+'-'+self.modelVersion+self.regressionVersion
         tablenamelongform=''.join([c for c in tablename if c not in '():;"|']).replace(' ','-').replace('_','-')+'-'+self.modelVersion+self.regressionVersion
-        assert tablenamel not in self.txtNamesUsed or skipStata==True # If this occurs, you probably need to make sure you are reloading cpblStata each time you run your program. Aug 2010: no longer: i now reset it on each instance. so shouldn't happen!
+        assert tablenamel not in self.txtNamesUsed or skipStata==True # If this occurs, you probably need to make sure you are reloading pystata each time you run your program. Aug 2010: no longer: i now reset it on each instance. so shouldn't happen.
         self.txtNamesUsed+=[tablenamel]
         # Put a pointer in all models to let them know what table they're in (why? e.g. for subSampleAnalysis)
         return(tablenamel)
@@ -1215,9 +1215,9 @@ I've added various other flag/settings specified starting with *.
 
         If tablename is given, it will ... no...
 
-        Okay, to make this work you need to use svy:reg. Otherwise it gets upset about using pweights OR clustering!!!
+        Okay, to make this work you need to use svy:reg. Otherwise it gets upset about using pweights OR clustering...
 
-        modelSuffix: beats the hell out of me. Stata is inconsistent. Kludge! ah!
+        modelSuffix: beats the hell out of me. Stata is inconsistent. Kludge. ah!
 
         (why wouldn't stataStoredName just be the same as stataModelName, which already exists?)
         """
@@ -1243,7 +1243,7 @@ I've added various other flag/settings specified starting with *.
             modelSuffix=[modelSuffix]*2
         assert isinstance(modelSuffix,list) and len(modelSuffix)==2
         
-        ##suestTest() in cpblStata??
+        ##suestTest() in pystata??
         statacode=("""
         *BEGIN SUEST TESTS TWOMODELS
         suest %(sn0)s %(sn1)s
@@ -1330,7 +1330,7 @@ The argument regoptions includes code that should come after the variables to re
 
 N.B. if the "beta" option is given to Stata in a reg command, it is intercepted here, all the variables are normalised, and a robust weighted regression is done to create beta coefficients in place of the normal regression output. This results in the same coefficients as Stata produces, but allows full standard error calculation, etc.
 
-betas: Alternatively, an entire table can be turned into betas (if it is OLS) by giving the betas=True option.  Setting betas='both' would double every model (hm, can I do this safely, sensibly!?) so that there's a beta model following the raw coef model. Hm, in that case, shouldn't I ditch the stats for the beta version?  I guess that would need to be done by hand, given the final chosen layout for the table. No, there's not 'both' optoin. Just use the function   duplicateAllModelsToDualBeta(models):
+betas: Alternatively, an entire table can be turned into betas (if it is OLS) by giving the betas=True option.  Setting betas='both' would double every model (hm, can I do this safely, sensibly.?) so that there's a beta model following the raw coef model. Hm, in that case, shouldn't I ditch the stats for the beta version?  I guess that would need to be done by hand, given the final chosen layout for the table. No, there's not 'both' optoin. Just use the function   duplicateAllModelsToDualBeta(models):
 
 The argument "models" is a list of [dicts and lists of dicts]. Dicts have the following tags (and maybe more):
 
@@ -1356,7 +1356,7 @@ The argument "models" is a list of [dicts and lists of dicts]. Dicts have the fo
 'feGroup': contains the name/number of a collection of models to which progressively restrictive dummies have been added; the group should be analysed together to extract coefficients at each level. Actually, there can be whatever properties like this I want. U'm using "CRgroup"
 'getSubSampleSums': a list of conditions, to be combined with "if e(sample)", for which to calculate sums of subsamples of the samples used in the estimation. These will get read from the Stata log file and be incorporated into the model dict as 'subsums' element, which can then be acted on by a followupFcn.
 
-aspects like "depvar", "regoptions", "reg" can also be incorporated!
+aspects like "depvar", "regoptions", "reg" can also be incorporated.
 For now, there is a helper function above, to aid in the transition by translating to the dict form.
 
 'compDiffBy'= incomeVariable :  this will solicit the covariance matrix from the regression and calculate compensating differentials for all variables except the one supplied. (Aug 2009)
@@ -1411,7 +1411,7 @@ For the moment, I will just hardcode in here what I want it to do... the behavio
 
 4 April 2008: I've hardcoded "transposed=True" right now, but transposed='both' is default.
 
-19 March 2008: a 5th element now exists: this is stata code to run before doing the regression!!
+19 March 2008: a 5th element now exists: this is stata code to run before doing the regression..
 
 # March 2008: Now a new 4th element of a model entry  corresponds to either '' or '|'. The latter puts a vertical line after that column. It can be passed as a row by itslef (['|']) in the list of models. 2009OCtober: reinstated parsing '|' in  list of models.
 
@@ -1419,7 +1419,7 @@ For the moment, I will just hardcode in here what I want it to do... the behavio
 
 # July 2008: The above March 2008 "showvars" is a really bad idea. I've renamed "showvars" to "variableOrder" and created another option, showonlyvars. [Note also: class-setting: self.variableOrder and module default defaultVariableORder]. So the parameters
 
- - variableOrder (specify ordering in LaTeX of some of the first covariates, if they exist in the regression. It can also specify the order of flags/dummies listed, etc...!!! [latter part not done yet jul2008]),
+ - variableOrder (specify ordering in LaTeX of some of the first covariates, if they exist in the regression. It can also specify the order of flags/dummies listed, etc...... [latter part not done yet jul2008]),
  - showonlyvars (specify order and exact set of covariates in LaTeX; this option is risky since it's nto explicit what is being suppressed), and
  - hidevars [used to be called noshowvars] (suppress certain covariates or extrarows/stats info in the output)
 - forceshowvars protects variables and properties from getting hidden due to being empty in all displayed models.
@@ -1439,7 +1439,7 @@ all apply to the generation of LaTeX output, *not* to what gets given to Stata. 
         # Other possible formats: ["", "dependentvars", ["booleanAttribute"]]   or  ["", "dependentvars", [["attribute","value"],["otherattribute","anothervalue"]]] ,...
         # reg, depvar,regoptions must be scalar or have the same number of values as models:
         #
-        # combineRows is a list of pairs or sets of variable names to combine into one (so both variables must not exist in the same model/column!), leaving/using the first name listed.
+        # combineRows is a list of pairs or sets of variable names to combine into one (so both variables must not exist in the same model/column.), leaving/using the first name listed.
         For instance, when I have both real and nominal incomes, I might want the coefficients to appear on the same row, and just have the difference signified with an indicator row later.
 
         Columns can also be combined, which means something totally different. This takes a mean of each coefficient over several models (!). Typically, these models are identical except that they are run on different, similar surveys.
@@ -1463,14 +1463,14 @@ If future versions, one will be able to provide names (list of strings) rather t
 "hideModelNames" can be used to avoid showing the words associated with a particular model row/column. This is mostly useful to get rid of the ones that are automatically made in the various fancy functions (sums, CRC collection) etc.
 
 
-Oct 2008: renumberModels: when subset of models seclected, renumber from (1). Sept 2009: this changed to default True! from default False
+Oct 2008: renumberModels: when subset of models seclected, renumber from (1). Sept 2009: this changed to default True. from default False
 
 Dec 2008: In LaTeX output, failed models (ie/eg with r^2 or equivalent 0 or 1) are not shown unless "showFailedRegressions" is set to True.
 
 Aug 2009: Completed betas=True mode
 
 
-Aug 2009: followupFcn=f(thisLatexClass,models,followupArgs),followupArgs={'arg1':val1, ...etc).  These are to REPLACE postplotfcn etc, which rely strangely on pairedRows etc. More generally, this can do anything it wants. It is a way to extend functionality of regTables, obviously. It is called (and some information maybe addedto followupArgs) after the estimation results have been read in. followupFcn can also be a list of function pointers if you want to do more than one, in sequence! But they all get the same followupArgs!
+Aug 2009: followupFcn=f(thisLatexClass,models,followupArgs),followupArgs={'arg1':val1, ...etc).  These are to REPLACE postplotfcn etc, which rely strangely on pairedRows etc. More generally, this can do anything it wants. It is a way to extend functionality of regTables, obviously. It is called (and some information maybe addedto followupArgs) after the estimation results have been read in. followupFcn can also be a list of function pointers if you want to do more than one, in sequence. But they all get the same followupArgs.
 
 Aug 2009: showCompDiff= boolean (or could be "only", "aftereach" "atend") which decide whether comp diffs should be shown in the table. "only" would hide everything else. "aftereach" would intersperse comp diff cols with regressions coef cosl; "atEnd" would put them in a separate group at end of the same table. If it's not specified, but some comp diffs are asked for at the model level, then this should default to something. Say, "aftereach". Same if showCompDiff=True.
 
@@ -1488,12 +1488,12 @@ May 2011: I need to split this up into a display portion and a Stata portion... 
 
 Aug 2011: New field of model struct: "isManualEntry". If you want to add/insert a custom row with minimal (no!) processing, set this to True.
 
-Aug 2012: Now deals with regressors of form "i.var" (and even i.var#var2 etc)  as follows: assume we're not interestd in the coefficients. Therefore, (1) hide it from estimate results (since estimates table doesn't use the variable names for such dummies) but also, let's not create it if it doens't exist (yet), because we want regressions to fail if not-shown variables are mistakenly absent!
+Aug 2012: Now deals with regressors of form "i.var" (and even i.var#var2 etc)  as follows: assume we're not interestd in the coefficients. Therefore, (1) hide it from estimate results (since estimates table doesn't use the variable names for such dummies) but also, let's not create it if it doens't exist (yet), because we want regressions to fail if not-shown variables are mistakenly absent.
 
 Limitations:
 It is only specifically savvy about regress (OLS), logit and ologit at the moment.
 
-Should not be too hard to convert to using R, since the stata-specific parts are fairly well circumscribed or functionalised (e.g. reading Stata text output directly to get results, ugh!)
+Should not be too hard to convert to using R, since the stata-specific parts are fairly well circumscribed or functionalised (e.g. reading Stata text output directly to get results, ugh.)
 
 Bugs:
 ?
@@ -1652,7 +1652,7 @@ Bugs:
         alreadyProcessedMeans=[imm for imm,mm in enumerate(fullmodels) if 'isMean' in mm]
         if alreadyProcessedMeans and not skipReadingResults:
             ##assert 0 # just saw this: should integrete skipreadingfile or whatever it's called, option?  skipReadingResults
-            print ' It looks like you have passed an alread-processed set of models!! Dropping %d synthetic mean models out of a passed list %d long... Dropping: '%(len(alreadyProcessedMeans),len(fullmodels))+str([fullmodels[imm]['name'] for imm in alreadyProcessedMeans])
+            print ' It looks like you have passed an alread-processed set of models.. Dropping %d synthetic mean models out of a passed list %d long... Dropping: '%(len(alreadyProcessedMeans),len(fullmodels))+str([fullmodels[imm]['name'] for imm in alreadyProcessedMeans])
             for iimm in alreadyProcessedMeans[::-1]:
                 fullmodels.pop(iimm)
 
@@ -1678,9 +1678,9 @@ Bugs:
 
         
         for imm in range(len(models)):
-            models[imm]['modelNum']=imm+1 # An innovation Sept 2008: This ought to simplify some later stuff, no!??! Rewrite all the model/calc numbering, through this functoin! Should do same with the name!
+            models[imm]['modelNum']=imm+1 # An innovation Sept 2008: This ought to simplify some later stuff, no.??. Rewrite all the model/calc numbering, through this functoin. Should do same with the name.
 
-        # Check for separator indicators: simple strings mixed in amongs the dicts. Also add format field # (Obselete!!!)
+        # Check for separator indicators: simple strings mixed in amongs the dicts. Also add format field # (Obselete...)
         for irow in range(len(models))[::-1]:
             ##if isinstance(models[irow],str) and len(models[irow])>1: #  not a separator; convert 1element to 4 element
             ##    models[irow]={'model':models[irow]} # Probably need to fill in other fields here
@@ -1705,11 +1705,11 @@ Bugs:
                     models[irow][3]='c|'
         
         
-        # Expand some other arguments that can be strings or lists: THESE SHOULD BE MOVED INSIDE THE DICTS!. Oct 2009: it already is, via defaultModel, below!
+        # Expand some other arguments that can be strings or lists: THESE SHOULD BE MOVED INSIDE THE DICTS.. Oct 2009: it already is, via defaultModel, below.
         if 0 and isinstance(method,str):
             for mm in models:
                 assert 'method' not in mm
-                mm.update({'method':method})# This overwrites!
+                mm.update({'method':method})# This overwrites.
             
         # Some of the optional arguments to regTable can all be dealth with using defaultModel:
         if not defaultModel:
@@ -1810,7 +1810,7 @@ Bugs:
         Need notes here: what is accomplished? What starts here?
         """
         for im in range(nModels): #regressors in models:
-            if not DO_NOT_DEEPCOPY and not returnModels: # In case of returnModels, following security insurance is not present!
+            if not DO_NOT_DEEPCOPY and not returnModels: # In case of returnModels, following security insurance is not present.
                 models[im]=deepcopy(models[im]) # Ensure against overwriting parts of other models (is there ever a case when I want to??)
             model=models[im]
             if 'isManualEntry' in model:
@@ -1836,16 +1836,14 @@ Bugs:
 
             """%(im+1,tablename)
 
-            if 0:# not newmode or newmode: # eh? should get rid of this statamodelname b.s.!
-                model['stataModelName']=model['depvar']+'$$'*im #'c%d'%im # Remind me why we have to do this?!? oh , it's only for esttex. This element of the dict used to be a separate array called "columnName[nmodels]"
 
-            # Damn! Jan 2010 and Im' just now finding that regressors includes the whole "if" clause?!
+            # Jan 2010 and Im' just now finding that regressors includes the whole "if" clause?.
             RHSvars=model['model'].split(' if ')  # Spe 2010: WTF is this?? it looks like I forgot a [0]. Ah, this is not used. Line is junk.
             assert len(RHSvars)<3 # Did you write more than one if in your model?
 
             RHSvarsNoWildcards=' '.join([vv for vv in model['model'].split(' if ')[0].split(' ') if vv and '*' not in vv])
 
-            # Jan 2010: ELIMINATE or carefully replace "regressors" which for some reason contains the if clause, etc!!!
+            # Jan 2010: ELIMINATE or carefully replace "regressors" which for some reason contains the if clause, etc...
 
             # At this point, all models should be multi-field'ed dicts.
             ###if isinstance(model,list):  # Use extra features....
@@ -1893,7 +1891,7 @@ Bugs:
                     modelregoptions=modelregoptions.replace('beta','')
 
             if doBetaMode:
-                assert 'compDiffBy' not in model # You can't call comp diffs with beta mode!!
+                assert 'compDiffBy' not in model # You can't call comp diffs with beta mode..
                 assert 'getSubSampleSums' not in model
                 if '[pw=' in modelregoptions or '[pweight=' in modelregoptions:
                     debugprint("""Caution! Switching to analytic weights for beta calculation. This reprodcues Stata's own "beta" coefficients when normalisation is done over the right sample, etc.""")
@@ -1921,7 +1919,7 @@ Bugs:
             RHS['simplest']=flattenList([av for av in RHS['rawBeforeIf'] if '*' not in av and not av.startswith('i.') and '#' not in av ],unique=True)
             # Now, compile some lists:
             RHSs={'used':' '.join(RHS['simplest']+RHS['inConditions']+RHS['inIndicators']+RHS['inInteractions'])}
-            # Do not auto-create variables in f.e. indicators, since we are not going to display the results and therefore notice that they're missing! 
+            # Do not auto-create variables in f.e. indicators, since we are not going to display the results and therefore notice that they're missing. 
             RHSs['autoCreate']=' '.join(RHS['simplest']+RHS['inConditions']+RHS['inInteractions'])
             RHSs['zScoreVars']=' '.join([model['depvar']]+RHS['simplest']) #+RHS['inInteractions'])
             RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['rawBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars])
@@ -1929,7 +1927,7 @@ Bugs:
             if 0:
                 # Following line is a bit misguided: the "if" exists in regressors, not after [weight]  part.
                 thisRegVarsUsed=''.join([cc for cc in (model['depvar'] +' '+ regressors +' '+ modelregoptions).split(' if ')[0] if cc not in '[]=,'])
-                # Dec 2009. Fixing above line to find all variables used in the if statement too: (but exclude strings! using the re.sub):
+                # Dec 2009. Fixing above line to find all variables used in the if statement too: (but exclude strings. using the re.sub):
                 thisRegVarsUsedList=uniqueInOrder([cc for cc in (model['depvar'] +' '+ re.sub('".*?"','',regressors)).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]) # >='A' and cc[0]<='z'
 
                 def removeIndicatorsAndSplitInteractions(avarlist):
@@ -1946,7 +1944,7 @@ Bugs:
 
                 thisRegVarsUsed=' '.join(thisRegVarsUsedList)
 
-                # What the hell? dec 2009: this looks like it includes LHS var! REMOVED: model['depvar'] +' '+
+                # What the hell? dec 2009: this looks like it includes LHS var. REMOVED: model['depvar'] +' '+
                 thisRegRHSvars=''.join([cc for cc in ( regressors +' '+ modelregoptions).split(' if ')[0] if cc not in '[]=,'])
                 #assert depvar in thisRegRHSvars
                 thisRegVarsUsedNoWildcard=' '.join([cc if not cc.startswith('i.') else cc for cc in thisRegVarsUsed.split(' ') if cc and '*' not in cc])
@@ -1973,7 +1971,7 @@ So I'll put the two auto things below at the very beginning of "before" and will
       
             if 'autoExcludeVars' in model: 
                 """ e.g. consider if the "if" clause identifies one country. Then this would set all values for just that country to -999. Use carefully, because if you mix subsets later, you might get some -999s mixed with real values... (or this should keep track and undo its work... Currently, it does: it uses a "restore" later to undo its work."""
-                if model['autoExcludeVars'] in [True,'']: # ie its value is None or '' ...?April2010: no... caution: if ==None, this will not work!! (mod'ed april 2010)
+                if model['autoExcludeVars'] in [True,'']: # ie its value is None or '' ...?April2010: no... caution: if ==None, this will not work.. (mod'ed april 2010)
                     preIf,postIf=regressors.split(' if ')
                     model['autoExcludeVars']=postIf
                 model['code']['autoExcludeVarsBefore']="""
@@ -2009,7 +2007,7 @@ capture gen `var'=0
                     print ('regTable: CAUTION! TRYING A SAMPLE SELETION FOR A BETA REGRESSION, BUT THERE ARE WILDCARDs OR v12 INTERACTIONS OR V12 INDICTORS IN SOME VARIABLES. THESE WILL BE LEFT IN, BUT NOT NORMALIZED! ', RHS['wildcards']) #[ww for ww in thisRegRHSvars.split(' ') if '*' in ww])
                 #LthisRegVarsUsed_NoWildCards= [vv for vv in thisRegVarsUsed.split(' ') if vv and not '*' in vv]
 
-                # Make sure to use proper weights in zscore!!
+                # Make sure to use proper weights in zscore!.
                 zscoreVars=RHSs['zScoreVars']#' '.join([vv for vv in (model['depvar'] +' '+ regressors +' '+ modelregoptions).split(' if ')[0].split(' ') if vv and not '*' in vv])
                 zscoreLine= 'zscore '+' '+ zscoreVars
                 #zscoreLine= 'zscore '+' '+ ' '.join(LthisRegVarsUsed_NoWildCards)+' if '+ (regressors +' '+ modelregoptions).split(' if ')[1].replace(' if ',' if z_dSample & ') #model['depvar'] +' '+ regressors 
@@ -2130,12 +2128,8 @@ error _rc
 
             # Now also run the after-regression code required, for instance to do some statistical tests:
             incomeVars=[iii for iii in possibleIncomeVars  if iii and  iii in regressors.split(' ')]
-            if incomeVars: # Careful. It's actually possible, with semiparametric [ie rolling regression!], for an income variable to be dropped as collinear, ie everyone has same income.
+            if incomeVars: # Careful. It's actually possible, with semiparametric [ie rolling regression.], for an income variable to be dropped as collinear, ie everyone has same income.
                 outs+= '\n capture test 0=%s\n'%('+'.join(incomeVars))
-                #outs+= 
-                #if _rc==0 {
-                #capture test 0=%s\n'%('+'.join(incomeVars))
-                # So if the above line fails, which thing should I not save?? (-->! Aug 2008) -->
 
             # And save all coefficients to the dataset, if so requested: (yuck... can't I just save them using estimates store and refer to them that way!!)
             if assignSaveCoefficientsPrefix:
@@ -2164,7 +2158,7 @@ error _rc
                 if 'compDiffBy' in model or 'getSubSampleSums' in model:
                     outs+=stataElicitMatrix('e(V)')
 
-                # An optional argument is this stata code to run after the regression! I really have no idea which should come first, the externally-specified "after" or the sumsAfter. Really, I should use more specific elements than general "after" so that I can order them sensibly.
+                # An optional argument is this stata code to run after the regression. I really have no idea which should come first, the externally-specified "after" or the sumsAfter. Really, I should use more specific elements than general "after" so that I can order them sensibly.
                 outs+='\n'+model['code']['after']+'\n'
                 outs+='\n'+dgetgetOLD(model,'code','testsAfter','')+'\n'
                 outs+='\n'+dgetgetOLD(model,'code','autoExcludeVarsAfter','')
@@ -2185,7 +2179,7 @@ error _rc
 
             if 'getSubSampleSums' in model:
                 outs+="""
-                 * Generate a covariance matrix for regressors and display it. This is going to be used as an approximate for the cov matrix for subsets of the full sample, too. (Jan 2010: What about pweights?! Ah! Jan 2010, now incorporated pweight into following:)
+                 * Generate a covariance matrix for regressors and display it. This is going to be used as an approximate for the cov matrix for subsets of the full sample, too. (Jan 2010: What about pweights?. Ah. Jan 2010, now incorporated pweight into following:)
                  matrix accum R = %s [pweight=weight] if cssaSample, nocons dev
                  matrix sampleIndepCorr = corr(R)
                 matrix list sampleIndepCorr,nohalf
@@ -2197,20 +2191,20 @@ error _rc
             if doPcorr: # Note: This stupidly now calls the before and after, which is no longer compatible in general (see semiparametric)...
                 # So in Aug 2008 I've turned off the pcorr function by default. Not sure I ever really used it anyway. Well, actually, I've changed semiparam so it may be compatible again, but I am not using pcorr..
                 outs+='\nlog using %s.pcorr_%d.txt,append text\n'%(defaults['paths']['stata']['tex']+'pcorr/'+tablenamel,im)
-                # An optional argument is this stata code to run before the regression!
+                # An optional argument is this stata code to run before the regression.
                 if 'code' in model:
                     outs+='\n'+model['code']['before']+'\n' 
                 #if len(model)>4:
                 #    outs+='\n'+model[4]+'\n' 
                 outs+=  'capture '*(not stopForErrors) + 'pcorr '+ model['depvar'] +' '+ regressors +' \n'
-                # An optional argument is this stata code to run after the regression!
+                # An optional argument is this stata code to run after the regression.
                 if 'code' in model:
                     outs+='\n'+model['code']['after']+'\n' 
                 #if len(model)>=6:
                 #    outs+='\n'+model[5]+'\n' 
                 outs+='\nlog close\n'
 
-            # An optional argument is this stata code to run after the regression and the results export!
+            # An optional argument is this stata code to run after the regression and the results export.
             if 'code' in model and 'afterExport' in model['code']:
                 outs+='\n'+model['code']['afterExport']+'\n' 
 
@@ -2256,7 +2250,7 @@ copy "%s" "%s", replace
 
 
 
-        # This marks NEARLY the end of all Stata code production. N.B. that before we decide to abort including any Stata code for this table, we must check to make sure that the number of models in the table hasn't changed since Stata was run, since this is one more basic check that we do in the processing below that can result in the advice "rerun stata", below.  So, proceed with reading Stata output (unless the log file doesn't even exist!) and then close up the Stata code soon below.
+        # This marks NEARLY the end of all Stata code production. N.B. that before we decide to abort including any Stata code for this table, we must check to make sure that the number of models in the table hasn't changed since Stata was run, since this is one more basic check that we do in the processing below that can result in the advice "rerun stata", below.  So, proceed with reading Stata output (unless the log file doesn't even exist.) and then close up the Stata code soon below.
         
         ###################################################################################
         ###################################################################################
@@ -2285,18 +2279,18 @@ copy "%s" "%s", replace
             #import operator
             #allvarsM=uniqueInOrder(    reduce(operator.add, [mm['coefs'].keys() for mm in rlf], [])) 
 
-            # # # # # # # # READ MAIN STATA OUTPUT ! # # # # # # # # # 
+            # # # # # # # # READ MAIN STATA OUTPUT . # # # # # # # # # 
             modelsOriginal=[deepcopy(mm) for mm in models]
 
             rsrlf=readStataRegressionLogFile(tableLogName,dropIfStartsWith=['dCountry']*0,dropVars=None,models=models)
-            # Nov 2010: I'm going to include the entire log file in every .tex file I create, so the source result is always with the paper!
+            # Nov 2010: I'm going to include the entire log file in every .tex file I create, so the source result is always with the paper.
 
             # # # # # # # # MAKE FINAL DECISION ON SKIPPING STATA DUE TO AUTO-SKIP-COMPLETED TABLES, ETC # # # # # # # # # 
             if rsrlf in [None] or 'run Stata and try again' in rsrlf:
-                skipStata=False # I won't skip stata if the log file is outdated!
+                skipStata=False # I won't skip stata if the log file is outdated.
                 print "  (OVERRIDE skipStata!: will run Stata for table "+tablename+" because it's outdated.)"
             if skipStata==True: 
-                assert self.skipStataForCompletedTables or not skipLaTeX # Why is this necessary?? Maybe a warning should be issued... Also, May 2010: I've added an or for self.skipStataFor... The logic is not quite right! But it avoids the assert to bind in a common situation when we dont' want it to, but still lets it bind sometimes. (ugh)
+                assert self.skipStataForCompletedTables or not skipLaTeX # Why is this necessary?? Maybe a warning should be issued... Also, May 2010: I've added an or for self.skipStataFor... The logic is not quite right. But it avoids the assert to bind in a common situation when we dont' want it to, but still lets it bind sometimes. (ugh)
 
                 outs="""
 
@@ -2305,7 +2299,7 @@ copy "%s" "%s", replace
     """
 
 
-            # This marks the end of all Stata code production. The rest is processing and formatting of the results!
+            # This marks the end of all Stata code production. The rest is processing and formatting of the results.
 
 
 
@@ -2383,7 +2377,7 @@ copy "%s" "%s", replace
         if (hideModels and isinstance(hideModels[0],dict)) or (showModels and isinstance(showModels[0],dict)):
             models=[mmm for mmm in models if (not showModels or mmm in showModels) and (not hideModels or mmm not in hideModels) ] # I could instead just set a "hidden" flag for these but keep them around until exporting...
             assert models
-        elif hideModels or showModels: # These are indices (1-based!!) to the model list
+        elif hideModels or showModels: # These are indices (1-based..) to the model list
             if showModels:
                 assert isinstance(showModels,list) and isinstance(showModels[0],int)
             if hideModels:#isinstance(hideModels,list) and hideModels and isinstance(hideModels[0],int):
@@ -2421,14 +2415,14 @@ copy "%s" "%s", replace
                 mm['eststats']['r2']=fNaN
                 mm['eststats']['r2_a']=fNaN
                 mm['eststats']['N']=0
-        if not showFailedRegressions and 0: # CANNOT DO HIDE BROKEN REGs UNTIL REWRITTEN COMBINEROWS FOR NEWMODE!!!
+        if not showFailedRegressions and 0: # CANNOT DO HIDE BROKEN REGs UNTIL REWRITTEN COMBINEROWS FOR NEWMODE...
             woeirweoiuJUSTTESTING_CAN_DELETE_THISLINE
             models=[mm for mm in models if mm['eststats']['r2'] not in badR2] #('r2' in models['eststats'] and
             nModels=len(models)
-        # THIS IS VERY DANGEROUS. DO NOT CALL RENUMBERMODELS IF YOU ARE CR GROUPS....!! IE THIS NEEDS TO BE FIXED, SINCE I THINK IT MAY 
+        # THIS IS VERY DANGEROUS. DO NOT CALL RENUMBERMODELS IF YOU ARE CR GROUPS...... IE THIS NEEDS TO BE FIXED, SINCE I THINK IT MAY 
         if renumberModels:
             for imm in range(len(models)):
-                models[imm]['modelNum']=imm+1 # An innovation Sept 2008: This ought to simplify some later stuff, no!??! Rewrite all the model/calc numbering, through this functoin! Should do same with the name!
+                models[imm]['modelNum']=imm+1 # An innovation Sept 2008: This ought to simplify some later stuff, no.??. Rewrite all the model/calc numbering, through this functoin. Should do same with the name.
 
 
 
@@ -2438,7 +2432,7 @@ copy "%s" "%s", replace
         def modelCombineRows(models,combineRows):
             """ Change the names of regressors in model estimated *results* within a list of model dicts in ordre to combine (or rename) certain variables.
             Note that the estimation coefficients in these models should already be "cleaned up" ie blanks should be eliminated; if a regressor is listed, it should have an estimate.
-            2013: ! adict is no longer a dict, but a pandas frame!
+            2013: . adict is no longer a dict, but a pandas frame.
             
             """
             def renameKey(adict,vfrom,vto):
@@ -2460,7 +2454,7 @@ copy "%s" "%s", replace
                                 assert vto not in mmm['estcoefs']
                                 mmm['estcoefs'][vto]=mmm['estcoefs'][vfrom]
                                 del mmm['estcoefs'][vfrom]
-                    # 2010 June: added piece to also rename variables in the covariance matrix!!
+                    # 2010 June: added piece to also rename variables in the covariance matrix..
                     if 'estCovar' in mmm:
                         # 2013 June: modified because matrices now come as pandas DFs
                         if isinstance(mmm['estCovar'],dict):
@@ -2515,7 +2509,7 @@ copy "%s" "%s", replace
                 print('There is no record of estimation covariance matrix for this model, so SKIPPING COMPENSATING DIFFERENTIALS. Rerun Stata!')
                 continue
             elif len(set(models[imodel]['estCovar'].columns)-set(['_cons']))==0:#not  models[imodel]['estCovar']: # ie, it's there, but empty
-                print('\n\n * * * * estCovar is empty! in model %d: "%s": There is no record of estimation covariance matrix for this model, so SKIPPING COMPENSATING DIFFERENTIALS. Rerun Stata?\n'%(imodel,models[imodel]['name']))
+                print('\n\n * * * * estCovar is empty. in model %d: "%s": There is no record of estimation covariance matrix for this model, so SKIPPING COMPENSATING DIFFERENTIALS. Rerun Stata?\n'%(imodel,models[imodel]['name']))
                 continue
 
             if showCompDiff in [None,True]: # this wasn't specified, yet some model(s) had compDiff setting. So choose default ('aftereach' behaviour for showing comp diffs.
@@ -2523,8 +2517,8 @@ copy "%s" "%s", replace
 
             frommodel=models[imodel]
             ##assert frommodel['model']['compDiffBy'] in frommodel['estmodel']
-            ##print 'Model num unsafe in folloinwg!!!!!' (still?? or did this refer to before deepcopy?)
-            #cdModel=deepcopy(frommodel) # This is TOO MUCH!!! ONLY COPY A FEW, NEEDED ITEMS! explicitly listed...  [April 2011: why? does RAM matter??]
+            ##print 'Model num unsafe in folloinwg.....' (still?? or did this refer to before deepcopy?)
+            #cdModel=deepcopy(frommodel) # This is TOO MUCH... ONLY COPY A FEW, NEEDED ITEMS. explicitly listed...  [April 2011: why? does RAM matter??]
             cdModel=dict(deepcopy([ims for ims in frommodel.items() if ims[0] in ['name','modelNum','model','substitutions','depvar','stataModelName','method','eststats','format','showCompDiffVars','compDiffHideVars']]))
             cdModel.update({'baseModelCopy':deepcopy(frommodel)}) # Added April 2011.
             cdModel.update({'special':'compDiff','compDiff':True,'name':"comp. diff's"+0*frommodel['name']})# ,'modelNum':max([mm['modelNum'] for mm in models])})
@@ -2542,7 +2536,7 @@ copy "%s" "%s", replace
                         continue
             
             if incvar not in frommodel['model'] or incvar not in frommodel['estcoefs'] or incvar not in frommodel['estCovar']:
-                cwarning(frommodel['tableName']+': YIKES!! IMPORTANT THINGS ARE MISSING for "'+frommodel['name']+'"'+""". CANNOT DO COMP DIFFS. TRY RERUNNING STATA?
+                cwarning(frommodel['tableName']+': YIKES! IMPORTANT THINGS ARE MISSING for "'+frommodel['name']+'"'+""". CANNOT DO COMP DIFFS. TRY RERUNNING STATA?
        You asked for """+incvar+""" as the income variable, but:
        incvar in frommodel['model'] , incvar in frommodel['estcoefs'] , incvar in frommodel['estCovar']
        """+str((incvar  in frommodel['model'] , incvar  in frommodel['estcoefs'] , incvar  in frommodel['estCovar'])))
@@ -2573,7 +2567,7 @@ copy "%s" "%s", replace
                 secompdiff=abs(compdiff)* sqrt( (sx/bx)**2   + (sy/by)**2  - 2*sxy/bx/by )
 
                 cdModel['estcoefs'][vv]={'b':compdiff,'se':secompdiff}
-            # Following line looks like I still nee dto program the functionalit for showCompDiff telling me where to put them!
+            # Following line looks like I still nee dto program the functionalit for showCompDiff telling me where to put them.
             # May 2011: okay.. this should really be done at the *showing* stage... but for quick kluge to add basic functionality
             assert showCompDiff in [False,'aftereach','only']
             if showCompDiff in ['aftereach']:
@@ -2581,7 +2575,7 @@ copy "%s" "%s", replace
             frommodel['cdModel']=cdModel # This should just be a pointer to the same thing: I may not want to actually insert a new model, but rather act on the existene of a cdModel element.
             #fromModel['cdModel']=cdModel # uhhh.. i can't htink how to insert models as I go in a loop over models.
             if showCompDiff in ['only']:
-                models[imodel]=cdModel # Destory the from model! replace it with the comp diff model..
+                models[imodel]=cdModel # Destory the from model. replace it with the comp diff model..
                 
                 
 
@@ -2608,7 +2602,7 @@ copy "%s" "%s", replace
                                   [model['estcoefs'][vv]['se'] for vv in model['estcoefs'] if vv in possibleIncomeVars])
             if incsum and len([model['estcoefs'][vv]['b']  for vv in model['estcoefs'] if vv in possibleIncomeVars])>1:
                 model['estcoefs'][r'$\sum\beta_{\rm{inc}}$NOTUSINGCOVMATRIX']={'b':incsum,'se':seincsum}
-                #assert 0 # Whoa! Should do this sum properly using covariance matrix!!!! Don't delete copy of my old method, below, yet.
+                #assert 0 # Whoa. Should do this sum properly using covariance matrix.... Don't delete copy of my old method, below, yet.
             
         
 
@@ -2683,7 +2677,7 @@ copy "%s" "%s", replace
         ###################################################################################
         ###################################################################################
         ###################################################################################
-        # Now, do any preparations needed for aggregating *models*! ie calculating means of results from similar models applied to different data.
+        # Now, do any preparations needed for aggregating *models*. ie calculating means of results from similar models applied to different data.
         #
 
         # Have I excluded failed-regressions, like I did in the oldmethod?
@@ -2730,7 +2724,7 @@ copy "%s" "%s", replace
                         meanModel['textralines']['survey']=r'{\smaller \smaller $\langle$%d$\rangle$}'%(len(uniqueInOrder(sgbyTextraline['survey'])))##nNonZeroRegs)#len([agc for agc in aggColumns[iGroup] if >0]))
                         ###bextralines[irow].insert(insertionColumns[iGroup],r'{\smaller \smaller $\langle$%d$\rangle$}'%nNonZeroRegs)#len([agc for agc in aggColumns[iGroup] if >0]))
 
-                # And for all other fields in the model, copy over all other elements of the summed-over models which are in common!
+                # And for all other fields in the model, copy over all other elements of the summed-over models which are in common.
                 for kk in sumGroups[sg][0].keys():
                     if kk not in meanModel and all([sumGroups[sg][0][kk]==tt.get(kk,None) for tt in sumGroups[sg]]):#All addends have the same value for this flag:
                         meanModel[kk]=sumGroups[sg][0][kk]
@@ -2762,7 +2756,7 @@ copy "%s" "%s", replace
                 # Insert this new "model" in the right place?  Insert also some dividers?
                 iLast=[ii for ii in range(len(models)) if models[ii]==sumGroups[sg][-1]]
                 assert len(iLast)==1 # Important assertion: make sure models are not repeated object pointers. (or do this more generally, earlier on?)
-                # Aug 2011: Following looks bizarre! Should copy the format of the first, not the last. Why? well... if we're reusing models, does this... uh... no, maybe it's fine. problem is somewhere else.
+                # Aug 2011: Following looks bizarre. Should copy the format of the first, not the last. Why? well... if we're reusing models, does this... uh... no, maybe it's fine. problem is somewhere else.
                 meanModel['format']=deepcopy(models[iLast[0]]['format'])
                 if meanModel['estcoefs']:
                     models.insert(iLast[0]+1,meanModel)
@@ -2786,7 +2780,7 @@ copy "%s" "%s", replace
 
             # "means-only" version:
             # Make a version with only new columns, plus any columns
-            # which were not part of an aggregate!! For instance, some
+            # which were not part of an aggregate.. For instance, some
             # columns may only be possible for a single survey. It
             # would be nice here to have an entry in multiple rows of
             # tiny font to show the surveys included in means.
@@ -2846,7 +2840,7 @@ copy "%s" "%s", replace
 
                 N.B.: I want to keep any models which are not part of a CRgroup but which appear in the npairedRows. It's just that I want to collapse any CRgroup models into one line.
 
-                More detail needed here!!!
+                More detail needed here...
                 How do I avoid copying blanks?
                 Once I know my variables that I am going to fill in  and I know which models are part of the group,
                 shouldn't I just copy each non-blank value down to its appropriate entry in order that the models are called? ie assume that fixed effects are called in order of  decreasing scope from one model to the next?
@@ -2859,7 +2853,7 @@ copy "%s" "%s", replace
                 crcolumnName=deepcopy(ncolumnName)
                 crcmodelTeXformat=['c' for ccc in crcolumnName]
                 crCRgroups=deepcopy(nCRgroups)
-                allGroups=uniqueInOrder([gg.keys()[0] for gg in crCRgroups if gg]) # Must preserve order!
+                allGroups=uniqueInOrder([gg.keys()[0] for gg in crCRgroups if gg]) # Must preserve order.
                 # Initialise list of models (row pairs) to keep:
                 toDelete=[]#toKeep=range(len(npairedRows[0])-1) #Fine
                 clustercol=[ff for ff in crextralines if 'clustering' in ff[0]]
@@ -2937,7 +2931,7 @@ copy "%s" "%s", replace
                         anythingForNewModel=True
 
 
-            # Now insert this new model (maybe still needs some annotation!?) right after the final one in the group?
+            # Now insert this new model (maybe still needs some annotation.?) right after the final one in the group?
             if anythingForNewModel:
                 self.addSeparator(newCRmodel)
                 self.addSeparator(models[iLastModel])
@@ -2947,7 +2941,7 @@ copy "%s" "%s", replace
             if 0:
             
                 for groupName in CRgroups:#allGroups:
-                # Find the PR f.e. extralines row because I am going to use it to note new property. [HUH?!]
+                # Find the PR f.e. extralines row because I am going to use it to note new property. [HUH?.]
                 #topCRfeLine=[nel for nel in nextralines if topCR+'~f.e.' in nel[0] and any([col.strip(' ~0') for col in nel[1:]])]
 
                     #startFrom='PR' # Assume all CR sequences contain the same CRs???
@@ -2976,7 +2970,7 @@ copy "%s" "%s", replace
                     # Now, deal with one "CR" scale specially: this is the individual level (non-CR), ie the "HH" household level.  So I am still just finding variables, not models. This is the set of all other income-related stuff that does not have any CR-level with a fixed-effect sometimes provided.: Stick those into incomeColsI['HH'].
                     if crcoefsVars == None:                     # Find all other income vars (ie, the default behaviour):
                         incomeColsI['HH']=[ff for ff in range(len(crpairedRows)) if 'ln' in crpairedRows[ff][0][0]  and 'ncome' in crpairedRows[ff][0][0] and all([ff not in incomeColsI[CR] for CR in CRs ])]
-                    else: # If the variable names have been specified, we want the ones which have no CR_ prefix!
+                    else: # If the variable names have been specified, we want the ones which have no CR_ prefix.
                         incomeColsI['HH']=[ff for ff in range(len(crpairedRows)) if crpairedRows[ff][0][0] in crcoefsVars]# and all([ff not in incomeColsI[CR] for CR in CRs ])]
 
 
@@ -3001,7 +2995,7 @@ copy "%s" "%s", replace
                         sp[0].insert(insertAt,'')
                         sp[1].insert(insertAt,'')
                     for el in crextralines: # Copy all of the extralines over.
-                        el.insert(insertAt,deepcopy(el[insertAt-1])) #Rewrite this in terms of igroup, not insertAt!
+                        el.insert(insertAt,deepcopy(el[insertAt-1])) #Rewrite this in terms of igroup, not insertAt.
                     for el in crsumStatsRows: # Leave these blank.
                         el.insert(insertAt,'')
                     if hideModelNames:
@@ -3016,7 +3010,7 @@ copy "%s" "%s", replace
                         crcmodelTeXformat[insertAt-2]='c|'
                     crCRgroups.insert(insertAt-1,{})#deepcopy(crCRgroups[igroup[1]]))
                     print(nrowModelNames)
-                    CRs=['HH','DA','CT','CSD','CMA','PR',''] # first element, HH, gets all te non-CR coefs first!
+                    CRs=['HH','DA','CT','CSD','CMA','PR',''] # first element, HH, gets all te non-CR coefs first.
                     stillToCopy=deepcopy(CRs)
 
                     print('CR>: ',[[kk,[LL[0] for LL in incomeCols[kk]]] for kk in incomeCols])
@@ -3037,7 +3031,7 @@ copy "%s" "%s", replace
 
 
                     # Try rewriting the algorithm below, late August 2008 frustrated and confused as to why i needed something so complex.
-                    for ig in igroup[::-1]: # Loop backwards over models within our group so we go from small to large: ie algorithm still depends on the models being called in the right order! (?) ????
+                    for ig in igroup[::-1]: # Loop backwards over models within our group so we go from small to large: ie algorithm still depends on the models being called in the right order. (?) ????
                         # For each model, copy over everything of interest which is not yet filled. It seems my list of all the variables of interest is stuck in incomeColsI
                         iRelevantVariables=[]
                         for ii in incomeColsI:
@@ -3060,7 +3054,7 @@ copy "%s" "%s", replace
                     CRstoCopy: 
                     """
                     crKeepRows=[]
-                    for skipThisOldMethod in []:#ig in igroup[::-1]: # Loop backwards over models within our group so we go from small to large: ie algorithm still depends on the models being called in the right order! (?) ????
+                    for skipThisOldMethod in []:#ig in igroup[::-1]: # Loop backwards over models within our group so we go from small to large: ie algorithm still depends on the models being called in the right order. (?) ????
                         CR=crCRgroups[ig][groupName] # This finds the CR f.e. of a particular model in our group
                         # CRs to copy is all those models with f.e. that are smaller than CR and not yet copied:
                         iii=[ic for ic in range(len(stillToCopy)) if stillToCopy[ic]==CR]
@@ -3172,7 +3166,7 @@ copy "%s" "%s", replace
         #                 #crcolumnNumbers.pop(td-1) # This is reset below
         #                 nrowModelNames.pop(td-1)
         #                 crcmodelTeXformat.pop(td-1)
-        #                 crCRgroups.pop(td-1) # So that next igroup will be calculated correctly!
+        #                 crCRgroups.pop(td-1) # So that next igroup will be calculated correctly.
 
 
         #         # Still need to fix some column titles and column numbers.
@@ -3187,7 +3181,7 @@ copy "%s" "%s", replace
 
 
         #     print 'continuing after missing CR section...'
-        #     # Finally, make a version which excludes all addends AND all means! ie just conventional, pooled columns.
+        #     # Finally, make a version which excludes all addends AND all means. ie just conventional, pooled columns.
         #     if 1:
         #         print 'not sure that all features are yet implemented in new method; see older code above'
         #         onlyPooled=[mm for mm in models if not any([any([mm in sumGroups[sg]]) for sg in sumGroups]) and not 'meanGroupName' in mm]
@@ -3220,8 +3214,8 @@ copy "%s" "%s", replace
                 followupFcn(self,models,followupArgs)
             
         if returnModels:
-            # Make effort now to send the updated models out to the calling function! #:(   ie via updating the list/dict.
-            # April 2010: I think this fails if a list of list of dicts is sent!!!!!!!!!1
+            # Make effort now to send the updated models out to the calling function. #:(   ie via updating the list/dict.
+            # April 2010: I think this fails if a list of list of dicts is sent.........1
             lom=len(originalModels)
             # I've tried to find a way to do this which gets the model pointers into the original pointer list. I think the following strange combination works: I have to start off replacing existing elements, and then I can extend that list without losing the original address.
             for imm in range(len(models)):
@@ -3230,7 +3224,7 @@ copy "%s" "%s", replace
                 else:
                     originalModels+=[models[imm]]
             #originalModels=originalModels[lom-1:]
-            # That (above) seems successful!!
+            # That (above) seems successful..
 
         return(outs) # Returns stata code
 
@@ -3292,7 +3286,7 @@ copy "%s" "%s", replace
         self.includeFig(pp+'/'+ff,caption=caption,texwidth=texwidth)
         return(stout)
 
-    def saveAndIncludeFig(self,figname=None,caption=None,texwidth=None,title=None, # It seems title is not used!
+    def saveAndIncludeFig(self,figname=None,caption=None,texwidth=None,title=None, # It seems title is not used.
                           onlyPNG=False,rcparams=None,transparent=False,eps=False,
                           # And include options from savefigall() [April 2011]
                           ifany=None,fig=None,skipIfExists=False,pauseForMissing=True,bw=False,FitCanvasToDrawing=False,rv=False):
@@ -3323,7 +3317,7 @@ June 2012: Added / Passing rv option through to savefigall
 
 
         from matplotlib import rc
-        if 0: # What?! This should be at the output stage! June 2012
+        if 0: # What?. This should be at the output stage. June 2012
             rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
             # # for Palatino and other serif fonts use:
             # rc('font',**{'family':'serif','serif':['Palatino']})
@@ -3341,7 +3335,7 @@ June 2012: Added / Passing rv option through to savefigall
                 plt.rcParams.update(rcparams)
         if figname==None:
             figname=self.fname+'_'+str(pylab.gcf())
-        # Careful! Adding this 2012 Feb:
+        # Careful. Adding this 2012 Feb:
         from cpblUtilities import str2pathname
 
         # oh dear... i commented out the following april 2010. will this break anything?
@@ -3353,7 +3347,7 @@ June 2012: Added / Passing rv option through to savefigall
             figlocation=paths['graphics']
         else:
             figlocation+='/'
-        # But if this is going to be included in LaTeX, it cannot contain an underscore!
+        # But if this is going to be included in LaTeX, it cannot contain an underscore.
         figfile=str2pathname(figfile).replace('_','-') # really? I have other utilties for this...
 
         #figpath=figname
@@ -3361,7 +3355,7 @@ June 2012: Added / Passing rv option through to savefigall
             if classSaysSkipUpdate and os.path.exists(figlocation+figfile+'.png') and os.path.exists(figlocation+figfile+'.pdf'):
                 print '   Skipping  saving figure '+figlocation+figfile+' because it already exists and self.skipStataForCompletedTable==True'
             else:
-                pylab.savefig(figlocation+figfile+'.png') # Missing the bw option to make both colour and bw versions!
+                pylab.savefig(figlocation+figfile+'.png') # Missing the bw option to make both colour and bw versions.
                 assert not "oops: ifany=None,fig=None,skipIfExists=False,pauseForMissing=True): not implemented yet"
                 print "      Wrote a figure: "+figname+'.[png]'
         else:
@@ -3379,73 +3373,11 @@ June 2012: Added / Passing rv option through to savefigall
         return()
         
 
-    def whaaatNo_junk_compareMeansByGroup(self,vars,conditions, conditionNames,weight=' [pw=weight] ',substitutions=None):
-        """
-        May. Sorry if this can be done with the thing below. :(((
-        Also, core should be moved to cpblStata.py.
-        agh, rush.
-        """
-        oiu
-        # Assume data alread loaded
-        outStata="""
-        *CPBLBEGIN MEANS-BY-GROUP
-        """
-        # Abort!! Use/expand next funciton instead!!
-        
-##         outPrint+="""
-##             capture noisily log close
-##             log using %s.log,replace text """%logfname  + """
-##         """+sload
-##         if code:
-##             outPrint+=code['before']            
-##         for iowi,oneweightsif in enumerate(weightsif):
-##             mweightsif=oneweightsif.replace('[w=','[pw=')
-##             oneifName=oneweightsif.replace('"',"'")
-##             if ifNames:
-##                 oneifName=ifNames[iowi]
-##             outPrint+=''.join(["""
-##             capture confirm variable """+vv+""",exact
-##             if _rc==0 {
-##             di "*-=-=-=-=-=-=-=-= """+vv+' '+oneifName+""""
-##             sum """+vv+' '+oneweightsif+ (defaults['stataVersion']=='linux11')*""", nowrap"""+"""
-##             *~=~=~=~=~=~=~=~
-##             return list
-##             capture confirm numeric variable """+vv+""",exact
-##             if _rc==0 {
-##             di "-~-~-~-~-~-~-~-~"
-##             mean """+vv+' '+mweightsif+"""
-##             }
-##             *+~+~+~+~+~+~+~+~+~
-## }
-##             """ for vv in showVars if vv])
-
-
-
-##         for vv in vars:
-##             for icondit,condit in enumerate(conditions):
-##                 oneifName=conditionNames[icondit]
-##                 outStata+="""
-##             capture confirm variable """+vv+""",exact
-##             if _rc==0 {
-##             di "*-=-=-=-=-=-=-=-= """+vv+' '+oneifName+" """
-##             mean """+vv+' if '+condit +' '+weight+' '+ (defaults['stataVersion']=='linux11')*""", nowrap"""+"""
-##             *~=~=~=~=~=~=~=~
-##             return list
-##             capture confirm numeric variable """+vv+""",exact
-##             if _rc==0 {
-##             di "-~-~-~-~-~-~-~-~"
-##             mean """+vv+' '+mweightsif+"""
-##             }
-##             *+~+~+~+~+~+~+~+~+~
-## }
-##             """ for vv in showVars if vv])
-                               
-        
 
 
     def compareMeansInTwoGroups(self,showVars,ifgroups,ifnames,tableName=None,caption=None,usetest=None,skipStata=False,weight=' [pw=weight] ',substitutions=None):
         """
-        Damn! May 2011. I have written almost all of this into addDescriptiveStatistics() as the mode=compareMeans mode, but I'm moving it to its own function to complete it.
+        May 2011. I have written almost all of this into addDescriptiveStatistics() as the mode=compareMeans mode, but I'm moving it to its own function to complete it.
 
         So write this to work as part of latex output, only.
 
@@ -3577,7 +3509,7 @@ June 2012: Added / Passing rv option through to savefigall
 
 There are two modes. See old getDescriptiveStatistics in codebook class for comments (to copy here) no move here.
 
-If DTA is specified, this will CALL STATA and make the log file (if needed). It adds a table to the self. [Oh!? This seems wrong if there is ifcondition]
+If DTA is specified, this will CALL STATA and make the log file (if needed). It adds a table to the self. [Oh.? This seems wrong if there is ifcondition]
 IF DTA is not specified, this will produce STATA CODE to make the means log. It returns the stata code and adds a table to the self.
 
 If codebook is specified, at the moment it still requires one of the above, but codebook can allow descriptions etc to be avaialble.
@@ -3589,9 +3521,9 @@ June 2010: Added "ifNames" option: give names to the ifconditions.
 
 Nov 2010: Does not work as advertised. returning Stata code fails due to assert datafile. I got around it only by specifying a manual codebook. Maybe that's a feature. 
 
--->> *** Also fails to give warninga bout notFound if execStata is False. Fix this!!
+-->> *** Also fails to give warninga bout notFound if execStata is False. Fix this..
 
-May 2011: adding mode=None. if mode='compareMeans', make a table which compares means for two groups. oh .. .no!! I've made that into a separate function now, so I shouldn't have meddled here.
+May 2011: adding mode=None. if mode='compareMeans', make a table which compares means for two groups. oh .. .no.. I've made that into a separate function now, so I shouldn't have meddled here.
 
 2013 April: Added substitutions option. Works, at least, for singlesurvey means.
         """
@@ -3618,11 +3550,7 @@ This function adds a table to the output LaTeX file.
 So, this can be used either in a sort of automatic mode when closing a LaTeX file, e.g. based on the variables that have been used altogether, or it can be used to make an intermediate table of stats in the middle of a LaTeX file.
 
 
-Dec 2009: Agh! Hours later, I am already rewriting this!! Now I am incorporating the code from getDescriptiveStatistics, which is stucek in the codebook class, so that this function is standalone. That is, this funciton will work using the data in memory or 
-        
-
-
- I NEED EXAMPLES HERE!!!!!!!!!  (no, see docs above (in latex class?))
+ I NEED EXAMPLES HERE.........  (no, see docs above (in latex class?))
         """
 
         # Possibly specify the relevant survey and/or datafile:
@@ -3633,7 +3561,7 @@ Dec 2009: Agh! Hours later, I am already rewriting this!! Now I am incorporating
         if mainSurvey==None:
             mainSurvey=self.mainSurvey
         if not dataFile and mainSurvey:
-            # This doesn't seem quite right -- I should be savvy enough here to load up whatever is available, ie incorporating info from the PDF codebook from Stats Can, not just what fits into a DTA file!
+            # This doesn't seem quite right -- I should be savvy enough here to load up whatever is available, ie incorporating info from the PDF codebook from Stats Can, not just what fits into a DTA file.
             dataFile=WP+'master'+mainSurvey
         if codebook==None:
             codebook==self.codebook
@@ -3687,7 +3615,7 @@ Dec 2009: Agh! Hours later, I am already rewriting this!! Now I am incorporating
 
 
         # Find a codebook, if available. (self.codebook can be a filename: dec 2009)
-        if codebook: # Why the foodle does this fail?!?!
+        if codebook: # Why the foodle does this fail?.?.
             assert isinstance(codebook,stataCodebookClass)
         elif 0 and mainSurvey: # I've converted mainSurvey into dataFile, above, so I should not consider this option first, right??
             print " SORRY!! I still don't know how to keep track well of codebook stuff based on survey name. So ignoring mainSurvey="%mainSurvey
@@ -3695,7 +3623,7 @@ Dec 2009: Agh! Hours later, I am already rewriting this!! Now I am incorporating
         else:
             print "Why am I creating/using a full codebook from DTA for this file, when I may have specified particular if conditions for the statistics I want? Because I want to have the descriptions for these variables, even though my specific stats table call may contain if conditions, etc... (explanation Jan 2009)"
             assert dataFile
-            codebook=stataCodebookClass(fromDTA=dataFile,recreate=self.recreateCodebook,showVars=showVars) # Restrict to just the desired variables!!
+            codebook=stataCodebookClass(fromDTA=dataFile,recreate=self.recreateCodebook,showVars=showVars) # Restrict to just the desired variables..
         #elif self.codebook and isinstance(self.codebook,str):
         #    DTA=self.codebook
             if not codebook:
@@ -3737,7 +3665,7 @@ Dec 2009: Agh! Hours later, I am already rewriting this!! Now I am incorporating
         if execStata:
             sload=stataLoad(dataFile)
         """ Goal here is to ensure that each variable exists before asking for a sum, and to ensure it's numeric before asking for a mean.
-N.B. As for 2010Feb, I am not yet reading/using the mean calculation!
+N.B. As for 2010Feb, I am not yet reading/using the mean calculation.
         """
 
 
@@ -3796,7 +3724,7 @@ N.B. As for 2010Feb, I am not yet reading/using the mean calculation!
             # Following section should probably be used/integrated somehow... mar2013
 #        if self.skipStataForCompletedTables and os.path.exists(tableLogName):
 #            if not skipStata:
-#                print '  Skipping Stata for %s because latex.skipStataForCompletedTables is set ON!!!! and this table is done.'%tablenamel
+#                print '  Skipping Stata for %s because latex.skipStataForCompletedTables is set ON.... and this table is done.'%tablenamel
 #            outs+="""
 #            """
 #            skipStata=True
@@ -3849,7 +3777,7 @@ scalars:
         print ' ********* Above probalby needs nowrap since I added that 2010 may (same with some other nowraps..) ... ONLY IF STATA 11.'
         #stataLogFile_joinLines(tableLogName+'.log')
 
-        # Nov 2010: Horrid kludge!!!!! I'M SURE THIS WILL CREATE BUGS... ?! If it looks like file not already fixed (?). well, not, not conditional: Is this somehow necessary when I make this funciton produce code rather than run stata??
+        # Nov 2010: Horrid kludge..... I'M SURE THIS WILL CREATE BUGS... ?. If it looks like file not already fixed (?). well, not, not conditional: Is this somehow necessary when I make this funciton produce code rather than run stata??
         stataLogFile_joinLines(tableLogName)
 
         if 0: # 2012 and earlier versoin:
@@ -3893,7 +3821,7 @@ scalars:
 
             vv=piecesA[0]
 
-            # July 2010: I'm worried that this is not backwards compatible!! can I make it so?
+            # July 2010: I'm worried that this is not backwards compatible.. can I make it so?
             if ' if ' in vv[3]:
                 ifClause=vv[3].split(' if ')[1].split(' [')[0].strip() # This was my first try: this the if clause taken straight from the Stata sum command. A nice way to do it, but if ifNames have been provided, we should really use the names here.
             else:
@@ -3918,7 +3846,7 @@ scalars:
         ## descStats={}
         ## for vv in fa:
         ##     if vv[0] in descStats:
-        ##         continue # OBSELETE! descStats fails with multiple ifs.
+        ##         continue # OBSELETE. descStats fails with multiple ifs.
         ##     descStats[vv[0]]={}
         ##     for isf in range(len(sfields)):
         ##         descStats[vv[0]][sfields[isf][1]] = vv[3+isf]
@@ -3929,7 +3857,7 @@ scalars:
             descStats2=[]
             ifOrder=[]
             for vv in fa:
-                # July 2010: I'm worried that this is not backwards compatible!! can I make it so?
+                # July 2010: I'm worried that this is not backwards compatible.. can I make it so?
                 if ' if ' in vv[3]:
                     ifClause=vv[3].split(' if ')[1].split(' [')[0].strip() # This was my first try: this the if clause taken straight from the Stata sum command. A nice way to do it, but if ifNames have been provided, we should really use the names here.
                 else:
@@ -3988,7 +3916,7 @@ scalars:
             if ifcondition:
                 comments+=' Samples here were taken with the following condition: "'+str2latex(anifcond)+'"' #ifcondition)+'"'
             codebookT.summaryStatisticsTable_singleSurvey(texFilename=tableLogNameNoSuffix+'-%d.tex'%iIf,latex=self,showVars=showVars,comments=comments,substitutions=substitutions)
-            # 2010 Jun: Also create a .csv file *from* the .tex!
+            # 2010 Jun: Also create a .csv file *from* the .tex.
 ###            from cpblUtilities import cpblTableToCSV
             from cpblTablesTeX import tableToTSV
             fout=open(tableLogNameNoSuffix+'-%d.csv'%iIf,'wt')
@@ -3998,7 +3926,7 @@ scalars:
             if ifNames and len(ifcondition)>1:
                 allIfsCSV+='\n\n'+anifcond+'\n\n'+tmpCSV
 
-            # So in June 2010 I used a sequence of these in csv format to concatenate a series of tables with different ifconditions.: See regressionsAknin... Actually, let's do it here!!
+            # So in June 2010 I used a sequence of these in csv format to concatenate a series of tables with different ifconditions.: See regressionsAknin... Actually, let's do it here..
         if ifNames and len(ifcondition)>1:
             fout=open(tableLogNameNoSuffix+'-all.csv','wt')
             fout.write(  allIfsCSV)
@@ -4031,7 +3959,7 @@ scalars:
  
     
 
-            ## # 2010 Jun: Also create a .csv file *from* the .tex!
+            ## # 2010 Jun: Also create a .csv file *from* the .tex.
             ## from cpblUtilities import cpblTableToCSV
             ## fout=open(tableLogName+'-%d.csv'%iIf,'wt')
             ## tmpCSV=cpblTableToCSV(tableLogName+'-%d.tex'%iIf)
@@ -4089,7 +4017,7 @@ What is "launch"? It seems not used.
             print 'Completing LaTeX file %s...'%(self.fpathname+'.tex')
         #  And compile the latex output:
 
-        # Freakin' windows can't do an atomic rename when target exists!!! So first line is necessary for MS only
+        # Freakin' windows can't do an atomic rename when target exists... So first line is necessary for MS only
         #if os.access(defaults['paths']['tex']+'tables-allCR.tex',os.F_OK):
         #    os.remove(defaults['paths']['tex']+'tables-allCR.tex')
 
@@ -4279,11 +4207,6 @@ This can be called outside of regTable, if desired!
             # model['estcoefs']['_cons']['b']+
 
 
-##         if 0: # NO! See comment above. s.e.'s will be wrong with this method. Instead, take difference first, then multiply by 'b'
-##             for subsamp in subNames:
-##                 for vv in allvars:
-##                     diffpredictions[subsamp][vv],sediffpredictions[subsamp][vv] = seSum(x=[predictions[subsamp][vv],-predictions[basecase][vv]],
-##        sx=[sepredictions[subsamp][vv],sepredictions[basecase][vv]])
         for subsamp in compNames:
             for vv in rhsvars:
                 diffpredictions[subsamp][vv],sediffpredictions[subsamp][vv] = seProduct(x=diffmeans[subsamp][vv] , y=model['estcoefs'][vv]['b'], sx=sediffmeans[subsamp][vv] , sy=model['estcoefs'][vv]['se']) 
@@ -4304,12 +4227,12 @@ This can be called outside of regTable, if desired!
         vgroupComments=''
         if 'groupVars' in plotparams:
             for vgroup in plotparams['groupVars']:
-                assert vgroup not in model['estcoefs'] # Can't reuse existing variable name!!
+                assert vgroup not in model['estcoefs'] # Can't reuse existing variable name..
                 vgroupvars=[vv for vv in plotparams['groupVars'][vgroup] if vv  in model['estcoefs']]
                 if not vgroupvars:#any([vv in model['estcoefs'] for vv in plotparams['groupVars'][vgroup]]):
                     continue
                 varsMovedToGroup+=vgroupvars
-                vgroupComments+=" Category ``%s'' includes: "%vgroup +', '.join(vgroupvars)+'. '# ADD NOTE TO COMMENTS ABOUT THIS GROUP!!!
+                vgroupComments+=" Category ``%s'' includes: "%vgroup +', '.join(vgroupvars)+'. '# ADD NOTE TO COMMENTS ABOUT THIS GROUP...
                 for subsamp in subNames:
                     predictions[subsamp][vgroup],sepredictions[subsamp][vgroup]=seSum(x=[ predictions[subsamp][vv] for vv in vgroupvars],sx=[ sepredictions[subsamp][vv] for vv in vgroupvars])
                 for subsamp in compNames:
@@ -4320,15 +4243,9 @@ This can be called outside of regTable, if desired!
 
             
 
-            # If we have multiple age variables, e.g. age and ageSquared, let's combine them: (NOT DONE YET).  Let's also allow facility to combine other specified groups of variables, for instance all country dummies (!)
+            # If we have multiple age variables, e.g. age and ageSquared, let's combine them: (NOT DONE YET).  Let's also allow facility to combine other specified groups of variables, for instance all country dummies (.)
 
             #diffpredictions[basecase][vv],sediffpredictions[basecase][vv] = seSum(x=[predictions[basecase][vv],-predictions[basecase][vv]],sx=[sepredictions[basecase][vv],sepredictions[basecase][vv]])
-
-            if 0 and 'constant' in allvars:
-                sediffpredictions[subsamp]['constant']=0
-                print ' I am setting the s.e. on the constant to 0 as a horrid kludge! .. what is the right thing to do?'
-
-
 
 
         # Allow specification here of only a subset of the compNames to show in the table and plots:
@@ -4360,7 +4277,7 @@ This can be called outside of regTable, if desired!
             np.ioff()
             np.figure(217)
             np.clf()
-            if 1: # this seems redundant with plotvars!! get rid of rhsvars below????
+            if 1: # this seems redundant with plotvars.. get rid of rhsvars below????
                 rhsvars.sort(key=lambda x:abs(diffpredictions[subsamp][x]))#abs(array([diffpredictions[subsamp][vv] for vv in rhsvars])))
                 rhsvars.reverse()
 
@@ -4452,7 +4369,7 @@ This can be called outside of regTable, if desired!
         # Following obselete. categoryPlot does this for horizontal mode.
         #rhsvars.reverse() # The order above (for plot) was in order of increasing diffprediction. If there's only one comparison, let's order themin decreasing diffprediction
         # Dec 2009: ACtually, since some variables are grouped in the plot, I don't know what a diffprediction order would be. And one doesn't seem to be effectd already on rhsvars to this point. Thus, use variableOrder no matter what, below.
-        # Also, the rhsvars are in substittued form, so ned to substitute variableOrder before using!
+        # Also, the rhsvars are in substittued form, so ned to substitute variableOrder before using.
         variableOrder=defaultVariableOrder
         if 1 or len(subNames)>2:
             rhsvars=orderListByRule( rhsvars,substitutedNames(variableOrder,model['substitutions']),dropIfKey=['constant'])
@@ -4465,7 +4382,7 @@ This can be called outside of regTable, if desired!
         # But as of Jan 2010, the cellsT version is better: it includes "N" for each region, which the other does not.
 
 
-        # Use dtype=object in following to ensure array of strings of arbitrary length!
+        # Use dtype=object in following to ensure array of strings of arbitrary length.
         cellsT=array([['' for jj in range(2+2+4*len(compNames))] for ii in range(3+2*(1+len(rhsvars)))],dtype=object) # num rows: country header, sample sizes, x/xb/etc header, lhs var+s.e., rhsvars+s.e.s;. Num cols: var+ b+ 2 for ref country
 
         """ Header and first row, 'b' """
@@ -4475,19 +4392,6 @@ This can be called outside of regTable, if desired!
         ]
         rows[-1][-1]=chooseSFormat(rows[-1][-1])+'\\\\ \\hline' # Add separator to close this subsamp
 
-##         # rowsSB is obselete!!
-##         rowsSB=[     ['',]]
-##         for vv in [depvar]+rhsvars:
-##             rowsSB[-1]+=[r'\begin{sideways}\sltheadername{%s}\end{sideways}'%vv ,'']
-##         rowsSB+=[['$b$:','',]]
-##         for vv in rhsvars:
-##             rowsSB[-1]+=[model['estcoefs'][vv]['b'] ,'']
-
-
-##         rowsSB[-1][-1]=chooseSFormat(rows[-1][-1])+'\\\\ \\hline' # Add separator to close this subsamp
-
-        #cellsT
-        # Use
 
         from cpblUtilities import flattenList
         # Fill in row and column titles:
@@ -4587,13 +4491,8 @@ This can be called outside of regTable, if desired!
         #rows[1][-1]+='\\\\ \\hline'
         # Original format, with variables as columns: this is usually way too wide even for landscape. So probably should only include it if cols<18 or 20 or so..
         texrows=[' & '.join(row)+'\\\\'*(r'\\' not in row)+' \n' for row in rows]
-        if 0: # Wow!! I am killing the original (un-transposed) format for the decompostion table, at least for now... (jan 2010)
-            cpblTableStyC(cpblTableElements(body=''.join(texrows[1:]),format='rc'+'c'*max([len(row) for row in rows]),firstPageHeader=texrows[0],otherPageHeader=None,tableTitle=tableTitle,caption=comments,label=None,ncols=None,nrows=None,footer=None,tableName=None,landscape=None),
-            filepath='%s%s_%02d%s_subsampleTable.tex'%(defaults['paths']['tex'],model['tableName'],model['modelNum'],model['name']), masterLatexFile=self)
 
-
-
-        # Can I easily transpose this?!
+        # Can I easily transpose this?.
         transRows,colFormats =  transposeLaTeXtableCells(rows)
         #transposedtexrows=        [' & '.join(transRowsrow)+'\\\\'*(r'\\' not in row)+' \n' for row in rows]
 
@@ -4678,7 +4577,7 @@ This can be called outside of regTable, if desired!
 #             print '**** Still need to make a 2-sig-dig mode for chooseSFormat'
 
         # Clean up some problems with the transposed version: last row may have a lot of end-of-row junk:
-        for ic in range(0,len(cellsT[-1])): # Get rid of \hline and \\ in final row-pair, in all but (no, including!) last column
+        for ic in range(0,len(cellsT[-1])): # Get rid of \hline and \\ in final row-pair, in all but (no, including.) last column
             if isinstance(cellsT[-1][ic],str):
                 cellsT[-1][ic]=cellsT[-1][ic].replace(r'\hline','').replace(r'\\','')
             if isinstance(cellsT[-2][ic],str):
@@ -4781,7 +4680,7 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
 
 
                     pcorrs[vva][vvb]=dict(b=r,p=p)
-                    # Must have symmetric matrix if I am able to change order of variables...dict(b='',p='') # This hides lower left triangle. If you did these the opposite way around, it would hide diagonal AND upper right triangle! 
+                    # Must have symmetric matrix if I am able to change order of variables...dict(b='',p='') # This hides lower left triangle. If you did these the opposite way around, it would hide diagonal AND upper right triangle. 
                     pcorrs[vvb][vva]=dict(b=r,p=p)
                     debugprint( vva,vvb,iv,jv,'---------',pcorrs[vva][vvb])
 
@@ -4813,7 +4712,7 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
             fout=open(tableFilePath+'.tex','wt',encoding='utf-8')
             fout.write(includeTeX)
             fout.close()
-            # 2010 Jan: Also create a .csv file *from* the .tex!
+            # 2010 Jan: Also create a .csv file *from* the .tex.
             ###from cpblUtilities import cpblTableToCSV
             from cpblTablesTeX import tableToTSV
             fout=open(tableFilePath+'-tex.csv','wt')
@@ -4886,14 +4785,14 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
         """
 N.B.        Return value is a dict:         return({'statatext':outStata,'models':lmodels,'figures':figs})
 
-    statamodel: This is a Stata regression call, but with the rollingCovariates variables missing from the call!! They will be added in.
+    statamodel: This is a Stata regression call, but with the rollingCovariates variables missing from the call.. They will be added in.
 
     rollingCovariates: a list of variable names:     # These are the covariates of SWBs whose coefficients we may want to estimate as a function of xrollings. You now have the option of setting these in a flag for each model (e.g. via the Stata source format), rather than globally as a parameter. I hesitate to add this feature, since it makes things more complex...
 
     rollingX: the rolling variable. The sample is split into sections based on an ordinal version of this. This is the variable that should appear on the abscissa in the plot.
 
     ordinalRollingX: 
-    For now, let's assume that an ordinalRollingX exists, and the data are loaded! ie an ordinal version of the rolling variable, rollingX, exists.
+    For now, let's assume that an ordinalRollingX exists, and the data are loaded. ie an ordinal version of the rolling variable, rollingX, exists.
     [may 2012: meaning I have to supply both rollingX and ordinalRollingX??  I've now tried to make it create one if it's not given. But not tested properly yet.]
 
     variableOrder: need not include the rollingCovariates, of course.
@@ -4905,14 +4804,14 @@ N.B.        Return value is a dict:         return({'statatext':outStata,'models
     TO DO:  There should
 
 
-    Constants!:
+    Constants.:
     oh no... do i need constants for each quantile too?
-    Constants: It's now an optional argument. One basically always needs to include "nocons" as an option to your regression call, but I'm not enforcing this (!). If you don't set includeConstant=False and provide your own, this function will generate one per segment and include its constant in the rollingCovariates.
+    Constants: It's now an optional argument. One basically always needs to include "nocons" as an option to your regression call, but I'm not enforcing this (.). If you don't set includeConstant=False and provide your own, this function will generate one per segment and include its constant in the rollingCovariates.
 
-    Oct 2011: Oh! I cannot use beta with this, as it will normalize across the divisions in a very weird way. Well... actually, there should be the same number of respondents, roughly, in each. But certainly using constants with nSegments>1 and beta gives garbage / nonsense...
+    Oct 2011: Oh. I cannot use beta with this, as it will normalize across the divisions in a very weird way. Well... actually, there should be the same number of respondents, roughly, in each. But certainly using constants with nSegments>1 and beta gives garbage / nonsense...
      So if you want to calculate betas, you should do a series of separate regressions. [oct 2011]
 
-May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rolling (not semi-rolling) regression, as a robustness test. I seem to have written this "rollingRegression" in cpblStata. It's not yet integrated into cpblStataLatex.  Do so...
+May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rolling (not semi-rolling) regression, as a robustness test. I seem to have written this "rollingRegression" in pystata. It's not yet integrated into pystataLatex.  Do so...
     
         """
         DVNN= 'dependent var, its name'
@@ -4922,14 +4821,14 @@ May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rol
         from pylab import array
         from pylab import flatten
 
-        #assert not weight is None # Until 2015, you need to specify weight is False or give a weight, since this started out assuming a weight!
+        #assert not weight is None # Until 2015, you need to specify weight is False or give a weight, since this started out assuming a weight.
         
         outStata=''
         xrollings=[
             ['lnGDPpc','gdprank'], # country mean income
             ['lnadjHHincome','tgrank'], # absolute own income (log or not are same if get rid of zeros?)
             ['gwp_rankAdjHHincome','crank'], # Rank within own country
-            ['grank','grank'], # rank in globe.  !!BUt there's no difference between grank and tgrank!?
+            ['grank','grank'], # rank in globe.  ..BUt there's no difference between grank and tgrank.?
             ][1:2]
 
         # Start by processing the statamodel commands, in case we need to check it to determine rollingCovariates.
@@ -4943,7 +4842,7 @@ May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rol
         assert rollingCovariates is not None or all([dgetget(mm,['flags','rollingCovariates'],'') for mm in dummymodels])
         if rollingCovariates is not None:
             allRollingCovariates = rollingCovariates
-            assert isinstance(allRollingCovariates,list) # this should be earlier!!
+            assert isinstance(allRollingCovariates,list) # this should be earlier..
         # Determine kernel width (well, number of segments): (uh, well, I am not allowing this to be set per model by flag, yet. So just use the function parameter):
         if nSegments is None:
             nSegments=10
@@ -4987,10 +4886,10 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             #yRollingNames.sort()
         allRollingCovNames=flattenList(covRollingNames.values()) # So this is just a list of all the _q variables names, in order passed.
         models=[]
-        # oh-oh!!! I think I should do the betas in a fully-segmented regressions, not the partial-rolling! Otherwise the normalisation is weird, no? Or just multiply all the betas by 10?
+        #  I think I should do the betas in a fully-segmented regressions, not the partial-rolling. Otherwise the normalisation is weird, no? Or just multiply all the betas by 10?
         lmodels=self.str2models(outModel+"""
         """+statamodel+"""
-        """,before="loadData") # CAREFUL: is there somethign othe than load data I can say here?!!?
+        """,before="loadData") # CAREFUL: is there somethign othe than load data I can say here?..?
 
         # Add in the rolling covariates, the versions with piecewise nonzero values:
         for mmm in lmodels:
@@ -5050,9 +4949,9 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 # for ixv,xv in enumerate(mm['subSums'][ifs[0]].keys()):
                 cvvn=substitutedNames(cvv)
                 cvvs= sorted([vvv for vvv in mm['estcoefs'] if vvv.startswith(cvv)])
-                # No! Above is dangerous. It means that some might be missing. Let's force it to be what we expect. Oh, but this will cause trouble if the Stata log is out of date? too bad. Use NaNs:
+                # No. Above is dangerous. It means that some might be missing. Let's force it to be what we expect. Oh, but this will cause trouble if the Stata log is out of date? too bad. Use NaNs:
                 cvvs=covRollingNames[cvv]
-                if not len(ifs)==len(cvvs): # Need to re-run Stata!!
+                if not len(ifs)==len(cvvs): # Need to re-run Stata..
                     continue
                 assert len(ifs)==len(cvvs)
                 if 0:
@@ -5073,7 +4972,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 
                 #x,y,yLow,yHigh,linestyle='-',linecolor=None,facecolor=None,alpha=0.5,label=None,lineLabel=None,patchLabel=None,laxSkipNaNsSE=False,laxSkipNaNsXY=False,skipZeroSE=False,ax=None,laxFail=True):
 
-                #envelopePatch=plt.fill_between(mm['x'+ordinalRollingX],mm['b'+cvv]-sef*mm['seb'+cvv],mm['b'+cvv]+sef*mm['seb'+cvv],facecolor=qColours[icv],alpha=.5)#,linewidth=0,label=patchLabel)# edgecolor=None, does not work!! So use line
+                #envelopePatch=plt.fill_between(mm['x'+ordinalRollingX],mm['b'+cvv]-sef*mm['seb'+cvv],mm['b'+cvv]+sef*mm['seb'+cvv],facecolor=qColours[icv],alpha=.5)#,linewidth=0,label=patchLabel)# edgecolor=None, does not work.. So use line
                 #plt.plot(mm['x'+ordinalRollingX],mm['b'+cvv],linestyle=qColours[icv]+'.-',label=cvv)#'resid'+' loess fit'+resid)
                 # yerr=sef*mm['seb'+cvv],
             # If aborted above loop due to Stata needing to be re-run:
@@ -5083,7 +4982,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 plt.ylabel(r'Standardized $\beta$ coefficients (for %s)'%mm['depvar'])
                 NoWay_CANNOT_DO_BETA_WITH_ROLLING_
             plt.plot(plt.xlim(),[0,0],'k:',zorder=-100)
-            # This should be removed!! Not general! Can return figs, so no need to do this here.
+            # This should be removed.. Not general. Can return figs, so no need to do this here.
             if 'lnGDPpc' in mm['estcoefs']:
                 y,yse=mm['estcoefs']['lnGDPpc']['b'],mm['estcoefs']['lnGDPpc']['se']
                 plotWithEnvelope(plt.xlim(),[y,y],[y-sef*yse,y-sef*yse],[y+sef*yse,y+sef*yse],linestyle='-',linecolor='k',facecolor='k',lineLabel=substitutedNames('lnGDPpc'))
@@ -5110,7 +5009,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
         
     def substitutedNames(self,names):
         """
-        See cpblStata's substituted names!
+        See pystata's substituted names!
         """
         return(substitutedNames(names,self.substitutions))
 
@@ -5146,7 +5045,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 if __name__ == '__main__':
 ################################################################################################
 ################################################################################################
-    print ' DEMO MODE!!!!!!!!! for cpblStataLatexRegressions ... '
+    print ' DEMO MODE!!!!!!!!! for pystataLatexRegressions ... '
     sVersion,rVersion,dVersion='CPBLtesting','XXXX','testing'
     
     from recodeGallup import gDataVersion,pathList,gVersion
@@ -5160,5 +5059,7 @@ gzuse macroNov2010,clear
     runBatchSet(sVersion,rVersion,[
             testFunctions            
             ],dVersion='testingOnly-forCPBLStataLR',substitutions=standardSubstitutions)
+
+
 
 

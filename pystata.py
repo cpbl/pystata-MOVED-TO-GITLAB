@@ -6,185 +6,11 @@ Much code should be edited out, and some still needs to be replaced with pandas 
 Inline documentation is horrid, as of the first github release  / Oct 2014.
 Please help by separating out things that make sense, and cleaning up that which doesn't.
 
-"""
-
-
-
-#print('Try gologit2 (with gamma option?)')
-"""
-
-July 2010: Comment on getting at correlation coefficients from STata:     By the way, rather than reprogramming to calculate bivariate/pairwise correlations, just use OLS with normalized beta feature turned on. The normalized beta coefficient is the Pearson's correlation coefficient.  So... that way, you get a standard error for it (Stata's pwcorr just gives p-values.)
-
-BTW: Is this how to count pops of subgroups?
-  Stratify sample by age, race, and sex
-        . egen strata = group(age race sex) if inlist(year, 1990, 1992)
-
-
-    Create standardization weight equal to sample size for each stratum
-        . by strata, sort: gen stdw=_N
-
-June 2010:
-
-replace much code with
-
-capture noisily
-^^^
-
-a nmber of my ifs and duplications etc are not needed^^^^
-
-
-see log file... figure out counts...
-
-regression n=17599
-
-mean: atlantic: 3371
-sum : atlantic: most 4239
-
-
-2010 May: Some high level stuff:
-The top-level way to use this whole stuff is now to issue runBatchSet(sVersion,rVersion,stataCodeFunction,dVersion=None,mainDataFile=None,compileLaTeX=True) in which the Version stuff are just textstrings for the (s)tudy name, (r)evision name, and possible (d)ebug subname, and where stataCodeFunction is a function that takes a latexRegression class object and returns some stata code. This will do a lot of stuff. To make it more robust during ironing out bugs in development, you might make use of the following lines inside the stataCodeFunction:
-    latex.captureNoObservations=True
-    latex.skipStataForCompletedTables=True
-See below for documentation.
-
-
-2010 April: Did some more work to get multirow and colortbl both working, and together, for row labels (countries with long names). Problem is, multirow has to fit in the vertical space chosen for the *other* columns^^^^^ How ridiculous.
-
-2010 April: I declare you can kill any section that is "oldmethod"... and any section which is not "newmode"
-
-2010Feb25: I should fix up the storage of codebooks to use pythonshelfs. Each kind of codebook can then just be added into the file, and a best-of can always be constructed.  Actually, see load/save functions in codebookclass -- I started down that path. But did not get far. I think I should save each codebook by surveyname.
-
-Here's how to get a full list of column/row names for a matrix in Stata 11.
-I can incorporate this into all my matrix list calls?
-
-sysuse auto, clear
-ren mpg mpgmpgmpgmpgmpg
-regress price mpgmpgmpgmpgmpg turn
-matrix A=e(b)
-local cname: colfullnames A
-display "`cname'"
-
-
-
-2010 Jan: TO DO^ Have not finished (started) parsing MEAN MULTI output. Also maybe incorporate this reading routine into the descriptive stats code?
-
-Uhh... I think that is done?^
-But still need to put N value into comments or etc for the decomposition table for accounting.
-
-
-2009 Dec: what do I do with error from accounting: "corr(): matrix has zero or negative values on diagonal" This usually means I have listed a variable twice^ So I need to check for duplicates^^ or it means there is a variable that does not exist?
-
-
-2009 Dec: Have I ever read the great Stata note on why pweight is not an option in summarise? (http://www.stata.com/support/faqs/stat/supweight.html)
-It looks like I have not been too far out, since:
-"The clustering and stratification do not affect the point estimate of the mean and thus if you are interested only in the point estimate, you could use summarize with aweights since it gives the same weighted mean as svy: mean."
-But really I have to use the "mean" function, not "sum", to get s.e. of mean.
-
-So... should I not really write a unified stats-reporting module? And make it use mean?  For now, I am afraid, I am going to continue fudging it with aweights and summarize.
-
-2009 Dec: See the subsampaccounting tabular output for a new,modern, array-notation way to transpose tables. I should use this kind of thing in the regTable table output. Much cleaner.
-
-2009 Dec: More need to do: My typical supporting table is means with UNWEIGHTED counts. I need to make comment in bottom of disclosure form that I want unweighted so as to jive with regression table, which is allowe dunweighted counts.
- For dichotomous variables, also I need to report the proportion which are 0.
-And in general I may want to sets of means: means of those who made it into the regression and means of whole sample..
- So, I could/should make tools to do all this, and automatically create the supporting documentation files....
-
-2009 Dec: NEED TO DO^^^^ Fix up the recoding routines so that they do generate useful tsv (or shelve?) data about the questionnaire info for each variable, and relationships to recoded vars. Then this can be used in descriptive stats.
- ***  Right now there are three ways to generate summary statistics through addDescriptiveStatistics and one more way through the codebook class.  The three ways are:
- (1) use closeAndCompile of the latex class; it will call addDescriptiveStatistics
- (2) call addDescriptiveStatistics without specifying a stata file; this will return stata code that uses the file in memory. ie. this can be incorporated into a series of regTble calls, etc.
- (3) call addDescriptiveStatistics with specifying a stata file; this will run Stata immediately and parse the results. [Can this be made not to run every time? ie if the latex.skipDonewhateverblah is True, it should not rerun it every time the parent function is run...?]
-
- All three methods end up with a .log file in texdocs and a table in the latex output file.
-
- The fourth method is through a direct call to a statacodebookclass member...
-
-Anway, the three methods need to be cleaned up and a demo put together somewhere^. See regressionsESC for a fledgeling demo.
-Which of the above 4 allows an e(sample) stats??? Aha^ All^ a nice way to do things is to use the closeAndCompile option with the statsCondition flag and the showStatsFor flag. The only disadvantage of this, maybe, is that it creates a log file name that is not very specific to the sVersion, etc. so some other routine which uses the same data file may create inappropriate summary stats^
-Here is an example of the direct call method, which presumably calls Stata immediately each time...
-            stataOut+=regressionsNational2009(latexfile,reloadString='Reloading_not_activated')
-            print latexfile.addDescriptiveStatistics(dataFile=codebookDTA,logname='someStats-middle',codebook=None,showVars=latexfile.variablesUsed+' lnGDPpc  SWL lifeToday donatedMoney cannotAffordFood ',weightVar=None,ifcondition=' 1',forceUpdate=False)#,mainSurvey=None)
-
-            showStatsFor=' lnGDPpc  SWL lifeToday donatedMoney '
-            statsCondition='  ~missing(LSavgL) & ~missing( lnincomeh2) & ~missing( cDonatedMoneyNet) & ~missing( gFoodNet) '
-
-
-
-2009 Dec: I would like latexfile to automatically made summary stats at the end. I guess, since I already have this semi-automated when a codebook class is used, I will
- - allow a codebook ojbect to be specified in the latexRegressionFile class
- - if such is specified when a latex file is being closed, it can be used to make summary stats
- - if this is not specified, then try to run some extra stata code??? to get all the variables that were used???? t hat does not make sense in general
-
-   No, instead, just give warning if there is no codebook defined?
-
-   Oh, how about can define a SURVEY, not codebook, at the end? Then only the needed variables need be queried for descriptive statistics, ie a codebook object can be created ex-post^
-
- Actually, I should also just provide a function in latexRegressionFile which makes Stata code to generate the stats, so one can just call it after doing some regressions. (in general might want stats for the e(sample) subset, or for total sample.)
-
-
-
-2009: Sept: Note: I have mad ea test section in regCCHS to redevelop the CR-coefs function. Partly finished, but still need to make actual final CR coefs table.
-
-2009: Sept: oh no. My new methods may not be robust for ologit (as opposed to OLS). The output looks different. [FIXED]
-
-2009: Sept: Finished first draft at "newMethod" for doing model-means aggregating (many dozens of lines convert to one in each case^). Have not yet rewritten the lengthy CR-coefs part^ And have not yet removed the old paired-rows-based functions (already renamed to be obviously-deprecated) And then remove "oldMethod" variable
-
-2009: Sept: Finished rewriting the model-results-to-LaTeX-table functions and the same to-TSV-tables. Now can rewrite regTable output sequences to make modifications to models array rather than sets of lists of table components... [DONE]
-
-2009 Aug/Sept: next updating code task is to write a table-writing function that works from a list of models, not paired rows. [DONE; see above].
-
-2009 Aug: I just came across the eststo command/prefix, etc, which when combined with esttab (or estimates table?) and possibly by: prefix is actually really nice and had I known about it I may have gone about things quite differently.
-
-
-need to rename/reorganise table-writing functions. names sound general, but these are specific. And mayb eI want to do it all over now that I can be using a dict-based method.
-
-
-
---> I've still got a problem with _cons ... need to handle this in newmode. I think before I had a way to suppress it, etc. Need to reproduce that.
-
-Also need to do combining of models: ie means. This should be noted by ...? new fabricated model, maybe with pointers to those it should be summing over. (So far this works with the old method, ie what's left using newmode. The next step here probably means rewriting all the output stuff.) So, Aug 2009: I am leaving this for later. There's a considerable effort still to rewrite the output parts to be much much cleaner, using models.
-Yes, rather than list of modelNum's or etc, can just be a list of pointers..
-
-
-I still need to fiture out how to deal with underscores in variable names in newmode.
-
-Also: probably need to replace some e(xx) with xx 's in some places for newmode, at least as temporary kludge. I've done e(N),e(r2,etc). What else?
-
-What about plotting routines that use pairedRows?
+Also currently depends heavily on cpblUtilities and latex-stat-tables .. and cpblDefaults. These can be excised...
 
 """
 
-# Aug 2009: I am rewriting regTable to be able to read log files directly and, more significantly, to do all manipulation where possible by dicts rather than horrid lists of lists and lists of paired rows.  I've created functions which return byVar and byStat dicts from a list of models (which are each a dict) which in turn have regressions results now built into them; and a function which makes a pairedRows from that.   I should gradually shift over all code which uses pairedRows unnecessarily to use models and byVars instead.
 
-
-# Nov 2008: My plan is to revamp the entire cpblStata interface by starting over somewhat. Now, surveys will get registered with the system in a uniform way by defining variables that exist and not worrying about all those that do not. (more relevant for RDC work than Gallup?) [This is not really fully done.]
-
-# And I need to alter formatting so that row labels can be multi-row / wrapped. And that groups can have non-repetitive, non-rotated labels.
-
-# And I need a facility for descriptive / summary statistics. (Have I not even started this? Feb 2009?) [Seems done Sept 2009, mostly]
-
-
-# Generation of codebooks for this framework will be done when the recoding of a survey is done. (yes, but still including outside info when available)
-
-# Codebooks can start off from the raw dataset codebook (auto done now from Stata) and get updated when variables get created / modified.
-
-# When you instantiate a cpblLatex thing, you will tell it which surveys to register. Only those will be loaded up, then.
-
-# Dec 2008: Move all codebook functions to their own class^ [Done, mostly]
-
-# Change table names so that rather than fitting stata length, they start with a unique (ordered) letters, then as much as fits for Stata file, but complete text for table name
-
-# Need to incorporate variable normalisation when "beta" is called^ I guess it should be a method: betaregress. [This is all implemented. I think it just looks for the beta option in regress"
-
-# Feb 2009: Okay, I've made some decent summary statistics with description table for CCHS31 case. This can be incorporated into latexregression class to always include a table at end of file which includes all variables used. Some fine tuning only would be needed to implement that.
-
-# What I once called "semiparametric" is really a "rolling regression"  (renaming it so). Also, note that "rollreg" in stata already exists. And R has a function for it too... But I guess I've already written my own. I also sometimes call it kernel regression^ (oops. IT's more exotic than a kernel regression. It's calculating  coefficients as a function of something else).  See CCHS or Gallup regression modules for examples of using this function, still called "semiparametric()" to do a rolling regression.  Actually, Stata's "rollreg" and "rolling" prefix are both neat but are designed for (only work with) time series data.
-
-
-# May 2009: Weird.. It looks like extractCodebooks.py must be run separately to create some codebook material for this getallcocdebooks etc.
-
-
-# ** July 2009: need to deal with cells of SWL/region values so that SWL-edge-probits do not barf... Or can I use my codebook-check to know which countries have how many of each SWL?
 
 from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements
 from copy import deepcopy
@@ -361,7 +187,7 @@ standardSubstitutions=[ # Make LaTeX output look prettier. Third column is for s
 
      ]
 
-# Fill in any unfilled third columns: (huh? this if for non-tex output, maybe?)
+# Fill in any unfilled third columns: ( this if for non-tex output, maybe?)
 def _addThirdColToSubs(subs):
 
     for sss in subs:
@@ -374,32 +200,10 @@ def _addThirdColToSubs(subs):
 _addThirdColToSubs(standardSubstitutions)
 
 
-if 0:# and (newmode or not newmode): # This is a kludge while I sort out what is going on ith underscores. I want to reinstate them everywhere right until LaTeX gets produced!! Ahhh but it seems this is not necessary!?
-    newStandardSubstitutions=[]
-    for ss in standardSubstitutions:
-        newStandardSubstitutions+=[ss]
-        if '_' in ss[0]:
-            newStandardSubstitutions+=[[ss[0].replace('_','-')]+ss[1:]]
-    standardSubstitutions=newStandardSubstitutions
-
-
-def stataCollapse(collapseString,byKey=None):
-    """
-  This hasn't been written yet. But it should glean all variables from the collapse string, and then add some variable-lable (n.b.: not value-labels!) storing.
-
-    I think the value-labels for the by variable are already kept by Stata.
-    All this does is preserve the labels for the "by" variable.
-    And it does "fast" option, etc.
-    """
 
 
 def collapseMeansWithLabels(fromToList,commonPrefix=None,options=None,byKey=None,func='mean'):
     """
-
-    Okay. this is now just the special case when I want to collapse all variables
-
-( uh... actually, I think it works nicely for the simplest case, and I used it! )
-
 
     Fix stata's collapse behaviour that does not preserve useful variable labels.
     This is so far just for collapsing to means. But the means can be differently named from the original variables.
@@ -413,7 +217,7 @@ July 2010: Adding
 
 options:  It looks like you put if clauses here...
 
-Nov2012: weird. The only variable I want to keep labels for is the collapse variable. The rest become continuous!
+Nov2012: weird. The only variable I want to keep labels for is the collapse variable. The rest become continuous
     """
     outs=""
 
@@ -452,15 +256,6 @@ Nov2012: weird. The only variable I want to keep labels for is the collapse vari
 
 
 
-# =========================================================================
-# =========================================================================
-# =========================================================================
-# =========================================================================
-# =========================================================================
-# Below here is old functions. Move them above this line when they're blessed as new.
-
-
-
 
 ###########################################################################################
 ###
@@ -468,7 +263,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
     ###
     #######################################################################################
     """
-    This does a nice job of running a .do file.
+    This does a nice job of running a .do file (only in GNU/Linux so far?)
 
     If text containing a newline is passed as the first argument, it is interpreted as Stata code instead of a file.
     Stata's command line batch ability *stupidly* does not allow specification of where the log file goes.
@@ -542,8 +337,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
 
 
     dodir,dofilenameNoSuffix=os.path.split(dofile)# re.split(r'\\|/',dofile)[-1]
-    #dodir= r'/'.join(re.split(r'\\|/',dofile)[0:-1] )+r'/'
-    ##dodir=defaults['stata']['paths']['working'] # Unless specified in dofile string
+
     if not dodir:
         dodir=WP
     if '.' in dofilenameNoSuffix:
@@ -624,7 +418,7 @@ def stataLogFile_joinLines(filename):
     ##########################################################################
 
     """
-    Get rid of the stupid "\n> "s by changing the file on disk
+    Get rid of the  "\n> "s by changing the file on disk
     """
     # AHA! Edit Stata's UGLY log file to get rid of the stupid line breakups!!!!
     # Should I also get rid of the periods? probably
@@ -638,38 +432,6 @@ def stataLogFile_joinLines(filename):
     else:
         woeiruowieur
     return()
-
-##############################################################################
-##############################################################################
-#
-def __OBSELETE__SEECPBLSTATA_tsv2dta(afile,prefix='',replacenames=True,substitutions=[],sortby=['id','idnum']):
-    # THIS WAS IN RECODESURVEYS BUT IT HAS NOT BEEN PROPERLY INCORPORATED ANY CLEVER BITS INTO THE BELOW!!!
-    ##########################################################################
-    ##########################################################################
-    """
-Generate code for Stata to load a TSV file, rename the variables with their proper, case-sensitive names, and
-possibly add a prefix to all variable names, and possibly make some substitutions of variable names, and then save result as a .dta file, useful for fast merging.
-"""
-    import os
-    outs=''
-    if os.path.exists(afile+'.tsv'):
-        headers=unique(open(afile+'.tsv','rt').readline().strip().split('\t'))
-        debugprint ('Found headers in %s: '%afile, headers)
-        print ' Found '+afile
-        outs+="""\ninsheet using %s.tsv,double clear\n"""%afile
-        if replacenames:
-            for hh in headers:#[h for h in headers if not h == h.lower()]:
-                if prefix or not hh==hh.lower():
-                    outs+="""\nrename %s %s"""%(hh.lower(),prefix+hh)
-        for ss in substitutions:
-            outs+="""\nrename %s %s"""%(ss[0],ss[1])
-        for sb in sortby:
-            if sb in headers or sb in [ss[1] for ss in substitutions]:
-                outs+='\nsort '+sb
-                break
-        outs+="""\naorder\nsave %s.dta,replace\n"""%afile
-
-    return(outs)
 
 
 ###########################################################################################
@@ -782,8 +544,7 @@ def df2dta(df,filepath=None,index=False,             forceToString=None,sortBy=N
    Note: If this is run on Apollo, the old method below uses a tsv intermediate file, and is yucky.
 
 See the previous (draft?) function; does that provide a simpler way of forcing to string for after Apollo gets a pandas upgrade?
-Issues:
-This generates 244-long strings for a 5-long value.  I guess this doesn't matter (and following doesn't fix it???  newvar=substr(countyFIPS, 1, 5) I submitted a bug report.
+
    """
    import pandas as pd
    if isinstance(df,basestring):
@@ -874,7 +635,7 @@ def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=N
 
     if filepath[-4:]==tsv:
         filepath=filepath[0:-4]
-    # AAAH! Just use os.path.split here!!! (not done yet)
+
     dirpath,filenameNoSuffix=os.path.split(filepath)
     if 0:
         filenameNoSuffix= re.split(r'\\|/',filepath)[-1]
@@ -1071,7 +832,7 @@ def substitutedNames(names, subs=None,newCol=1):
 
     newCol=2 gives a text-appropriate output (?)
 
-2012 June: shouldn't the latex class hae a version of this!?
+    2012 June: shouldn't the latex class hae a version of this!?
     2013 March: Integers now converted to strings. [Motivation: when using i.category in Stata, variables can be numbers]
     """
     from copy import deepcopy
@@ -1104,114 +865,8 @@ def substitutedNames(names, subs=None,newCol=1):
                 names[iname]=names[iname].replace(ps[0],ps[newCol])
     return(names)
 
-###########################################################################################
-###
-def _unused_deprecatedAug2009_substituteNames(names, subs=None):
-    ###
-    #######################################################################################
-    """
-    I do not think this works at all. !! I would need to dereference the string pointers....
-    """
-    if subs==None:
-        subs=standardSubstitutions
-    for ps in subs:
-        for name in names:
-            name=name.replace(ps[0],ps[1])
-    return()
 
-
-
-###########################################################################################
-###
-def getCompleteCodebooks_seemsUnused(surveys=None): #July2009: this function, getCompleteCodebooks, is not called anywhere!!!!!!!!  so drop it?
-    ###
-    #######################################################################################
-    """ Looks for a tsv codebook in the working path (for derived codebooks) or in the input path (for ones like GSS19, which come with a spreadsheet codebook).
-    Note: a .tsv is a formatted simple table of variables and descriptions. But where does that come from??
-
-    May 2009: this is no good... tsv files should be named as DTA or PDF or other to denote source. [DONE?]
-    """
-    surveysToExtract=defaults['knownSurveys']#[sss for sss in ['GSS17','EDS','ESC2','ESC1','GSS19',] if sss in defaults['availableSurveys']]
-    from cpblUtilities import tsvToDict
-    rawCodebooks={}
-    if not surveys:
-        debugprint (surveysToExtract)
-        surveys=surveysToExtract
-    for survey in surveys:
-        print ('getCompleteCodebooks: Looking for raw codebook for '+survey+'...')
-        #rawCodebooks[survey]={}
-        tmprawCodebooks={}
-
-        """
-        I think the DTA files are saved looking like the simpleTSVfile, below...
-        """
-        PDF_TSVfile=defaults['inputPath']+survey+'_codebook_PDF.tsv'
-        DTA_TSVfile=WP+survey+'_codebook_DTA.tsv'
-        simpleTSVfile=WP+survey+'_codebook.tsv' # Why? What is this?
-        if os.path.exists(DTA_TSVfile):
-            simpleTSVfile=DTA_TSVfile
-
-        if os.path.exists(PDF_TSVfile):
-            if file(PDF_TSVfile,'rt').readline()[0:7]=='varname': # CCHS31 format
-                tsvs=tsvToDict(PDF_TSVfile,utf8=False)
-                tmprawCodebooks=dict([[avd['varname'],avd]  for  avd in tsvs])
-                debugprint ('Found raw codebook from PDF for '+survey+' in primary location, with new (CCHS31) format')
-
-        elif os.path.exists(simpleTSVfile):
-            pairs=[re.split('\t',line.strip()) for line in file(simpleTSVfile,'rt').readlines()]
-            for pair in pairs:
-                tmprawCodebooks[pair[0].lower()]={}
-                tmprawCodebooks[pair[0].lower()]['prompt']=pair[1]
-            debugprint ('Found raw codebook (from DTA? or from spreadsheet?) for '+survey+' in primary location')
-        else:
-            """
-            Should create a file from PDF.
-            Otherwise, as backup, create a file from DTA:
-            """
-            print "Failed to find a codebook. Trying now to create one from PDF ... so make the pdftotext file..."
-            exractCodebooks.CCHScodebookFromPDF_TXTtoTSV(survey=survey)
-            foodleRERUN
-
-        """
-        try:  #if os.path.exists(WP+survey+'_codebook.tsv'):
-            if file(WP+survey+'_codebook.tsv','rt').readline()[0:7]=='varname': # CCHS31 format
-                tsvs=tsvToDict(WP+survey+'_codebook.tsv',utf8=False)
-                tmprawCodebooks=dict([[avd['varname'],avd]  for  avd in tsvs])
-                debugprint ('Found raw codebook for '+survey+' in primary location, with new (CCHS31) format')
-            else:
-                pairs=[re.split('\t',line.strip()) for line in file(WP+survey+'_codebook.tsv','rt').readlines()]
-                for pair in pairs:
-                    tmprawCodebooks[pair[0].lower()]={}
-                    tmprawCodebooks[pair[0].lower()]['prompt']=pair[1]
-                debugprint ('Found raw codebook for '+survey+' in primary location')
-                #break
-        except IOError, (errno, strerror):
-            debugprint( '  *** codebook.tsv not found in workingPath for this survey! [Checking input path]\n  You probably want to run pdftotext and then extraCodebooks to create it...')
-            debugprint ('    Was trying: '+WP+survey+'_codebook.tsv')
-            try:  #if os.path.exists(WP+survey+'_codebook.tsv'):
-                pairs=[re.split('\t',line.strip()) for line in file(defaults['inputPath']+survey+'_codebook.tsv','rt').readlines()]
-                for pair in pairs:
-                    tmprawCodebooks[pair[0].lower()]={}
-                    #tmprawCodebooks[pair[0].lower()]['prompt']=pair[1]
-                    tmprawCodebooks[pair[0].lower()]['question']=pair[1]
-                debugprint( 'Found raw codebook in alternate location for '+survey)
-                break
-            except IOError, (errno, strerror):
-                debugprint( '  *** codebook.tsv not found in working or input paths for this survey!')
-            finally:
-                pass
-                #debugprint( '   Yes, got it from secondary; continuing...')
-        finally:
-            pass
-            #debugprint( '   Yes, got it; continuing...')
-        """
-        # Feb 2009: rather than a dict, use a codebookclass for each survey:
-        if tmprawCodebooks:
-            rawCodebooks[survey]= stataCodebookClass(codebook=tmprawCodebooks)
-
-    return(rawCodebooks)
-
-from cpblStataCodebooks import stataCodebookClass
+from pystataCodebooks import stataCodebookClass
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1279,10 +934,8 @@ significanceLevels=[100-ss[2] for ss in significanceTable[1:]] # This is used fo
 # This just hard-codes the relationship between some geographic scales in Canada.
 
 
-if 0: higherLevels=defaults['CRhigherLevels']
-
 doHeader="""
-    * This file automatically generated by cpblStata.py. DO NOT EDIT!!!!
+    * This file automatically generated by pystata.py. DO NOT EDIT!!!!
     * (~/ado/personal should be a hyperlink to ~/bin/ado, by the way.)
     * Ensure there's no open log file
     capture noisily log close
@@ -1306,381 +959,6 @@ defaultVariableOrder+='  survey    e(N) N e(r2) r2 e(r2-a) r2_a e(r2-p) r2_p e(N
 defaultVariableOrder=[vv for vv in     defaultVariableOrder.split(' ') if vv]
 
 
-def _unused_junk_debug():
-    if defaults['os']=='unix':
-        pauseHereFoodle
-
-
-# I keep track of codebooks in Python so that I can generate a nice-looking one in LaTeX and so that I can cleverly eliminate variables  in survey-specific regressions when the variable wo not exist.
-#
-# mcodebook: based on recodeSurveys: records what is available in my analysis dataset.
-#        It uses rawcodebooks to update records when variables are incorporated in recodeSurveys
-# rawcodebooks: is information that comes nearly straight from the survey documentation.
-# masterCodebook: ?
-
-
-
-def ensureMasterCodebook(): # cygwin broken, darnit
-    global masterCodebook
-    if not defaults['cygwin']:
-        if not masterCodebook and os.path.exists(codebookFilename+'.pythonshelf'):
-            print ('Initialisting master joint codebook ...')
-            masterCodebook=shelfLoad(codebookFilename)
-            #shelffile = shelve.open(
-            #masterCodebook=shelffile['masterCodebook'] # Define a member ho knows the latest complete codebook.
-            #shelffile.close()
-            debugprint ('got: ',len(masterCodebook))
-        elif not masterCodebook:
-            pass # This is a really big sucky bug. Must run entire evryhting on pure unix now
-
-    return()
-
-def inallCodebook(surveyvar,surveys): #Seems not to work yet.april 18 2008
-    global masterCodebook
-    #ensureMasterCodebook()
-    if not masterCodebook:
-        fooo
-    #global rawCodebooks
-    #print 'check: rcb: ',len(rawCodebooks.keys())
-    if isinstance(surveys,basestring):
-        surveys=[surveys]
-    return(all([surveyvar in rawCodebooks[survey] for survey in surveys]))
-
-
-def inanyCodebook(surveyvar,surveys): # Seems to work...
-    ' This returns true if one of the specified surveys contains the given variable. '
-    #global mcodebook
-    return(True)# WHWOA! July 2009: Kludge away this whole functionalty..
-
-    ensureMasterCodebook()
-
-    assert(masterCodebook)
-    if isinstance(surveys,basestring):
-        surveys=[surveys]
-    if surveyvar not in masterCodebook:
-        debugprint('variable ',surveyvar,' not even known in codebook...')
-        return(False)
-    return(any([survey in masterCodebook[surveyvar] for survey in surveys]))
-
-
-def isGeneralVar(var):
-    """ Test to see if this string is a variable that we want never to exclude automatically (ie always allow it).
-    """
-    if var[0:3] in ['da_','ct_','pr_'] or\
-           var[0:4] in ['csd_','cma_'] or \
-           var[0:7] in ['dHHsize'] or \
-           var[0:9] in ['dDwelling'] or \
-           var in ['dEDS','dESC2','dGSS17','dGSS19','dGSS19b','ageSquared']:
-        debugprint('Found a special variable (so keep it): %s'%var)
-        return(True)
-    return(False)
-
-def addJointCodebookEntry(CB,survey,surveyvar,mastervar,prefix,description=None,formula=None,comments=None):
-    #def addJointCodebookEntry(survey,surveyvar,mastervar,prefix,description=None,formula=None,comments=None):
-    """
-
-JULY 2009: SHOULD THIS BE RETIRED? DOES IT COMPETE WITH THE NEW CODEBOOK CLASS?
-
-Well, July 2009 I am addint a first argument, CB, to kludge it so that it can make use of a class codebook. This is just to get old code from recodeSurveys/recodeGSS working quickly.
-
-    mastervar is the variable name used in the combined datasets
-    prefix is some description of what was done to it (e.g. rescaled) ususally in square brackets??
-
-    var:
-    desc:
-    comments:
-    details: the options given in the questionnaire, ie the value labels
-    """
-    #global mcodebook
-    #global rawCodebooks
-
-
-    if 0: # July 2009
-        global rawCodebooks
-    if comments==None:
-        comments=""
-    mastervar=mastervar.strip()
-    if mastervar not in CB:
-        CB[mastervar]=dict()
-    #if survey not in CB[mastervar]:
-    #print 'check: rcb2: ',len(rawCodebooks.keys())
-    if description: # So.. if description is supplied, it overrides what we have in the raw codebooks
-        CB[mastervar][survey]={'var':'[derived]','desc':description,'comments':comments,'details':''}
-    else:
-        labelbookinfo='(RAW CODEBOOK INFO MISSING)'
-        # Look up raw codebook info for this survey variable:
-
-        if 0: # July 2009: this part all kludged out... needs redoing
-            if rawCodebooks  and survey in rawCodebooks and surveyvar in rawCodebooks[survey]: #We've already got some codebook info
-                labelbookinfo=rawCodebooks[survey][surveyvar]['prompt']
-            elif surveyvar=='lsatis':
-                foooo
-            CB[mastervar][survey]={'var':surveyvar,'desc':prefix+labelbookinfo,'comments':comments,'details':''}
-    #print 'CB: ',mastervar,survey,len(CB),CB[mastervar][survey]
-    #print '%s:%s:'%(survey,mastervar),CB[mastervar][survey]
-    return
-
-def writeMasterCodebook():
-    """
-    For mcodebook to be filled, the recodeVars routines must have been called using this instance of the cpblStata module.
-    So this routine writes to a tsv file rather than formatting LaTeX (next member function) so that all cpblStata instances can quickly read in the codebook.
-"""
-    # Note: the following hardcoded list seems to limit what gets into the codebook. (No; it's now ignored)
-    varsToMean=[       'lsatis',      'trustBool',      'trustFamily',      'trustNeighbour',      'trustColleagues',      'trustStrangers',      'trustNeighbourFraction',        'godImportance',      'godPracticed',      'godPrayFrequency',      'godPartFreq',      'married',      'asmarried',      'separated',      'divorced',      'widowed',          'commutingWeekly',      'socialiseColleagues',      'socialiseFamily',      'gaySpouse',      'foreignBorn',    'livingWithFriends',     'health',     'healthStress',      'healthBadSleep',     'satisHealth',     'satisJob',     'satisTime',     'satisFinances',     'belongEthnicity',     'belongFamily',        'belongCommunity',     'belongTown',         'belongProvince',     'belongCountry',             'knowNeighbours',     'helpfulNeighbours',    'safeAtNight',     'safeAtHome',    'lnTenureHouse',    'lnTenureNeighbourhood',    'lnTenureCity',    'honestNeighbour',    'honestStranger',    'mastery',     'valueSocial',    'ethnicHomophile',    'ethnicHeterophile',    'honesty',    'confidencePolice',    'confidenceJustice',    'confidenceHealthcare',    'confidenceSchools',    'confidenceWelfare',    'confidenceParliament',    'confidenceBanks',    'confidenceBigCorps',    'confidenceLocalCorps',    'noReligion',      'ethnicImportance',      'citizen',    'friendsEnglish',    'friendsFrench',    'friendsForeign',    'clubsKnow',    'clubTypes',    'clubsMember',    'clubFrequency',    'volunteer',    'voted',    'fearHate',    'victimCrime',    'discrimNeighbourhood',     'motherSchoolingYears',     'fatherSchoolingYears',    'contactFamilyAbroad','happy',]# ] [v[0:21] for v in
-    #global mcodebook
-    defaults.keys()
-    if not defaults['cygwin']: # Bug in this version of shelf!! So bahh I ca not yet make use of lookups to the codebook...?
-        print '\n\nWriting complete joint codebook to a shelf file\n\n'
-        shelfSave(codebookFilename,mcodebook)
-    else:
-        print 'Run this under true unix some time soon to update the codebook pythonshelf!'
-
-    print '\n\nWriting complete joint codebook to a tsv file\n\n'# Why bother with the TSV? I have the pythonshelf and the latex.
-    fout=open(codebookFilename+'.tsv','wt')
-    # Write header
-    fout.write('Variable')
-    for survey in extractCodebooks.surveysToExtract:
-        fout.write('\t%s:From\t%s:description'%(survey,survey))
-    fout.write('\n')
-    # Write codebook, one joint variable at a time:
-    varsToMean=mcodebook.keys() # KLUDGE OVERRIDE FOLLOWING LINE
-    for varname in sorted([v for v in mcodebook if v in varsToMean]):
-        fout.write(varname)
-        for survey in extractCodebooks.surveysToExtract:
-            if survey in mcodebook[varname]:
-                fout.write('\t'+mcodebook[varname][survey]['var']+'\t'+mcodebook[varname][survey]['desc'])#+'\t'+mcodebook[varname][survey]['desc'])
-            else:
-                fout.write('\t\t')
-        fout.write('\n')
-    fout.close()
-
-
-
-###########################################################################################
-###
-def formatMasterCodebook(compileLaTeX=False): # Make LaTeX output table of codebook
-    ###
-    #######################################################################################
-    """
-    why have i not done this using my tableCA style?
-    """
-    import os
-    import re
-    #codebookFilename+='_'
-    if compileLaTeX:
-        print 'Now texing'
-        from cpblUtilities import doSystem
-        doSystem('cd '+defaults['native']['paths']['working']+' && pdflatex  '+codebookFilename+'.tex &> /dev/null')
-        doSystem('cd '+defaults['native']['paths']['working']+' && makeindex -o %s.and %s.vidx  &> /dev/null'%(codebookFilename,codebookFilename))
-        doSystem('cd '+defaults['native']['paths']['working']+' && makeindex -o %s.sand %s.sidx  &> /dev/null'%(codebookFilename,codebookFilename))
-        doSystem('cd '+defaults['native']['paths']['working']+' && pdflatex  '+codebookFilename+'.tex  &> /dev/null')
-        return
-
-    orderedVariables='lsatis trustNeighbour trustBool godImportance noReligion health lnTenureHouse HHincome houseOwned houseRooms houseValue mortgagePayment lnTenureCity lnTenureNeighbourhood foreignBorn vismin'.split()
-
-    """godPartFreq  motherSchoolingYears fatherSchoolingYears   happy """
-
-    rawtsv=[ll.strip('\n').split('\t') for ll in open(codebookFilename+'.tsv','rt').readlines()]
-    fields=rawtsv[0]
-    surveys=defaults['knownSurveys']#['GSS17','ESC1','ESC2','EDS','GSS19']
-    surveys=['GSS17','ESC2','EDS']
-
-
-    preamble="""
-% Two indices:
-\newindex{vars}{vidx}{and}{Coded variables}
-\newindex{surveyvars}{sidx}{sand}{Survey variables}
-\newcommand{\codedvindex}[1]{\index*[vars]{#1}}
-\newcommand{\survvindex}[1]{\index*[surveyvars]{#1}}
-"""+r"""\newcommand{\texdocs}{%s}
-"""%defaults['paths']['tex']
-    """
-    \begin{document}
-
-    \begin{landscape}
-    % Change the footnote style to lowercase letters
-    %\renewcommand{\thefootnote}{\alph{footnote}}
-    \scriptsize
-    \begin{center}
-    %\begin{longtable}{llrllrrlcr}
-    %
-    %\hline \hline \\[-2ex]
-    %
-    %\begin{sidewaystable}\centering
-
-    \begin{longtable}{|r|"""+'|'.join('c'*len(surveys))+r"""|p{10cm}|} %@{\\extracolsep{\\fill}}|
-    \caption[Summary of survey variables.]{Summary of survey variable definitions.} \\
-    \hline
-    """
-    theader,tbody,tformat,='','',''
-    theader+=  r"""\hline
-    Variable & """+' & '.join([r'\begin{sideways}'+ss+'\end{sideways}' for ss in surveys])
-    theader+= r"""&   \\ \hline \hline
-    """
-    tformat="""|r|"""+'|'.join('c'*len(surveys))+r"""|p{10cm}|"""
-
-    #print orderedVariables
-    #print rawtsv[1:]
-    orderedVariables+=[v[0] for v in rawtsv[1:] if  v[0] not in orderedVariables]
-    #print orderedVariables
-    for ovar in orderedVariables:
-        varr=[v for v  in rawtsv[1:] if v[0]==ovar]
-        if varr:
-            var=dict(zip(rawtsv[0],varr[0]))
-            desc=[]
-
-            tbody+= r'\codedvindex{'+substitutedNames(var['Variable'].replace('_',r'-')) + '}' #r'\_'
-            for survey in surveys:
-                if var[survey+':From']: # survey+':From' in var and
-                    tbody+=r' & $\surd$'
-                    desc+=['{\\em \\bf %s[\\survvindex{%s}]}: %s'%(survey,var[survey+':From'],var[survey+':description'])]
-
-                else:
-                    tbody+=' & '
-
-            tbody+= ' & '+(' '.join(desc)+' \\\\ \\hline \n').replace('_','-') #r'\_'))
-
-
-
-    includeTeX,callerTeX=cpblTableStyC(cpblTableElements(body=tbody,cformat=tformat,filepath=codebookFilename+'-tablec.tex',firstPageHeader=theader,otherPageHeader=theader,tableTitle=None,caption=r'[Summary of survey variables.]{Summary of survey variable definitions.}',label='tab:summarySurveyVariableDefinitions',ncols=None,nrows=None,footer=None,tableName=None,landscape=None))
-
-    texfile=open(codebookFilename+'.tex','wt')
-    texfile.write(r"""\documentclass{article}
-\usepackage{index}
-    \usepackage{longtable,lscape}
-    \usepackage{rotating} % This is used for turning some column headers vertical
-    %%\usepackage{landscape}
-    %%\usepackage[left=5mm,top=5mm,right=.5cm,nohead,nofoot]{geometry}
-    \usepackage[nohead,nofoot]{geometry}
-    %%\makeindex
-    \usepackage{hyperref}
-    \usepackage{cpblTables}
-    \usepackage{cpblRef}
-    %%\useColourBoldForSignificance
-
-% Two indices:
-\newindex{vars}{vidx}{and}{Coded variables}
-\newindex{surveyvars}{sidx}{sand}{Survey variables}
-\newcommand{\codedvindex}[1]{\index*[vars]{#1}}
-\newcommand{\survvindex}[1]{\index*[surveyvars]{#1}}
-
-    \begin{document}
-"""+  callerTeX+r"""
-%    \newpage\printindex[vars]
-%\printindex[surveyvars]
-    \end{document}
-""")
-    texfile.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##     texfile=open(codebookFilename+'.tex','wt')
-##     texfile.write(r"""\documentclass{article}
-## \usepackage{index}
-##     \usepackage{longtable,lscape}
-##     \usepackage{rotating} % This is used for turning some column headers vertical
-##     %%\usepackage{landscape}
-##     %%\usepackage[left=5mm,top=5mm,right=.5cm,nohead,nofoot]{geometry}
-##     \usepackage[nohead,nofoot]{geometry}
-##     %%\makeindex
-##     \usepackage{hyperref}
-
-## % Two indices:
-## \newindex{vars}{vidx}{and}{Coded variables}
-## \newindex{surveyvars}{sidx}{sand}{Survey variables}
-## \newcommand{\codedvindex}[1]{\index*[vars]{#1}}
-## \newcommand{\survvindex}[1]{\index*[surveyvars]{#1}}
-
-##     \begin{document}
-
-##     \begin{landscape}
-##     % Change the footnote style to lowercase letters
-##     %\renewcommand{\thefootnote}{\alph{footnote}}
-##     \scriptsize
-##     \begin{center}
-##     %\begin{longtable}{llrllrrlcr}
-##     %
-##     %\hline \hline \\[-2ex]
-##     %
-##     %\begin{sidewaystable}\centering
-
-##     \begin{longtable}{|r|"""+'|'.join('c'*len(surveys))+r"""|p{10cm}|} %@{\\extracolsep{\\fill}}|
-##     \caption[Summary of survey variables.]{Summary of survey variable definitions.} \\
-##     \hline
-##     """)
-##     texfile.write(r"Variable & "+' & '.join([r'\begin{sideways}'+ss+'\end{sideways}' for ss in surveys]))
-##     texfile.write(r"""&   \\ \hline \hline
-## \endhead
-##     """)
-##     #print orderedVariables
-##     #print rawtsv[1:]
-##     orderedVariables+=[v[0] for v in rawtsv[1:] if  v[0] not in orderedVariables]
-##     #print orderedVariables
-##     for ovar in orderedVariables:
-##         varr=[v for v  in rawtsv[1:] if v[0]==ovar]
-##         if varr:
-##             var=dict(zip(rawtsv[0],varr[0]))
-##             desc=[]
-
-##             texfile.write(r'\codedvindex{'+substitutedNames(var['Variable'].replace('_',r'-')) + '}')#r'\_'
-##             for survey in surveys:
-##                 if var[survey+':From']: # survey+':From' in var and
-##                     texfile.write(r' & $\surd$')
-##                     desc+=['{\\em \\bf %s[\\survvindex{%s}]}: %s'%(survey,var[survey+':From'],var[survey+':description'])]
-
-##                 else:
-##                     texfile.write(' & ')
-
-##             texfile.write(' & '+(' '.join(desc)+' \\\\ \\hline \n').replace('_','-'))#r'\_'))
-
-##     texfile.write(r"""
-##  \label{tab:summarySurveyVariableDefinitions}
-##  \end{longtable}
-##     \end{center}
-##     \end{landscape}
-
-## \newpage\printindex[vars]
-## \printindex[surveyvars]
-##     \end{document}
-
-##     """)
-##     texfile.close()
-
-    #if defaults['islinux']:
-    #    formatMasterCodebook(compileLaTeX=True)
-    return
 
 
 
@@ -1705,498 +983,10 @@ def toBoolVar(newname,oldname,surveyName=''):
     #codebookEntry(newname,sn,prompt)
     return(outs)
 
-###########################################################################################
-###
-def ISTHISDEPRECATED_ANDALLOTHERS_HERE_IN_FAVOUR_OF_CODEBOOK_CLASSnormaliseVar(newname,oldname,low,high,missing='.',desc='',surveyName=''):#sn=None,):
-    ###
-    #######################################################################################
-    " Generate Stata code to rescale a variable, and put it in the codebook "
-    #global surveyName
-    outs=''
-    # For variables which have meaningful positive values, rescale them to 0 to 1 scale, usually useful for reversing the order
-    newname=newname[0:32]
-    if  missing: # If this is empty, then assume var has already been generated! Just replace it.
-        outs="gen %s=%s\n"%(newname,missing)
-    outs+="replace %s=(%s-%f)/(%f-%f)  if %s>=min(%s,%s) & %s<=max(%s,%s)\n"%(newname,oldname,low,high,low,oldname,low,high,oldname,low,high)
-    #outs+='label variable %s "rescaled: %s"\n'%(newname,codebook)
-    if not desc:
-        # Copy the label from oldvar to new:
-        outs+="local tmplabel: variable label %s\n"%oldname
-        outs+="""label variable %s "[scaled]: `tmplabel'"\n"""%(newname)
-    else:
-        outs+="""label variable %s "[scaled]: %s"\n"""%(newname,desc)
-    #if sn and not desc:
-    if not desc:
-        addJointCodebookEntry(surveyName,oldname,newname,'[scaled]: ')
-    if desc:
-        addJointCodebookEntry(surveyName,oldname,newname,'[scaled]: ',description=desc)
-    return(outs)
-
-
-
-###########################################################################################
-###
-def deprectated_corrtex(cVars,filename,tablename='',labels=None,substitutions=None, options=''):
-    ###
-    #######################################################################################
-    """ Interface to corrtex, since corrtex is buggy and low on features #:(((
-    Common options are "landscape" and "sig".
-
-    July 2010: Huh? What is this? a LaTeX output of corr outputs? Then it would be obselete
-    There are no calls to it within cpblStata. Ah, I used it in an OLD version of regressionsCMAincome
-
-    By the way, rather than reprogramming to calculate bivariate/pairwise correlations, just use OLS with normalized beta feature turned on. The normalized beta coefficient is the Pearson's correlation coefficient.  So... that way, you get a standard error for it (Stata's pwcorr just gives p-values.)
-"""
-
-    if substitutions==None:
-        substitutions=standardSubstitutions
-    outs="\n"
-    if isinstance(cVars,basestring):
-        cVars=re.split(' ',cVars)
-    for iv in range(len(cVars)):
-        outs+='gen tmpvct%05d=%s\n'%(iv,cVars[iv])
-        outs+='label variable tmpvct%05d "tmpvct%05d"\n'%(iv,iv)
-    outs+='corrtex tmpvct*,file("%s") replace title("%s") %s digits(3)\n'%(filename,tablename,options)
-    outs+='drop tmpvct*\n'
-
-    # Now, assuming Stata has been run, edit the resulting .tex file:
-    if not labels:
-        labels=cVars
-    if os.path.exists(filename):
-        texSource=file(filename,'rt').read()
-    else:
-        return(outs)
-    for iv in range(len(cVars)):
-        texSource=texSource.replace('tmpvct%05d'%iv,labels[iv])
-    for ps in substitutions:
-            texSource=substitutedNames(texSource,substitutions)#Changed Aug 2009 from: .replace(ps[0],ps[1])
-
-    texFile=open(filename,'wt')
-    texFile.write(texSource)
-    texFile.close()
-    return(outs)
-
 
 from cpblUtilities import cpblTableStyC
 
 
-
-
-###########################################################################################
-###
-def composeLaTeXregressionTable(models,tableFormat=None,suppressSE=False,showFlags=None,showStats=None,substitutions=None,modelTeXformat=None,transposed=None,multirowLabels=True,showOnlyVars=None,hideVars=None):
-    ### retired:,variableOrder=None
-    #######################################################################################
-    """ CPBL, March 2008: This is part of a package to produce latex
-    tables of regression coefficients, using Stata as an engine. It
-    composes the main parts of the tabular output for all formats of
-    table.
-
-    It could be used on its own, since it starts from well after Stata results stage. See regressions-demo for an example.
-
-    This assesses significance for coefficients and errors, assuming normality (!).
-    It substitutes names of variables to readable ones.
-    It formats numbers nicely, with vaguely smart number of sig figs.
-    It returns a string which constitutes a complete latex table.
-    Possibly turns some columns a different colour if desired (as in greycols)
-
-    The coefrows can be submitted as a list of pairs or as an even numbered list of rows.
-
-    If there are many columns, the table will be enclosed in a command to allow extra small fonts.
-
-    3 April:
-
-    18 March 2008: Robert would have been 22 tomorrow. This function returns: a string of Stata code, a string of LaTeX code which defines a table and includes the tabular file.
-
-    Transposed versions are saved with a modified filename, to facilitate having both options.
-
-    14 March 2008: added transposed feature: try to have regression
-    models as rows rather than columns. Then a longtable permits as
-    many models as I like, and descriptions of variables can be long.
-    This involved major recoding, so that cells are formatted in
-    matrices before outputting to one kind of table or another.
-
-    modelTeXformat is used directly for the non-transposed form, but ends up being parsed simply to find where to put hlines in the transposed form.
-
-Dec 2008: I am adding multirow capability for coefrows when in normal orientation.. April 2010: Making multirow actually work... in cpblTableCAC formats.
-
-    """
-
-    """
-    multirowLabels: sets first column to be fixed width, wrapped ? requires...
-
-    rowModelNames-?
-
-    showFlags = list of flags (or extra blank lines) to included, in addition to regressors and stats. Unrecognised flags will be included as blanks.
-
-    showStats = list of which regression stats (r^2 etc) to show. Unrecognised stats will be excluded. So will stats with empty values for all models.
-
-    WHAT?!?? SHOW STATS SEEMS NOT TO BE IMPLEMENTED.... SEE MY KLUDGE WITH HIDEVARS BELOW...
-
-    should tableFormat include hideVars? Yes, it can be used to fill in the value...
-
-
-Nov 2010: Trying to add much smarter top row headers, using multi-col, etc, facultative rotation, etc.
-The logic should be:
-- This applies only if vars as rows, ie models are columns.
-- if no columns are named, put no header except column numbers, not rotated
-- If adjacent colums have the same name, do not rotate any numbers, and combine column headers with the same name. (Still rotate non-repeated!?!?) No, do not rotate any.
-Done. Nice.
-NOT DONE: I also want to use simpletable rather than longtable, when clearly appropriate, and in that case to make the legend go outside the caption.
-Hm... but this doesn't yet include multi-level labels, right? tpyical application: all columns have same depvar, so horiz title over all cols, then \cline{2-n}, then a couple of groups each spanning multiple, then column numbers.
-
-
-May 2011: adding different treatment for suestTests values, which just have a p-value.
-
-June 2011: Need to update this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...
-
-    """
-
-    assert not tableFormat==None
-    if tableFormat==None:
-        tableFormat={}
-
-    if 'title' not in tableFormat and 'caption' in tableFormat:
-        tableFormat['title']=tableFormat['caption']
-
-    if 'hideVars' in tableFormat and hideVars==None:
-        hideVars=tableFormat['hideVars']
-
-
-    # Make .csv output copy for the same data:
-    composeTSVregressionTable(models,substitutions=substitutions,tableTitle=tableFormat['title'],caption=tableFormat['caption'],comments=tableFormat.get('comments',''),tableFormat={'csvMode':'all'})
-
-
-
-
-    # May 2011: try this:
-    if tableFormat.get('hideModelNames',False):
-      for mm in models:
-        if 'texModelName' in mm:
-           mm.pop('texModelName')
-        mm['name']=''
-
-
-
-    # Use the code from modelsToPairedRows to order the variables... and start by using modelResultsByVar to get the right lists of vars (in three categories)
-    byVar,byStat,byTextraline= modelResultsByVar(models)#,tableFilename=tableFilename)
-
-    #chooseDisplayVariables(models,variableOrder=variableOrder,
-    variableOrder=tableFormat.get('variableOrder',None)
-    assert variableOrder
-    if variableOrder==None:
-        variableOrder=defaultVariableOrder
-    if isinstance(variableOrder,basestring):
-        variableOrder=[vv for vv in variableOrder.split(' ') if vv]
-
-    # In order to ensure the constant term comes last... let's append all variables known from substitutions to the end of variable order:
-    # Following line fails, since const substition is part of substitutions, and could be early...
-    variableOrder+=[vvv[0] for vvv in substitutions]
-
-    # Agh, shoot: need to massage hidvars:
-    hideStats=[sv for sv in byStat.keys() if 'e(%s)'%sv in hideVars]###'r2','r2_a','r2_p','N','p','N_clust'
-
-    coefVars=orderListByRule(byVar.keys(),variableOrder,dropIfKey=hideVars)
-    statsVars=orderListByRule(orderListByRule(byStat.keys(),['r2','r2_a','r2_p','N','p','N_clust']),variableOrder,dropIfKey=hideStats)
-    flagsVars=orderListByRule(byTextraline.keys(),variableOrder,dropIfKey=hideVars)
-
-    if showOnlyVars: # In which case variableOrder, variableOrder will have no effect:
-        coefVars=[vv for vv in showOnlyVars if vv in coefVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
-        statsVars=[vv for vv in showOnlyVars if vv in statsVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
-        flagsVars=[vv for vv in showOnlyVars if vv in flagsVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
-
-
-    # Choose the format for the table, where some choice is left
-    # Oct 2009: it seems "none" is not getting this far. It's already being converted to True somewhere. So use 'auto' or fix it.
-    # June 2011: This should just be used for choosing which one to display, since both should be built in to tex file ...
-    if transposed==None or (isinstance(transposed,basestring) and transposed=='auto'):
-        transposed=True#False
-
-        # 30 across long dimension (11") by 20 across short dimension (8.5") is pretty packed. So decide here whether to do non-transposed.
-        # Begin here various heuristics....
-        if len(coefVars)+len(statsVars)+len(flagsVars) > 30 and len(models) <=20:
-            transposed=False
-        elif len(coefVars)+len(statsVars)+len(flagsVars) > 20 and len(models) <=10:
-            transposed=False
-
-    subs=substitutions
-
-
-    modelsAsRows=transposed==True
-    varsAsRows= transposed==False
-
-
-
-    r2names=['e(r2-a)','e(r2)','e(r2-p)','r2','r2_a','r2-a','r2_p','r2-p']
-    def formatEstStat(model,estat):
-        """
-        pre-format these so that we can do 3 sig digs for r2:
-        """
-        if estat in r2names:
-            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN),lowCutoff=1.0e-3,threeSigDigs=True))#,convertStrings=True
-        else:
-            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN)))#lowCutoff=1.0e-3,convertStrings=True,threeSigDigs=True)
-
-
-
-    # Some strings can be set regardless of transposed or conventional layout:
-    tableLabel=r'tab:%s'%(''.join([s for s in tableFormat.get('caption','') if s not in ' ,.~()-']))
-
-    landscape=False # This maybe used to be more automated, depending on ntexcols, ntexcols. I've set it to False because I tend to have one continuous landscape environment for the whole tex file now.
-
-
-    # huh? this section used be after the big transposed if! Weird.
-    if 0:
-        ntexrows,ntexcols= 1+(1+int(suppressSE))*len(models),   2+len(coefVars+statsVars+flagsVars)
-
-        formats='lc*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
-        if multirowLabels:
-            formats='lp{3cm}*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
-
-        ###assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
-        headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'+r'\hline'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-        headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-        headersLine2=headersLine+'\n'
-
-
-    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    # First, do preparaation as though vars as rows:
-    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-    #varsAsRows=True
-    body=''
-    for vv in coefVars:
-        pValues=None
-        # Caution!!! I'm introducing here May 2011: if there is any suestTest in the table, then all p-values given by Stata will be used, even though they are often "0.0". But hopefully 0.0 corresponds to smaller than 10^3 or whatever my most stringent level is. (since otherwise, I've been using the t-stat, which as more precision, to calculate the p-value category myself).
-        # N.B. for varsAsRows, using "byVar" has already selected "p" as the display coefficient for any suestTest columns!
-        if any([mm.get('special','') in ['suestTests'] for mm in models]):
-             pValues=[None]+byVar[vv]['p']
-
-        ##        if model.get('special','') in ['suestTests']:
-        ##         displayEst='p' # For OLS etc
-        ##         displayErr='nothing!'
-        ##         estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-        ##     			  r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
-        ##         errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-        ##         pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-
-        ##         tworows=formatPairedRow([estValues,errValues],
-        ##                                 greycells='tableshading' in model and model['tableshading'] in ['grey'],
-        ##                                 pValues=pValues)
-
-        tworows=formatPairedRow(  [[r'\sltrheadername{%s}'%substitutedNames(vv,substitutions)]+byVar[vv]['coefs'],
-                                ['']+byVar[vv]['ses']] ,pValues=pValues)
-        #    ['']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
-            #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
-        body+= '\t& '.join([cc for cc in tworows[0]])+'\\\\ \n'+r'\showSEs{'+\
-                        '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
-    body+=r'\hline '+'\n' # Separate the coefs from extralines..
-    for vv in flagsVars:
-        body+= '\t& '.join([substitutedNames(vv,substitutions)]+byTextraline[vv])+'\\\\ \n'
-    for estat in statsVars:
-        lowCutoff,threeSigDigs=[(None,False),(1.0e-3,True)][estat in r2names]
-        body+= '\t& '.join([substitutedNames(estat,substitutions)]+[chooseSFormat(cc,lowCutoff=lowCutoff,threeSigDigs=threeSigDigs) for cc in byStat[estat]])+'\\\\ \n'
-
-    ntexrows,ntexcols=   1+len(coefVars+statsVars+flagsVars),1+(1+int(suppressSE))*len(models) # ?????NOT CHECKED
-    formats='l*{%d}{r}'%(ntexcols-1) # or: 'l'+'c'*nvars
-    if any(['|' in mm['format'] for mm in models]):
-        formats='l'+''.join([mm['format'] for mm in models]) # N.b. this is rewritten below for use in multicolum headers.
-
-    def smartColumnHeader(colheads,colnums,colformats=None):
-        """
-        See description for main function, above.
-        returns headersline1,headersline2
-        """
-        if not any(colheads):
-            return('\t&'.join(['']+[r'\sltcheadername{%s}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n',r'\ctFirstHeader')
-        #  Now, loop through and find consecutive groups...
-        if colformats is None:
-                colformats=['c' for xx in colheads]
-        hgroups=[]
-        for ih,hh in enumerate(colheads):
-           if ih>0 and hh==hgroups[-1][0]:
-                hgroups[-1][1]+=1
-                hgroups[-1][2]='c'+'|'*(colformats[ih].endswith('|'))# Multicolumn headings should all be centered.
-           else:
-                hgroups+=[[hh,1,colformats[ih]]]
-        if any([hh[1]>1 for hh in hgroups]):
-            """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
-            headersLine='\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
-            # IF there are numbers, too, then show them as a second row!
-            if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
-                headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
-        else:
-             headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
-             # IF there are numbers, too, then show them as a second row!
-             if any(['modelNum' in model or 'texModelNum' in model for model in models]):
-                headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
-
-        return(r'\ctSubsequentHeaders \hline ',headersLine)
-
-
-    headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
-    # IF there are numbers, too, then show them as a second row!
-    if any(['modelNum' in model or 'texModelNum' in model for model in models]):
-        headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \n'
-    headersLine1=headersLine+r'\hline'+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-    headersLine2=headersLine+r'\hline'+'\n'
-    headersLine1,headersLine2=smartColumnHeader([substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models],
-                                                [model.get('texModelNum','(%d)'%(model.get('modelNum',0))) for model in models],
-                                                colformats=[mm['format'] for mm in models])
-
-    varsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
-
-    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    # Second, do preparaation as though models as rows:
-    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-    #modelsAsRows:
-    """
-        Main loop over models, adding appropriately to output array of LaTeX entries.
-        Add a row or paired row
-        """
-    body=''
-
-    # Decide whether to show just model numbers for rows, or model numbers and names:
-    for model in models:
-        model['tmpTableRowName']=model.get('texModelName', substitutedNames(str(model.get('name','')),substitutions))
-    if all([model['tmpTableRowName']==models[0]['tmpTableRowName'] for model in models]):
-        # IF all the row(model) names are the same, let's not show them. Rather, just put a comment in the comments.
-        for model in models:
-            model['tmpTableRowName']=''
-        tableFormat['comments']=tableFormat.get('comments','')+' N.B.: All models/rows were named %s. '%(models[0].get('texModelName',''))
-        multirowLabels=False
-
-    # Loop over models, creating a pair of rows for each (coefficients and standard errors)
-    for model in models:
-        assert 'estcoefs' in model or 'separator' in model # means not yet programmed
-        if 'flags' in model: # flags must have been turned into a dict or a list of pairs
-            assert 'textralines' in model
-            # Above replaces lines below, since now the reformatting of flags has been done in textralines:
-            #model['flags']=dict(model['flags'])
-        if 'estcoefs' in model: # This is an estimate, not a mean, not a spacer
-            if model.get('special','') in ['suestTests']:
-                displayEst='p' # For OLS etc
-                displayErr='nothing!'
-                estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
-                errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-                pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-
-                tworows=formatPairedRow([estValues,errValues],
-                                        greycells='tableshading' in model and model['tableshading'] in ['grey'],
-                                        pValues=pValues)
-
-            else:
-                displayEst='b' # For OLS etc
-                displayErr='se'
-
-                tworows=formatPairedRow([
-                    [r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars],
-            ['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-                    ],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
-
-            #multiRow=r'\multirow{2}{*}{\hspace{0}'
-            #multiRowEnd='}'
-
-
-            #print [[multiRow,r'\sltheadernum{',model.get('texModelNum','(%d)'%(model.get('modelNum',0))),'}',multiRowEnd,multiRow, model.get('texModelName',str(model.get('name',''))),multiRowEnd],[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars],[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars],[formatEstStat(model,vv) for vv in statsVars],  ['',''],[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars],['' for vv in flagsVars],['' for vv in statsVars]]
-            # BIG BUG IS HERE/BELOW. UNFIXED OCT 2009.
-
-            #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
-            if 'special' in model:#any(['special' in mm for mm in models]):
-                pass
-
-                #for icol in enumerate(tworows[0]):
-                #    tworows[0][icol]=r'\rowcolor{caggNormal} '+ tworows[0][icol].replace(r'\aggc','')
-                #    tworows[1][icol]=r'\rowcolor{caggNormal} '+ tworows[1][icol].replace(r'\aggc','')
-
-            if r'\aggc' in tworows[0][0]:
-                # APRIL 2010 KLUUUUUUUUUUDGE to get colortbl working with multirow: switch partly to rowcolor! models as cols not done yet...
-                # Use awful kludge so as not to lose the text of second line...  Can just do this for all rows, even not shaded??
-                assert 'sltrheadername' in tworows[0][1]
-                tworows[1][1]=tworows[0][1].replace('sltrheadername','sltrbheadername')
-                tworows[0][1]=''
-
-
-                body+= r'\rowcolor{caggNormal} ' +   ('\t& '.join([cc for cc in tworows[0]])).replace(r'\aggc','')+'\\\\ \n'+  r'\rowcolor{caggNormal} '  + r'\showSEs{'+\
-                    '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
-            else:
-                body+= ('\t& '.join([cc for cc in tworows[0]]))+'\\\\ \n'+   r'\showSEs{'+\
-                    '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
-
-            if model['format'].endswith('|'):
-                body+='\\hline\n' # or should it be: (r'\cline{1-\ctNtabCols}'+' \n')
-        else:
-            assert 0
-
-    ntexrows,ntexcols= 1+(1+int(suppressSE))*len(models),   2+len(coefVars+statsVars+flagsVars)
-
-    formats='lc*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
-    if multirowLabels:
-        formats='lp{3cm}*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
-
-    ###assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
-    headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'+r'\hline'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-    headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-    headersLine2=headersLine+'\n'
-
-
-    modelsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
-
-
-
-
-    # Now, let's always put the non-transposed as the default orientation inthe .tex file
-    #includeTeX,callerTeX=cpblTableStyC(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
-    includeTeX,callerTeX=cpblTableStyC(tableElements=varsAsRowsElements,tableElementsTrans=modelsAsRowsElements,showTransposed=transposed)
-    if multirowLabels:
-        callerTeX=r"""\renewcommand{\sltrheadername}[1]{\multirow{2}{3cm}{\hspace{0pt}#1\vfill}}
-\renewcommand{\sltrbheadername}[1]{\multirow{-2}{3cm}{\hspace{0pt}#1\vfill}}
-"""+callerTeX
-
-    return(includeTeX,callerTeX,transposed)
-
-
-###########################################################################################
-###
-def composeTSVregressionTable(models,tableFormat=None,greycols=None,suppressSE=False,substitutions=None,modelTeXformat=None,transposed=None,tableTitle=None,caption=None,comments=None,landscape=None,rowModelNames=None,hideRows=None):
-    ###
-    #######################################################################################
-    """ Sep 2009: This will just use the old function, older_composeSpreadsheetRegressionTable, since I've no time to rewrite just now....? So create what's needed to call it.
-
-    Note: this kludge gets by, but various things have changed so the result is not perfect. Still, hopefully good enough for sending people spreadsheet results. [Sept 2009] [Improved a bit Dec 2009!: variables now ordered. decoration can go on coefs.]
-
-Hm... why are variable names already somewhat transformed??...  well, i guess i might need to find a way to fix that so that the non-LaTeX substitutions are used here... or not bother.
-
-    """
-
-    modelNames=[mm['name'] for mm in models]
-    modelNums=[mm['modelNum'] for mm in models]
-    byVar,byStat,byTextraline= modelResultsByVar(models)#,tableFilename=tableFilename)
-    coefRows=[]
-
-    if tableFormat==None:
-        tableFormat={}
-
-    # Add in reordering (Dc 2009):
-    variableOrder=tableFormat.get('variableOrder',None)
-    if variableOrder==None:
-        variableOrder=defaultVariableOrder
-    if isinstance(variableOrder,basestring):
-        variableOrder=[vv for vv in variableOrder.split(' ') if vv]
-    varOrder=orderListByRule(byVar.keys(),variableOrder)
-    statOrder=orderListByRule(byStat.keys(),variableOrder)
-    ###cellsbeta=orderListByRule(cellsbeta,variableOrder,listKeys=[cb[0] for cb in cellsbeta])
-
-
-
-
-    for vv in varOrder:
-        coefRows+=[[vv]+byVar[vv]['coefs']]
-        coefRows+=[['']+byVar[vv]['ses']]
-
-    older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefRows,[[vv]+byStat[vv] for vv in statOrder],substitutions=substitutions,tableTitle=tableTitle,caption=caption,comments=comments,rowModelNames=rowModelNames,tableFormat=tableFormat)
 
 ###########################################################################################
 ###
@@ -2204,7 +994,7 @@ def older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefrows,extrar
     ###
     #######################################################################################
     """
-    (older?! but still used 2011 May!)
+    (older?! but still used 2011 May!)(and 2014?!)
 
 
     This writes one or more .csv files (not a LaTeX file) for the given tabular information.
@@ -2434,12 +1224,427 @@ def older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefrows,extrar
     return
 
 
+###########################################################################################
+###
+def composeLaTeXregressionTable(models,tableFormat=None,suppressSE=False,showFlags=None,showStats=None,substitutions=None,modelTeXformat=None,transposed=None,multirowLabels=True,showOnlyVars=None,hideVars=None):
+    ### retired:,variableOrder=None
+    #######################################################################################
+    """ CPBL, March 2008: This is part of a package to produce latex
+    tables of regression coefficients, using Stata as an engine. It
+    composes the main parts of the tabular output for all formats of
+    table.
+
+    It could be used on its own, since it starts from well after Stata results stage. See regressions-demo for an example.
+
+    This assesses significance for coefficients and errors, assuming normality (!).
+    It substitutes names of variables to readable ones.
+    It formats numbers nicely, with vaguely smart number of sig figs.
+    It returns a string which constitutes a complete latex table.
+    Possibly turns some columns a different colour if desired (as in greycols)
+
+    The coefrows can be submitted as a list of pairs or as an even numbered list of rows.
+
+    If there are many columns, the table will be enclosed in a command to allow extra small fonts.
+
+    3 April:
+
+    18 March 2008: Robert would have been 22 tomorrow. This function returns: a string of Stata code, a string of LaTeX code which defines a table and includes the tabular file.
+
+    Transposed versions are saved with a modified filename, to facilitate having both options.
+
+    14 March 2008: added transposed feature: try to have regression
+    models as rows rather than columns. Then a longtable permits as
+    many models as I like, and descriptions of variables can be long.
+    This involved major recoding, so that cells are formatted in
+    matrices before outputting to one kind of table or another.
+
+    modelTeXformat is used directly for the non-transposed form, but ends up being parsed simply to find where to put hlines in the transposed form.
+
+Dec 2008: I am adding multirow capability for coefrows when in normal orientation.. April 2010: Making multirow actually work... in cpblTableCAC formats.
+
+    """
+
+    """
+    multirowLabels: sets first column to be fixed width, wrapped ? requires...
+
+    rowModelNames-?
+
+    showFlags = list of flags (or extra blank lines) to included, in addition to regressors and stats. Unrecognised flags will be included as blanks.
+
+    showStats = list of which regression stats (r^2 etc) to show. Unrecognised stats will be excluded. So will stats with empty values for all models.
+
+
+
+    should tableFormat include hideVars? Yes, it can be used to fill in the value...
+
+
+Nov 2010: Trying to add much smarter top row headers, using multi-col, etc, facultative rotation, etc.
+The logic should be:
+- This applies only if vars as rows, ie models are columns.
+- if no columns are named, put no header except column numbers, not rotated
+- If adjacent colums have the same name, do not rotate any numbers, and combine column headers with the same name. (Still rotate non-repeated!?!?) No, do not rotate any.
+Done. Nice.
+NOT DONE: I also want to use simpletable rather than longtable, when clearly appropriate, and in that case to make the legend go outside the caption.
+Hm... but this doesn't yet include multi-level labels, right? tpyical application: all columns have same depvar, so horiz title over all cols, then \cline{2-n}, then a couple of groups each spanning multiple, then column numbers.
+
+
+May 2011: adding different treatment for suestTests values, which just have a p-value.
+
+June 2011: Need to update this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...
+
+    """
+
+    assert not tableFormat==None
+    if tableFormat==None:
+        tableFormat={}
+
+    if 'title' not in tableFormat and 'caption' in tableFormat:
+        tableFormat['title']=tableFormat['caption']
+
+    if 'hideVars' in tableFormat and hideVars==None:
+        hideVars=tableFormat['hideVars']
+
+
+    # Make .csv output copy for the same data:
+    composeTSVregressionTable(models,substitutions=substitutions,tableTitle=tableFormat['title'],caption=tableFormat['caption'],comments=tableFormat.get('comments',''),tableFormat={'csvMode':'all'})
+
+
+
+
+    # May 2011: try this:
+    if tableFormat.get('hideModelNames',False):
+      for mm in models:
+        if 'texModelName' in mm:
+           mm.pop('texModelName')
+        mm['name']=''
+
+
+
+    # Use the code from modelsToPairedRows to order the variables... and start by using modelResultsByVar to get the right lists of vars (in three categories)
+    byVar,byStat,byTextraline= modelResultsByVar(models)#,tableFilename=tableFilename)
+
+    #chooseDisplayVariables(models,variableOrder=variableOrder,
+    variableOrder=tableFormat.get('variableOrder',None)
+    assert variableOrder
+    if variableOrder==None:
+        variableOrder=defaultVariableOrder
+    if isinstance(variableOrder,basestring):
+        variableOrder=[vv for vv in variableOrder.split(' ') if vv]
+
+    # In order to ensure the constant term comes last... let's append all variables known from substitutions to the end of variable order:
+    # Following line fails, since const substition is part of substitutions, and could be early...
+    variableOrder+=[vvv[0] for vvv in substitutions]
+
+    # Agh, shoot: need to massage hidvars:
+    hideStats=[sv for sv in byStat.keys() if 'e(%s)'%sv in hideVars]###'r2','r2_a','r2_p','N','p','N_clust'
+
+    coefVars=orderListByRule(byVar.keys(),variableOrder,dropIfKey=hideVars)
+    statsVars=orderListByRule(orderListByRule(byStat.keys(),['r2','r2_a','r2_p','N','p','N_clust']),variableOrder,dropIfKey=hideStats)
+    flagsVars=orderListByRule(byTextraline.keys(),variableOrder,dropIfKey=hideVars)
+
+    if showOnlyVars: # In which case variableOrder, variableOrder will have no effect:
+        coefVars=[vv for vv in showOnlyVars if vv in coefVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
+        statsVars=[vv for vv in showOnlyVars if vv in statsVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
+        flagsVars=[vv for vv in showOnlyVars if vv in flagsVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
+
+
+    # Choose the format for the table, where some choice is left
+    # Oct 2009: it seems "none" is not getting this far. It's already being converted to True somewhere. So use 'auto' or fix it.
+    # June 2011: This should just be used for choosing which one to display, since both should be built in to tex file ...
+    if transposed==None or (isinstance(transposed,basestring) and transposed=='auto'):
+        transposed=True#False
+
+        # 30 across long dimension (11") by 20 across short dimension (8.5") is pretty packed. So decide here whether to do non-transposed.
+        # Begin here various heuristics....
+        if len(coefVars)+len(statsVars)+len(flagsVars) > 30 and len(models) <=20:
+            transposed=False
+        elif len(coefVars)+len(statsVars)+len(flagsVars) > 20 and len(models) <=10:
+            transposed=False
+
+    subs=substitutions
+
+
+    modelsAsRows=transposed==True
+    varsAsRows= transposed==False
+
+
+
+    r2names=['e(r2-a)','e(r2)','e(r2-p)','r2','r2_a','r2-a','r2_p','r2-p']
+    def formatEstStat(model,estat):
+        """
+        pre-format these so that we can do 3 sig digs for r2:
+        """
+        if estat in r2names:
+            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN),lowCutoff=1.0e-3,threeSigDigs=True))#,convertStrings=True
+        else:
+            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN)))#lowCutoff=1.0e-3,convertStrings=True,threeSigDigs=True)
+
+
+
+    # Some strings can be set regardless of transposed or conventional layout:
+    tableLabel=r'tab:%s'%(''.join([s for s in tableFormat.get('caption','') if s not in ' ,.~()-']))
+
+    landscape=False # This maybe used to be more automated, depending on ntexcols, ntexcols. I've set it to False because I tend to have one continuous landscape environment for the whole tex file now.
+
+
+    # huh? this section used be after the big transposed if! Weird.
+    if 0:
+        ntexrows,ntexcols= 1+(1+int(suppressSE))*len(models),   2+len(coefVars+statsVars+flagsVars)
+
+        formats='lc*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
+        if multirowLabels:
+            formats='lp{3cm}*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
+
+        ###assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
+        headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'+r'\hline'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
+        headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
+        headersLine2=headersLine+'\n'
+
+
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # First, do preparaation as though vars as rows:
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+    #varsAsRows=True
+    body=''
+    for vv in coefVars:
+        pValues=None
+        # Caution! I'm introducing here May 2011: if there is any suestTest in the table, then all p-values given by Stata will be used, even though they are often "0.0". But hopefully 0.0 corresponds to smaller than 10^3 or whatever my most stringent level is. (since otherwise, I've been using the t-stat, which as more precision, to calculate the p-value category myself).
+        # N.B. for varsAsRows, using "byVar" has already selected "p" as the display coefficient for any suestTest columns.
+        if any([mm.get('special','') in ['suestTests'] for mm in models]):
+             pValues=[None]+byVar[vv]['p']
+
+        ##        if model.get('special','') in ['suestTests']:
+        ##         displayEst='p' # For OLS etc
+        ##         displayErr='nothing!'
+        ##         estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
+        ##     			  r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
+        ##         errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+        ##         pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+
+        ##         tworows=formatPairedRow([estValues,errValues],
+        ##                                 greycells='tableshading' in model and model['tableshading'] in ['grey'],
+        ##                                 pValues=pValues)
+
+        tworows=formatPairedRow(  [[r'\sltrheadername{%s}'%substitutedNames(vv,substitutions)]+byVar[vv]['coefs'],
+                                ['']+byVar[vv]['ses']] ,pValues=pValues)
+        #    ['']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
+            #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
+        body+= '\t& '.join([cc for cc in tworows[0]])+'\\\\ \n'+r'\showSEs{'+\
+                        '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
+    body+=r'\hline '+'\n' # Separate the coefs from extralines..
+    for vv in flagsVars:
+        body+= '\t& '.join([substitutedNames(vv,substitutions)]+byTextraline[vv])+'\\\\ \n'
+    for estat in statsVars:
+        lowCutoff,threeSigDigs=[(None,False),(1.0e-3,True)][estat in r2names]
+        body+= '\t& '.join([substitutedNames(estat,substitutions)]+[chooseSFormat(cc,lowCutoff=lowCutoff,threeSigDigs=threeSigDigs) for cc in byStat[estat]])+'\\\\ \n'
+
+    ntexrows,ntexcols=   1+len(coefVars+statsVars+flagsVars),1+(1+int(suppressSE))*len(models) # ?????NOT CHECKED
+    formats='l*{%d}{r}'%(ntexcols-1) # or: 'l'+'c'*nvars
+    if any(['|' in mm['format'] for mm in models]):
+        formats='l'+''.join([mm['format'] for mm in models]) # N.b. this is rewritten below for use in multicolum headers.
+
+    def smartColumnHeader(colheads,colnums,colformats=None):
+        """
+        See description for main function, above.
+        returns headersline1,headersline2
+        """
+        if not any(colheads):
+            return('\t&'.join(['']+[r'\sltcheadername{%s}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n',r'\ctFirstHeader')
+        #  Now, loop through and find consecutive groups...
+        if colformats is None:
+                colformats=['c' for xx in colheads]
+        hgroups=[]
+        for ih,hh in enumerate(colheads):
+           if ih>0 and hh==hgroups[-1][0]:
+                hgroups[-1][1]+=1
+                hgroups[-1][2]='c'+'|'*(colformats[ih].endswith('|'))# Multicolumn headings should all be centered.
+           else:
+                hgroups+=[[hh,1,colformats[ih]]]
+        if any([hh[1]>1 for hh in hgroups]):
+            """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
+            headersLine='\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
+            # IF there are numbers, too, then show them as a second row
+            if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
+                headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
+        else:
+             headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+             # IF there are numbers, too, then show them as a second row!
+             if any(['modelNum' in model or 'texModelNum' in model for model in models]):
+                headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
+
+        return(r'\ctSubsequentHeaders \hline ',headersLine)
+
+
+    headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+    # IF there are numbers, too, then show them as a second row
+    if any(['modelNum' in model or 'texModelNum' in model for model in models]):
+        headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \n'
+    headersLine1=headersLine+r'\hline'+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
+    headersLine2=headersLine+r'\hline'+'\n'
+    headersLine1,headersLine2=smartColumnHeader([substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models],
+                                                [model.get('texModelNum','(%d)'%(model.get('modelNum',0))) for model in models],
+                                                colformats=[mm['format'] for mm in models])
+
+    varsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
+
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # Second, do preparaation as though models as rows:
+    # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    #modelsAsRows:
+    """
+        Main loop over models, adding appropriately to output array of LaTeX entries.
+        Add a row or paired row
+        """
+    body=''
+
+    # Decide whether to show just model numbers for rows, or model numbers and names:
+    for model in models:
+        model['tmpTableRowName']=model.get('texModelName', substitutedNames(str(model.get('name','')),substitutions))
+    if all([model['tmpTableRowName']==models[0]['tmpTableRowName'] for model in models]):
+        # IF all the row(model) names are the same, let's not show them. Rather, just put a comment in the comments.
+        for model in models:
+            model['tmpTableRowName']=''
+        tableFormat['comments']=tableFormat.get('comments','')+' N.B.: All models/rows were named %s. '%(models[0].get('texModelName',''))
+        multirowLabels=False
+
+    # Loop over models, creating a pair of rows for each (coefficients and standard errors)
+    for model in models:
+        assert 'estcoefs' in model or 'separator' in model # means not yet programmed
+        if 'flags' in model: # flags must have been turned into a dict or a list of pairs
+            assert 'textralines' in model
+            # Above replaces lines below, since now the reformatting of flags has been done in textralines:
+            #model['flags']=dict(model['flags'])
+        if 'estcoefs' in model: # This is an estimate, not a mean, not a spacer
+            if model.get('special','') in ['suestTests']:
+                displayEst='p' # For OLS etc
+                displayErr='nothing!'
+                estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
+                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
+                errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+                pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+
+                tworows=formatPairedRow([estValues,errValues],
+                                        greycells='tableshading' in model and model['tableshading'] in ['grey'],
+                                        pValues=pValues)
+
+            else:
+                displayEst='b' # For OLS etc
+                displayErr='se'
+
+                tworows=formatPairedRow([
+                    [r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
+                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars],
+            ['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+                    ],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
+
+            #multiRow=r'\multirow{2}{*}{\hspace{0}'
+            #multiRowEnd='}'
+
+
+            #print [[multiRow,r'\sltheadernum{',model.get('texModelNum','(%d)'%(model.get('modelNum',0))),'}',multiRowEnd,multiRow, model.get('texModelName',str(model.get('name',''))),multiRowEnd],[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars],[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars],[formatEstStat(model,vv) for vv in statsVars],  ['',''],[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars],['' for vv in flagsVars],['' for vv in statsVars]]
+            # BIG BUG IS HERE/BELOW. UNFIXED OCT 2009.
+
+            #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
+            if 'special' in model:#any(['special' in mm for mm in models]):
+                pass
+
+                #for icol in enumerate(tworows[0]):
+                #    tworows[0][icol]=r'\rowcolor{caggNormal} '+ tworows[0][icol].replace(r'\aggc','')
+                #    tworows[1][icol]=r'\rowcolor{caggNormal} '+ tworows[1][icol].replace(r'\aggc','')
+
+            if r'\aggc' in tworows[0][0]:
+                # APRIL 2010 KLUUUUUUUUUUDGE to get colortbl working with multirow: switch partly to rowcolor! models as cols not done yet...
+                # Use awful kludge so as not to lose the text of second line...  Can just do this for all rows, even not shaded??
+                assert 'sltrheadername' in tworows[0][1]
+                tworows[1][1]=tworows[0][1].replace('sltrheadername','sltrbheadername')
+                tworows[0][1]=''
+
+
+                body+= r'\rowcolor{caggNormal} ' +   ('\t& '.join([cc for cc in tworows[0]])).replace(r'\aggc','')+'\\\\ \n'+  r'\rowcolor{caggNormal} '  + r'\showSEs{'+\
+                    '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
+            else:
+                body+= ('\t& '.join([cc for cc in tworows[0]]))+'\\\\ \n'+   r'\showSEs{'+\
+                    '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
+
+            if model['format'].endswith('|'):
+                body+='\\hline\n' # or should it be: (r'\cline{1-\ctNtabCols}'+' \n')
+        else:
+            assert 0
+
+    ntexrows,ntexcols= 1+(1+int(suppressSE))*len(models),   2+len(coefVars+statsVars+flagsVars)
+
+    formats='lc*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
+    if multirowLabels:
+        formats='lp{3cm}*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
+
+    ###assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
+    headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'+r'\hline'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
+    headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
+    headersLine2=headersLine+'\n'
+
+
+    modelsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
+
+
+
+
+    # Now, let's always put the non-transposed as the default orientation inthe .tex file
+    #includeTeX,callerTeX=cpblTableStyC(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
+    includeTeX,callerTeX=cpblTableStyC(tableElements=varsAsRowsElements,tableElementsTrans=modelsAsRowsElements,showTransposed=transposed)
+    if multirowLabels:
+        callerTeX=r"""\renewcommand{\sltrheadername}[1]{\multirow{2}{3cm}{\hspace{0pt}#1\vfill}}
+\renewcommand{\sltrbheadername}[1]{\multirow{-2}{3cm}{\hspace{0pt}#1\vfill}}
+"""+callerTeX
+
+    return(includeTeX,callerTeX,transposed)
+
+
+###########################################################################################
+###
+def composeTSVregressionTable(models,tableFormat=None,greycols=None,suppressSE=False,substitutions=None,modelTeXformat=None,transposed=None,tableTitle=None,caption=None,comments=None,landscape=None,rowModelNames=None,hideRows=None):
+    ###
+    #######################################################################################
+    """ Sep 2009: This will just use the old function, older_composeSpreadsheetRegressionTable, since I've no time to rewrite just now....? So create what's needed to call it.
+
+    Note: this kludge gets by, but various things have changed so the result is not perfect. Still, hopefully good enough for sending people spreadsheet results. [Sept 2009] [Improved a bit Dec 2009!: variables now ordered. decoration can go on coefs.]
+
+Hm... why are variable names already somewhat transformed??...  well, i guess i might need to find a way to fix that so that the non-LaTeX substitutions are used here... or not bother.
+
+    """
+
+    modelNames=[mm['name'] for mm in models]
+    modelNums=[mm['modelNum'] for mm in models]
+    byVar,byStat,byTextraline= modelResultsByVar(models)#,tableFilename=tableFilename)
+    coefRows=[]
+
+    if tableFormat==None:
+        tableFormat={}
+
+    # Add in reordering (Dc 2009):
+    variableOrder=tableFormat.get('variableOrder',None)
+    if variableOrder==None:
+        variableOrder=defaultVariableOrder
+    if isinstance(variableOrder,basestring):
+        variableOrder=[vv for vv in variableOrder.split(' ') if vv]
+    varOrder=orderListByRule(byVar.keys(),variableOrder)
+    statOrder=orderListByRule(byStat.keys(),variableOrder)
+    ###cellsbeta=orderListByRule(cellsbeta,variableOrder,listKeys=[cb[0] for cb in cellsbeta])
+
+
+
+
+    for vv in varOrder:
+        coefRows+=[[vv]+byVar[vv]['coefs']]
+        coefRows+=[['']+byVar[vv]['ses']]
+
+    older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefRows,[[vv]+byStat[vv] for vv in statOrder],substitutions=substitutions,tableTitle=tableTitle,caption=caption,comments=comments,rowModelNames=rowModelNames,tableFormat=tableFormat)
 
 
 ###########################################################################################
 ###
 def latexFormatEstimateWithPvalue(x,pval=None,allowZeroSE=None,tstat=False,gray=False,convertStrings=True,threeSigDigs=None):
-    ### Why is this in cpblStata.py? Becuase it needs significanceTable.
+    ### Why is this in pystata.py? Becuase it needs significanceTable.
     #######################################################################################
     """
     This is supposed to encapsulate the colour/etc formatting for a single value and, optionally, its standard error or t-stat or etc. (take it out of formatpairedrow?)
@@ -2501,7 +1706,7 @@ needs to be in charge of making row/model header grey too, if greycells==True  [
     Dec 2009: allowZeroSE: set this to true when the values passed are sums, etc, which may be exact (is SE=standard error  is 0).
 
 
-HUH!? April 2010. Trying to get multirow to work with colortbl.  Why was I not using rowcolor{} ?? Try to implement that now/here... hm.. no, kludging it in the calling function for now?
+? April 2010. Trying to get multirow to work with colortbl.  Why was I not using rowcolor{} ?? Try to implement that now/here... hm.. no, kludging it in the calling function for now?
 
 
 May 2011: can now also send an array of pvalues. This avoids calculating p categories from t-stats. Also, there may not be t-stats, as in the case of suestTests: ie test results.
@@ -2586,437 +1791,6 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     return(outpair)
 
 
-# ###########################################################################################
-# ###
-# def old_uses_pairedRows_composeLaTeXtable(colnames,colnums,coefrows,extrarows,greycols=None,suppressSE=False,substitutions=None,modelTeXformat=None,transposed=None,tableTitle=None,caption=None,comments=None,landscape=None,rowModelNames=None,hideRows=None,multirowLabels=True):
-#     ###
-#     #######################################################################################
-#     debugprint('composeLaTeXtable:',str((len(colnames),len(colnums),len(coefrows),len(extrarows),greycols,suppressSE,'transposed'*transposed+'not transposed'*(not transposed),tableTitle,caption,comments,landscape,rowModelNames)))
-#
-#     # Make .csv output copy for the same data:
-#     older_composeSpreadsheetRegressionTable(colnames,colnums,coefrows,extrarows,substitutions=substitutions,tableTitle=tableTitle,caption=caption,comments=comments,rowModelNames=rowModelNames,tableFormat='all')
-#
-#
-#     """ CPBL, March 2008: This is part of a package to produce latex
-#     tables of regression coefficients, using Stata as an engine. It
-#     composes the main parts of the tabular output for all formats of
-#     table.
-#
-#     It could be used on its own, since it starts from well after Stata results stage. See regressions-demo for an example.
-#
-#     This assesses significance for coefficients and errors, assuming normality (!).
-#     It substitutes names of variables to readable ones.
-#     It formats numbers nicely, with vaguely smart number of sig figs.
-#     It returns a string which constitutes a complete latex table.
-#     Possibly turns some columns a different colour if desired (as in greycols)
-#
-#     The coefrows can be submitted as a list of pairs or as an even numbered list of rows.
-#
-#     If there are many columns, the table will be enclosed in a command to allow extra small fonts.
-#
-#     3 April:
-#
-#     18 March 2008: Robert would have been 22 tomorrow. This function returns: a string of Stata code, a string of LaTeX code which defines a table and includes the tabular file.
-#     There is a complication: it's nice for the included LaTeX file to be an independent tabular environment. But for longtable, this is not possible, since I want to leave the caption and comments as things which can be modified in the calling (master) LaTeX file.
-#     Therefore, for longtables, the included file is not self-contained. Awkwardly, "caption" is now passed in to this function just so that it can be appropriately included in the outputs opening and closing code for the master latex file.
-#     It also returns the transposed boolean, since that decision can be made within it.
-#     This function is now wrapped in latexRegressionFile.outputTables(), which writes both the included file and appends the master file.
-#
-#     Landscape should not really be used; it will choose automatically. Evertyhing can be a longtable.?
-#
-#     Transposed versions are saved with a modified filename, to facilitate having both options.
-#
-#     14 March 2008: added transposed feature: try to have regression
-#     models as rows rather than columns. Then a longtable permits as
-#     many models as I like, and descriptions of variables can be long.
-#     This involved major recoding, so that cells are formatted in
-#     matrices before outputting to one kind of table or another.
-#
-#     modelTeXformat is used directly for the non-transposed form, but ends up being parsed simply to find where to put hlines in the transposed form.
-#
-#     Aug 2008: I am switching over to a new form of cpblTables.sty. This will be known as form "B", so LaTeX calls are like "cpblTablesBLong{}". This format defines the table contents as commands which can then be used by different table methods. This will allow me to add new kinds, like xtab, when I want to.
-#
-#     Sep 2008: here moving hideRows funtionality (ie hide variables) from hidevars in regTable.
-#
-#     Sep 2008: I am now going to try to make this also make some .tsv output so I can plot things with Matlab, etc. This will always be
-#
-# Sep 08: I am now using rowmodel names whenever it's supplied, so it's redundnat. that's cause column headers are rotated 90 degrees anyways.
-#
-# Dec 2008: I am adding multirow capability for coefrows when in normal orientation.
-#
-#     """
-#     from copy import deepcopy
-#     colnames=deepcopy(colnames)
-#     coefrows=deepcopy(coefrows)
-#     extrarows=deepcopy(extrarows)
-#     greycols=deepcopy(greycols)
-#
-#     if transposed==None:
-#         transposed='auto'
-#     if greycols==None:
-#         greycols=[]
-#     if caption==None:
-#         caption=''
-#     if comments==None:
-#         comments=''
-#     # Pair up the coef rows (must be an even number!):
-#     if isinstance(coefrows[0][0],list):
-#         pairedrows=coefrows
-#     else:
-#         pairedrows=[[coefrows[ii],coefrows[ii+1]] for ii in range(0,len(coefrows),2)]
-#     nmodels=len(pairedrows[0][0])-1
-#     coefrows=None # Safety
-#     if not colnames:
-#         colnames=['']*nmodels
-#     if not colnums:
-#         colnums=['']*nmodels
-#
-#
-#     assert(len(colnames)==len(colnums))
-#     assert(len(colnames)+1==len(pairedrows[0][0]))
-#
-#     if tableTitle==None:
-#         tableTitle=caption#'A cpblTable table'
-#
-#
-#     # Eliminate stuff to hide:
-#     if hideRows:
-#         hideRows=uniqueInOrder(re.split(' ',hideRows.strip()))
-#         pairedrows=[pr for pr in pairedrows if pr[0][0] not in hideRows]
-#         extrarows=[pr for pr in extrarows if pr[0].strip() not in hideRows]
-#
-#
-#     # Here: try to export to tsv
-#     if 0:
-#         elimChars=r" \ (){}-,."
-#         tsvOut=open(defaults['paths']['tex']+''.join([ss for ss in tableTitle if ss not in elimChars])+'.csv','wt')
-#         tsvOut.write('\t'.join([''.join([cc for cc in cn if cc not in elimChars]) for cn in colnames])+'\n')
-#
-#         for pr in pairedrows:
-#             tsvOut.write('\t'.join([str(pp) for pp in pr[0]]) + '\n')
-#             tsvOut.write(pr[0][0]+'se'+'\t'+ '\t'.join([str(pp) for pp in pr[1][1:]]) + '\n')
-#         for pr in extrarows:
-#             tsvOut.write('\t'.join([str(pp) for pp in pr[0]]) + '\n')
-#         tsvOut.close()
-#
-#
-#
-#     # Choose the format for the table, where some choice is left
-#     # Landscape is chosen later.
-#     """ Apparently I've abandoned non-longtable. But the advantage of non-longtable is that tables will be started at the top of a page, and thus not split when not necessary. More importantly, non-longtables can be scaled with resizebox to be exactly texwidth wide. This is a great feature whenever it can be made to fit on one page. I should make output that can be used to do either, with a simple switch. Say, \stataTableLong  and \stataTableShort. I guess other options could be set with switches in latex, too...?  """ # This comment obselete: I have now implemented that.
-#     longTable=True
-#     if isinstance(transposed,basestring) and transposed=='auto':
-#         transposed=False
-#     if 1: # transposed:#overwrite colnames here?
-#         if rowModelNames == None:
-#             colnames=['']*len(colnames)
-#         else:
-#             colnames=deepcopy(rowModelNames)
-#
-#     subs=substitutions
-#
-# ##     for ps in subs:
-# ##         for icol in range(len(colnames)):
-# ##             colnames[icol]=colnames[icol].replace(ps[0],ps[1])
-# ##         for pair in pairedrows:
-# ##             pair[0][0]=pair[0][0].replace(ps[0],ps[1])
-# ##         for irow in  range(len(extrarows)): # At least the Stata-generated summary statistics rows need sub'bing:
-# ##             extrarows[irow][0]=extrarows[irow][0].replace(ps[0],ps[1])
-#
-#     if 1:
-#         for icol in range(len(colnames)):
-#             colnames[icol]=substitutedNames(colnames[icol],subs,newCol=2)#.replace(ps[0],ps[2])
-#         for pair in pairedrows:
-#             pair[0][0]=substitutedNames(pair[0][0],subs,newCol=2)#pair[0][0].replace(ps[0],ps[2])
-#         for irow in  range(len(extrarows)): # At least the Stata-generated summary statistics rows need sub'bing:
-#             extrarows[irow][0]=substitutedNames(extrarows[irow][0],subs,newCol=2)#extrarows[irow][0].replace(ps[0],ps[2])
-#
-#
-#
-#     for pair in pairedrows:
-#         if pair[0][0]=='cons' or pair[0][0]=='Constant':
-#             pair[0][0]='constant'
-#
-#
-#     # Construct a matrix of formatted cells, so it can be used in transposed or standard layout:
-#     # Note that colnums and colnames are not yet formatted.
-#     nmodels=len(pairedrows[0][0])-1
-#     cellsvm=[[[] for i in range(nmodels+1)] for j in range(len(pairedrows) +len(extrarows))]
-#     # The first column and the extralines cells will remain blank
-#     cellsse=[[[] for i in range(nmodels+1)] for j in range(len(pairedrows) +len(extrarows))]
-#     # The first column  will remain blank. This is the same thing but
-#     # with the colour significance level commands too. Normally, in
-#     # non-transposed tables we do not want coloured SEs, but in
-#     # transposed we do.
-#     # There's a problem with that: when stars, not colours, are being used, we certainly do not want it to act on both coeffs and SE. So for now get rid of colour on SE's altogether:
-#     cellssewc=[[[] for i in range(nmodels+1)] for j in range(len(pairedrows) +len(extrarows))]
-#     for ipair in range(len(pairedrows)):
-#         pair=pairedrows[ipair]
-#         significanceString,greyString=[[] for i in range(len(pair[0]))],   [[] for i in range(len(pair[0]))]
-#         for i in range(len(pair[0])):
-#             significanceString[i], greyString[i]='',''
-#         rowname=pair[0][0]
-#         cellsvm[ipair][0]= pair[0][0]# rowname in first column
-#         cellsse[ipair][0]= ''
-#         cellssewc[ipair][0]= ''
-#         # Now format the coefficients
-#         print "Should use formatpaired row here!?? well, what about cellsse, cellssewc..."
-#         #formatPairedRow(pair,greycols=None)
-#         if 1:#'newFormat'=='newFormat':
-#             # In the new format, the significanceString wraps around the coefficient, rather than follows it.
-#             for icol in range(1,len(pair[0])):
-#                 # Safety: so far this is only because of line "test 0= sumofincomecoefficients": when that fails, right now a value is anyway written to the output file (Aug 2008); this needs fixing. In the mean time, junk coefs with zero tolerance:
-#                 if pair[1][icol]<1e-10: #==0 or : # Added sept 2008...
-#                     pair[0][icol]=''
-#                 if isinstance(pair[0][icol],float) and not str(pair[0][icol])=='nan':# and not pair[1][icol]==0:
-#                     tratio=abs(pair[0][icol]/pair[1][icol])
-#                     significanceString[icol]=([' ']+[tt[0] for tt in significanceTable if tratio>= tt[1]])[-1]
-#                 if significanceString[icol] and icol in greycols:
-#                         significanceString[icol]=r'\agg'+significanceString[icol][1:]
-#                 if not significanceString[icol] and icol in greycols:
-#                         significanceString[icol]=r'\aggc{'
-#                 if icol in greycols:
-#                     greyString[icol]=r'\aggc'
-#
-#                 cellsvm[ipair][icol]= significanceString[icol]+chooseSFormat(pair[0][icol])+'}'*(not not significanceString[icol])
-#                 #if 1:#not suppressSE:
-#                 cellsse[ipair][icol]=chooseSFormat(pair[1][icol],conditionalWrapper=[r'\coefse{','}'])  +  greyString[icol]
-#                 cellssewc[ipair][icol]=chooseSFormat(pair[1][icol],conditionalWrapper=[significanceString[icol]+r'\coefse{','}'+'}'*(not not significanceString[icol])])
-#
-#                 # OVerwrite this for now, as explained above
-#                 cellssewc[ipair][icol]=chooseSFormat(pair[1][icol],conditionalWrapper=[r'\coefse{','}'])  +  greyString[icol]
-#
-#     # Format row names and format extrarows:
-#     for irow in range(len(extrarows)):
-#         for icol in range(len(pair[0])):
-#             cellsvm[len(pairedrows)+irow][icol]=chooseSFormat(extrarows[irow][icol])+greyString[icol]
-#             cellsse[len(pairedrows)+irow][icol]=greyString[icol]
-#             cellssewc[len(pairedrows)+irow][icol]=greyString[icol]
-#     # Format model names and numbers:
-#     if any(colnames):
-#         fmodelnames=[[r'\sltheadername{%s}'%colnames[idv],r'\sltheadername{%s}\aggc'%colnames[idv]][int(idv+1 in greycols)] for idv in range(len(colnames))]
-#     else:
-#         fmodelnames=colnames
-#     if any(colnums):
-#         fmodelnums= [[r'\sltheadernum{%s}'%colnums[idv],r'\sltheadernum{%s}\aggc'%colnums[idv]][int(idv+1 in greycols)] for idv in range(len(colnums))]
-#     else:
-#         fmodelnums=colnums
-#
-#     fooooo_i_assume_this_whole_function_is_deprecated
-#     # Conclusion/ summary:
-#     """  So, I've made
-# cellsvm: This does not correspond to cells in the table, since paired rows are still grouped...
-# cellsse:  This is a version with suppressSE turned on?
-# cellssewc:  This is a version with colour?? but suppressSE??
-# fmodelnames:
-# fmodelnums:
-#
-#
-# Aug 2009: why the sse stuff? I thought I was going to leave all that up to latex to turn them on/off.
-# """
-#
-#
-#
-#
-#
-#     #Write headers
-#     ###formats,cformats='',''
-#     #outs='%'+str(longTable)+'\n'
-#     outs='\n'
-#
-#     debugprint( 'There are %d models, %d pairs, and %d extras\n'%(nmodels,len(pairedrows),len(extrarows))+\
-#           ' Thus, in  transposed mode there are (with SEs showing) %d texrows and %d texcols\n'%(1+2*nmodels,1+len(pairedrows)+len(extrarows))+\
-#           ' And, in untransposed mode there are (with SEs showing) %d texrows and %d texcols\n'%(1+2*len(pairedrows)+len(extrarows),1+nmodels) )
-#
-#     if transposed:
-#         ntexrows,ntexcols= 1+2*nmodels,   1+len(pairedrows)+len(extrarows)
-#     if not transposed:
-#         ntexrows,ntexcols= 1+2*len(pairedrows)+len(extrarows),   1+nmodels
-#
-#
-#     # Some things can be defined now to simplify or unify writing headers for the two possible layouts:
-#     if transposed==True: # Each column is a variable; each row one of a model row-pair or an extrarow. There is one extra row and one extra column for row/column labels
-#         #ntexcols= len(pairedrows) + len(extrarows)
-#         #ntexrows=1+len(pairedrows[0][0])*(2-int(suppressSE))+len(extrarows)# ie variable titles (top row) plus paired rows plus extrarows
-#         #suppressSE=True
-#
-#
-# 	nvars=len(cellsvm)
-#         #ntexcols=len(pairedrows) +len(extrarows) ### nvars+1
-# ##         # Generate formats for transposed: First col left-aligned. Most centre. "Obs" right aligned. No! Do all right aligned: much nicer
-# ##         iObsCol= [icc for icc in range(len(cellsvm)) if cellsvm[icc][0]=='Obs.']
-# ##         if 0 and iObsCol:
-# ##             formats='l*{%d}{r}r*{%d}{r}'%(iObsCol[0],nvars-iObsCol[0]+1) # or: 'l'+'c'*nvars
-# ##         else:
-# ##             formats='l*{%d}{r}'%nvars # or: 'l'+'c'*nvars
-#
-#         # Aaah! replace this with the older functionality that respected external spec:
-#         formats='l*{%d}{r}'%(ntexcols-1) # or: 'l'+'c'*nvars
-#         assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
-#         headersLine='\t&'.join(['']+[r'\begin{sideways}\sltheadername{%s}\end{sideways}'%cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-#         headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-#         headersLine2=headersLine+'\n'
-#
-#     foodlez=4
-#     if modelTeXformat==None: # Careful: modelTeXformat only specifies the format of models, not header lines nor variables... I think I've really messed this up. Reimplment the feature later by which I can specify divider lines externally...?[aug2008]
-#         modelTeXformat=['c' for xx in range(nmodels)]#'*{%d}{c}'%(nmodels)#
-#         fooodlez=1
-#
-#     if not transposed: #####else: # not transposed
-#         #ntexcols= len(pairedrows[0][0]) # +1??
-#         #ntexrows=2+ len(pairedrows)*(2-int(suppressSE)) + len(extrarows)
-#         cline=r'\cline{2-\ctNtabCols}'+' \n'
-#         #assert modelTeXformat
-#         #if modelTeXformat:
-#         #    formats=r'l|'+ ''.join(modelTeXformat)
-#         #     ntexcols=1+len(modelTeXformat)
-#         if 0: # Since it looks like this is redone below.
-#             formats='l*{%d}{r}'%(ntexcols-1) # or: 'l'+'c'*nvars
-#         # IF there is nothing in the modelnames, do not print that line at all! Should do same for modelnums..
-#         anyHeadersLine=any([ff.replace('\\sltheadername{}','').replace('\\sltheadername{\\cpblMeanRowName }\\aggc','').strip() for ff in fmodelnames])
-#         #fmodelnames=[ff.replace('\\sltheadername{}','').replace('\\sltheadername{\\cpblMeanRowName }\\aggc','').strip() for ff in fmodelnames]
-#
-#
-#         if 0:
-#             headersLine=(anyHeadersLine)*('\t&'.join(['']+fmodelnames)+' \\\\ \n')+'\t&'.join(['']+fmodelnums)+' \\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-#         # Actually, overwrite this with rotated header names for non-transposed case?
-#         headersLine=(anyHeadersLine)*('\t&'.join(['']+[r'\begin{sideways}\sltheadername{%s}\end{sideways}'%fmn for fmn in fmodelnames])+' \\\\ \n')+'\t&'.join(['']+fmodelnums)+' \\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-#
-#
-#         headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-#         headersLine2=headersLine+'\n'
-#
-#
-#
-#     # Specify the column format in LaTeX
-#     if modelTeXformat==None: # Careful: modelTeXformat only specifies the format of models, not header lines nor variables... I think I've really messed this up. Reimplment the feature later by which I can specify divider lines externally...?[aug2008]
-#         modelTeXformat=['c' for xx in range(nmodels)]
-# ##         if transposed:
-# ##             modelTeXformat=['c']*nmodels
-# ##         if not transposed:
-# ##             modelTeXformat=['c']*(1+len())
-#         debugprint('modelTeXformat filled in automatically')
-#     for ffi in range(len(modelTeXformat)):
-#         if modelTeXformat[ffi]=='':
-#             modelTeXformat[ffi]='c'
-#
-#     # Set formats for not transposed case...
-#     if not transposed: #####else: # not transposed
-#         assert modelTeXformat
-#         formats='l'+''.join(modelTeXformat)
-#         if 'redux' in tableTitle or 'First' in tableTitle:
-#             pass
-#
-#         #if modelTeXformat:
-#         #    formats=r'l|'+ ''.join(modelTeXformat)
-#         #    ###ntexcols=1+len(modelTeXformat)
-#
-#     #istiny=''
-#     #if ntexcols>15:
-#     #    istiny=r'\usetinytablefont '+'' #\resizebox{5cm}{!}{'+'\n'#{
-#         #formats=r'@{ }'.join(formats)
-#         #cformats=r'@{ }'.join(cformats)
-#         ###cformats=r'@{\extracolsep{0pt}}'+cformats
-#         ###outs+=r'\setlength\LTleft{0pt} \setlength\LTright{0pt} '
-#
-#
-#     #Now, at this late stage, choose landscape or not:
-#     if landscape==None:
-#         landscape=True
-#         if transposed and ntexcols<15:
-#             # For transposed format, use landscape unless the table will be really narrow:
-#             landscape=False
-#         if not transposed and ntexcols<11:
-#             landscape=False
-#
-#     # So far choice of suppressSE is not automated... ie it's left up to LaTeX but not yet turned on/off by python?
-#     # The following says if the current row is followed by associated standard errors, then force LaTeX not to split up these two rows (\\*). Otherwise, the next row can be split from this one. (\\)
-#     tabnewlineNosplit=r'\showSEs{\\*}{\\}'#\\'
-#
-#
-#     # Some strings can be set regardless of transposed or conventional layout:
-#     tableLabel=r'tab:%s'%(''.join([s for s in caption if s not in ' ,.~()-']))  #))caption.replace(' ','').replace(',','').replace('.','').)
-#
-#
-#
-#     if transposed:
-#         # Main output for transposed format, with or without standard errors:
-#         # For each model, there are two lines (when SE shown): name and coefficents  in the first, and number and SE in the second.
-#         # Or should I always show SE's in the transposed case?
-#         # Here each transposed row starts with
-#
-#         body=''
-#         for imodel in range(len(colnames)):
-#             hline=(r'\cline{1-\ctNtabCols}'+' \n') * ('|' in modelTeXformat[imodel]) #['',r'\cline{%d-%d}'%(1,nvars+1)+' \n'][int('|' in modelTeXformat[imodel])]
-#             # The hfill below is meant to make the (optional) model name flush right with a cell while the number flushes left.
-#
-#
-#             if  0 and multirowLabels:
-#                 # The \hspace{0} overcomes a bug (?) which does not allow the first word to be hyphenated. \rowLabelWidth has to be set somewhere... e.g. can be set from the regTable call that chooses to invoke multirow mode.
-#                 coefsString=' \t& '.join( [r'\multirow{2}{*}{\hspace{0}'+fmodelnums[imodel]+r'\slthfill '+fmodelnames[imodel]+'}']#[fmodelnames[imodel]]#[colnames[imodel]]  # Name of model
-#                       +[cellsvm[ivar][imodel+1] for ivar in range(len(cellsvm))] # coefficients and extrarows
-#                          )+ ' \\\\ \n'
-#             else:
-#                 coefsString=' \t& '.join( [fmodelnums[imodel]+r'\slthfill '+fmodelnames[imodel]]#[fmodelnames[imodel]]#[colnames[imodel]]  # Name of model
-#                       +[cellsvm[ivar][imodel+1] for ivar in range(len(cellsvm))] # coefficients and extrarows
-#                          )+ ' \\\\ \n'
-#             if not suppressSE:# WHAT DID THIS DO??? and imodel in range(len(cellsse)):
-#                 pass
-#             seString=r'\showSEs{'+ '\t&'.join( ['']#[colnums[imodel]]  # Number of model
-#                        #+[ [cellssewc[ivar][imodel+1],''][int(suppressSE)] for ivar in range(len(cellsse))] # standard errors
-#                                                                                                                                                 + [cellssewc[ivar][imodel+1] for ivar in range(len(cellsse))] # standard errors
-#                        #+['']*(len(cellsvm)-len(cellsse))              #(and blanks for extrarows)
-#                          )+' \\\\ }{}\n'
-#             #else:
-#             #    seString=''
-#
-#             body+=coefsString+seString+hline
-#
-#     ############################ STANDARD LAYOUT (NOT TRANSPOSED) ################################
-#
-#     if not transposed:
-#         # Now output the guts of the table, regardless of longtable or not:
-#
-#         body=''
-#         #outs+=r'\renewcommand{\ctBody}{'
-#         for ipair in range(len(pairedrows)):
-#             # Eek! Below looks like a horrid kludge to put separators in! This should be in regTable
-#             beforeHline=(r'\sum' in cellsvm[ipair][0])*r'\hline'
-#             afterHline=(r'\sum' in cellsvm[ipair][0])*r'\hline'
-#
-#             #+(len(cellsvm)>ipair and r'\sum' in cellsvm[ipair+1][0])*r'\hline'
-#             body+=beforeHline+"""
-#             """+' \t& '.join(cellsvm[ipair])+ tabnewlineNosplit  +'  \n'# [fmodelnums[imodel]]#[fmodelnames[imodel]]#[colnames[imodel]]  # Name of model
-#                       #+[cellsvm[ivar][imodel+1] for ivar in range(len(cellsvm))] # coefficients and extrarows
-#                       #   )+ ' \\\\ \n'
-#             #if not suppressSE:
-#             body+=r'\showSEs{'+  ' \t& '.join(cellsse[ipair]) +' \\\\'+' }{}\n'
-#             body+=afterHline
-#
-#         body+=r'\hline ' # Separate the coefs from extralines..
-#         for irow in range(len(extrarows)):
-#             body+=' \t& '.join(cellsvm[len(pairedrows)+irow]) +' \\\\ \n'
-#         body+=r'\hline ' # Added July 2008.. does this make too many for transposed?
-#
-#
-# ##         outs+='\n} % End of ctBody \n'
-# ##         #outs+=r'\cline{%d-%d} \ifNotLongTable{\\}'%(1,nvars+1) +'\n'
-# ##         #outs+=r'\cpbllasthline ' +'\n' #\ifNotLongTable{\\}
-# ##         outs+=r'\renewcommand{\ctLastHline}{\hline \hline}'+'\n'
-# ##         outs+=closing
-#
-#
-#     includeTeX,callerTeX=cpblTableStyC(body,format=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableTitle,caption=caption,label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+comments,tableName=tableTitle,landscape=landscape)
-#
-#
-#     return(includeTeX,callerTeX,transposed)
-# ##     return(outs,masterTexOpening,masterTexClosing,transposed)
-#
-#
-# ##     outs+=closing
-# ##     return(outs,masterTexOpening,masterTexClosing)
-
-
 def texheader(margins='default',startDocument=True):
     if margins==None:
         mmm=r'\usepackage[left=0cm,top=0cm,right=.5cm,nohead,nofoot]{geometry}\n'
@@ -3098,7 +1872,7 @@ def texheader(margins='default',startDocument=True):
 
 def transposeLaTeXtableCells(rows):
     """
-Dec 2009: Crazy!! This takes a list of lists each of which contain cell info, and they can include '\\' and '\hline's and tries to transpose the whole thing!
+Dec 2009:  This takes a list of lists each of which contain cell info, and they can include '\\' and '\hline's and tries to transpose the whole thing!
 Very crude at first, for testing.
 To do:
 - hline to |
@@ -3127,7 +1901,7 @@ def subSampleAccounting(LL,mods,argss): # Need to wrap this member function up i
 
 
 
-# This should go in  cpblStata?? Maybe in regtable class. This is used by functions that are defined to make a particular plot. These functions are typically passed as pointers into regtable for plotting and inclusion in pdf output, etc.
+# This should go in  pystata?? Maybe in regtable class. This is used by functions that are defined to make a particular plot. These functions are typically passed as pointers into regtable for plotting and inclusion in pdf output, etc.
 def _oldmode_plotPairedRow(ax,pairedRows,x=None,xerr=None,coef=None,imodels=None,models=None,label=None,color=None):
     """
     So far, not Stata-specific.
@@ -3180,7 +1954,7 @@ def _oldmode_plotPairedRow(ax,pairedRows,x=None,xerr=None,coef=None,imodels=None
     return(pp,y,dy,prh)
 
 
-# This should go in  cpblStata?? Maybe in regtable class. This is used by functions that are defined to make a particular plot. These functions are typically passed as pointers into regtable for plotting and inclusion in pdf output, etc.
+# This should go in  pystata?? Maybe in regtable class. This is used by functions that are defined to make a particular plot. These functions are typically passed as pointers into regtable for plotting and inclusion in pdf output, etc.
 def plotPairedRow(ax,models,x=None,xerr=None,coef=None,imodels=None,label=None,color=None):
     """
     So far, not Stata-specific.
@@ -3247,100 +2021,6 @@ color:
     return(y,dy,prh) # pp used to be first return value.
 
 
-def draft_basicCoefPlot(pairedRows,models,fname,title=None,coefName=None):
-    """
-    This is basically a prototype of functions which can be used for postPlotFcn in regTable. So it can be used for simple cases of plot one line of all models...
-
-This "draft_" is old version, while I update things.
-
-    """
-    import pylab
-    fign=9999
-    fig = pylab.figure(fign)
-    fig.clear()
-    ax = fig.add_subplot(111)
-    #x,xerr=[pylab.mean(xx[2]) for xx in dCats],[(max(xx[2])-min(xx[2]))/2 for xx in dCats]
-    x=None # This turns on the xticklabelling in place of x values!
-    xerr=None
-    h1=plotPairedRow(ax,pairedRows,x=x,models=models,xerr=xerr,coef=coefName,imodels=range(len(models)))
-    return([fign])
-
-
-def plotAllByAge(pairedRows,models,fname,postPlotArgs=None,title=None):
-    import pylab
-    global figureNumber
-    figs=[]
-    coefs=postPlotArgs['coefsToPlot']#[vv for vv in ['cons']+agebasemodel['model'].split(' ') if vv and not vv.startswith('dHHsize')]:
-    dCats=postPlotArgs['dCats']
-    for coefn in coefs:#
-        figureNumber+=1
-        fig = pylab.figure(figureNumber)
-        pylab.setp(fig,'figheight',11.0125/3,'figwidth', 8.1125)
-
-        fig.clear()
-        ax = fig.add_subplot(111)
-        x,xerr=[pylab.mean(xx[2]) for xx in dCats],[(max(xx[2])-min(xx[2]))/2 for xx in dCats]
-        #x=None # This turns on the xticklabelling in place of x values!
-
-        hhh=plotPairedRow(ax,models,x=x,xerr=xerr,coef=coefn,imodels=[len(dCats),2*len(dCats)],label='male',color='b')
-
-        ax.hold(True)
-        plotPairedRow(ax,models,x=x,xerr=xerr,coef=coefn,imodels=[2*len(dCats),3*len(dCats)],label='female',color='m')
-        ax.plot(ax.get_xlim(),[0,0],'k--')
-        pylab.ylabel(coefn+' coefficient by age')
-        leg=pylab.legend()
-        if leg:
-            leg.get_frame().set_alpha(0.5)
-
-        axisResid=ax
-
-        pylab.xlabel('Agegroup (years)')
-        pylab.title(title)
-        if 0 and showPlots:
-            pylab.show()
-        figs+=[{'fig':figureNumber}]
-    return(figs)
-        #pylab.axes(axisResid)
-        #pylab.xlim(xl)
-
-
-
-"""
-def multiCoefPlot(pairedRows,models,postPlotArgs=None):
-
-    #Idea here is to be able to plot male/female pairs for all coefficients in a table, for instance.
-
-
-    assert 'plotdesc' in postPlotArgs
-    from pylab import array figure
-
-    for fign in range(len(postPlotArgs['plotdesc'])):
-        fig = pylab.figure(fign+9990)
-        fig.clear()
-        ax = fig.add_subplot(111)
-        pd=postPlotArgs['plotdesc'][fign]
-
-        x,xerr=[pylab.mean(xx[2]) for xx in dCats],[(max(xx[2])-min(xx[2]))/2 for xx in dCats]
-        #x=None # This turns on the xticklabelling in place of x values!
-
-
-        hhh=plotPairedRow(ax,pairedRows,x=x,models=models,xerr=xerr,coef='cons',imodels=[len(dCats),2*len(dCats)],label='male',color='b')
-        ax.hold(True)
-        plotPairedRow(ax,pairedRows,x=x,models=models,xerr=xerr,coef='cons',imodels=[2*len(dCats),3*len(dCats)],label='female',color='m')
-        pylab.ylabel('Residual by age')
-        pylab.legend()
-        axisResid=ax
-
-
-
-    #x,xerr=[pylab.mean(xx[2]) for xx in dCats],[(max(xx[2])-min(xx[2]))/2 for xx in dCats]
-    x=None # This turns on the xticklabelling in place of x values!
-    xerr=None
-    h1=plotPairedRow(ax,pairedRows,x=x,models=models,xerr=xerr,coef=coefName,imodels=range(len(models)))
-    return([fign])
-
-
-"""
 
 def basicCoefPlot(latex,models,followupArgs):
     """
@@ -3365,29 +2045,6 @@ def basicCoefPlot(latex,models,followupArgs):
     for vv in varstp:
         h1=plotPairedRow(ax,models,imodels=range(len(models)),coef=vv)#,x=x,xerr=xerr,coef=coefName,imodels=range(len(models)))
 
-    ax.plot(ax.get_xlim(),[0,0],'k--')
-
-    return(fign)
-
-
-def obseleteee_basicCoefPlot(pairedRows,models,fname,title=None,coefName=None,postPlotArgs=None):
-    """
-    MUST BE OBSELETE! i GOT RID OF POSTPLOTFCN. SO NEED NEW PROTOTYPE FOR FOLLUPFCN
-    This is basically a prototype of functions which can be used for postPlotFcn in regTable. So it can be used for simple cases of plot one line of all models...
-
-    """
-    import pylab
-    global figureNumber
-    figureNumber+=1
-    fign=figureNumber
-    fig = pylab.figure(fign)
-    fig.clear()
-    ax = fig.add_subplot(111)
-    #x,xerr=[pylab.mean(xx[2]) for xx in dCats],[(max(xx[2])-min(xx[2]))/2 for xx in dCats]
-    x=None # This turns on the xticklabelling in place of x values!
-    xerr=None
-
-    h1=plotPairedRow(ax,models,x=x,xerr=xerr,coef=coefName,imodels=range(len(models)))
     ax.plot(ax.get_xlim(),[0,0],'k--')
 
     return(fign)
@@ -3437,225 +2094,6 @@ def colourLegend():
 
 #def signifDefinitions():
 
-def semiRollingRegression(stata,kernelVar=None,kernelVarRanges=None,kernelFullRange=None,binWidth=None,nBins=None,minSampleSize=400):
-    """
-July 2011: See regressionsOrdinal , and generalise what I've done there. The idea is that some coefficients are fixed to be the same over the entire range of the x-rolling variable, while others are calculated as a function of the x-rolling variable.
-
-!!! What? May 2012: see latex.semiRollingRegression() in cpblStataLatex file!
-DO NOT USE THIS one here!!
- -----
-
-
-    AGH. SEE ORDINAL FOR NOW
-
-    N.b. if the rolling x variable is the same as the (only) independent rolling y variable, then it's really a semiparametric estimate. ie semiparametric is the case of rolling where the independent variable is the same as the rolling x variable.
-
-    how does this differ from rolling regression? I want to hold some values fixed. hm; I could do this in two stages where I literally fix the values based on a global regression. That woudl allow me still to use a kernel?  But I want to make a series of dummies for each rolling variable.
-
-    first, read up on semiparametric in Cameron and Trivedi's new book!
-Well, that's a nice reference., though the docs for SemiPar are good too.
-
-However, this function is nothing like that. It's like the "rolling" and rollreg in Stata except not for time series.
-
-    """
-
-
-    """
-    Only one xrolling is allowed per call.
-    """
-
-    return(outStata)
-
-
-
-###########################################################################################
-###
-def rollingRegression(model,kernelVar=None,kernelVarRanges=None,kernelFullRange=None,binWidth=None,nBins=None,minSampleSize=400): # binRange=None, [binRange deprecated Sep 2010]
-    ###
-    #######################################################################################
-    """
-    This is my kludge for finding coefficients as a function of one other variable.
-    It carries out a regression with weights given by a moving kernel over one dimension of the data.
-    Right now the kernel is fixed to be a square box, ie bins. This is just for development...
-
-    Comment: (May 2012). So this is here, but/and in cpblStataLatex there is a semiRollingRegression, which rather than splitting the sample up, it pools everything and uses interactions with a series of dummies for all the variables that you want to roll over.  For robustness checking, you should do both, in general!! Since the semiRolling is a bit sketchy...
-
-
-    The model must be in new regSeries format.
-
-    To start with, caller must choose the ranges explicitly! in kernelVarRanges
-
-    Oh... you can either specify stuff in the call, above, or you can put the info in a "kernel" element of the model dict.
-
-
-    Sep 2010: oh bizarre. The function plotRollingRegression seems to be gone.  (There's one in regressionsInequality2010)
-
-    This needs to do a check to see whether any samples exist in the range, and not die if they don't!
-    model:
-    kernelVar=None:
-    kernelVarRanges=None:
-    # ELIMINATED: binRange=None: Deprecated name. Use "kernelFullRange" isntead
-    kernelFullRange=None:  Just give the full range for this rolling variable, and specify also nBins and binWidth.
-    binWidth=None:
-    nBins=None:
-    minSampleSize=400:
-    """
-
-    ##assert not binRange # use kernelFullRange instead.
-
-    outs='\n'
-    models=[]
-    from copy import deepcopy
-    # Ensure there's already an if clause:
-    # Find regressors; find if conditions:
-    if ' if ' not in model['model']:
-        model['model']+=' if 1'
-    parts=model['model'].split(' if ')
-    regressors=[pp for pp in parts[0].split(' ') if pp]
-    useRegressors=[pp for pp in regressors if '*' not in pp]
-
-    if kernelFullRange and not kernelVarRanges:
-        rmin=kernelFullRange[0]
-        rmax=kernelFullRange[1]
-        if not nBins:
-            nSteps=10.0
-        else:
-            nSteps=nBins
-        if not binWidth:
-            fracRange=.2
-            absRange=fracRange*(rmax-rmin) # Absolute range of each bin
-        else:
-            absRange=binWidth
-
-        midPoints=[rmin+dd*(rmax-rmin)/(1*nSteps-1.0) for dd in range(nSteps-1)]+[rmax]  # Midpoint of each bin, except ends won't be symmetric around it.
-        kernelVarRanges=[[max(rmin,mp-absRange/2),min(rmax,mp+absRange/2)] for mp in midPoints]
-
-    if 'kernel' in model:
-        kernels=model['kernel']
-        kernelVar=kernels['kernelVar']
-
-        if  'nBins' in kernels and 'kernelFullRange' in kernels and   'squareFracRange' in kernels: # Settings specified for a boxcar (square kernel)
-            rmin=kernels['kernelFullRange'][0]
-            rmax=kernels['kernelFullRange'][1]
-            nBins=kernels['nBins']
-            absRange=kernels['squareFracRange']*(rmax-rmin) # Absolute range of each bin
-            midPoints=[rmin+dd*(rmax-rmin)/(1*nBins-1.0) for dd in range(nBins-1)]+[rmax]  # Midpoint of each bin, except ends won't be symmetric around it.
-            kernelVarRanges=[[max(rmin,mp-absRange/2),min(rmax,mp+absRange/2)] for mp in midPoints]
-
-            #arg2out=midPoints
-            #arg3out=absRange
-
-    for kvr in kernelVarRanges:
-        amodel=deepcopy(model)
-        stataBeforeOut=''
-
-        # So add an if clause for the range:
-
-        extraIfClause=' & %s>=%f & %s<=%f '%(kernelVar,kvr[0],kernelVar,kvr[1])
-        amodel['model']+=extraIfClause
-        amodel['name']=r'%s=%s$\pm$%s'%(kernelVar,chooseSFormat((kvr[1]+kvr[0])/2.),chooseSFormat((kvr[1]-kvr[0])/2.))
-                                      #r'$%f<%s<%f$'%(kvr[0],kernelVar,kvr[1])
-	debugprint( 'So model is '+amodel['model'])
-	amodel['rolling']=dict(rollingVar=kernelVar,rollingVarRange=kvr[:2])
-
-
-        # Count how many people in each bin for the coming regression:
-        stataBeforeOut+="""
-        capture drop ttt_*
-        capture drop dummyOne
-        gen dummyOne=1
-        """  # Safely clear old counters (Could have used "capture" instead)
-        # Count how many samples are available (that comes into r(N)) which meet our criteria:
-        stataBeforeOut+='\n gen ttt_Ingroup = '+parts[1]+extraIfClause + ' & ' + ' & '.join(['%s<.'% rr for rr in useRegressors])
-        stataBeforeOut+='\n capture noisily tab ttt_Ingroup if ttt_Ingroup==1'
-        stataBeforeOut+='\n if _rc==0 & r(N)>%d  { '%minSampleSize
-
-        # And add this Stata-level program flow control into the model object:
-        if 'code' not in amodel:
-            amodel['code']=dict(before='',after='',afterExport='')
-        if 'afterExport' not in amodel['code']:
-            amodel['code']['afterExport']=''
-
-        amodel['code']['before']+=stataBeforeOut
-        amodel['code']['after']+='\n }\n else { \n reg dummyOne dummyOne  \n} \n matrix est=e(b) \n est\n \n'
-        # So, I had wanted here to avoid doing any regression when it wasn't available. But instead I'll have to make blank lines in the output table. :(
-        #amodel['code']['afterExport']+='\n } \n'
-
-        models+=[amodel]
-
-    return(models)
-
-
-
-
-
-
-
-
-
-# Yikes!! The following is done every time cpblStata is imported! That seems a bad idea. Could be changed to only load if needed and not already set.
-if 0 and not rawCodebooks:
-    #rawCodebooks=extractCodebooks.getCompleteCodebooks()
-    rawCodebooks=getCompleteCodebooks()
-    print 'Got the rawCodebooks '+str(rawCodebooks.keys())
-
-import shelve
-global masterCodebook
-masterCodebook={} # Ah, no. This was misguided. I thought I needed this for lookup, but rawcodebooks should work fine for lookup. [Not yet cleaned up?]
-
-semiParametric=rollingRegression # old name
-
-
-
-
-
-## ###########################################################################################
-## ###
-## def rollingRegression():
-##     """ feb 2009.. trying to generalise what i did for gallup!?
-##     """
-
-##     ###
-##     #######################################################################################
-
-##     # Define something that will deal with making plots from the rolling regressions.. This gets passed in ...
-##     def galluplotRollingRegression(pairedRows,models,fileName,title=None):
-##     ##figureN,models,fileName):
-##         #from pylab import plot,xlabel,draw,ylabel,title,mean,figure,hist,semilogy,rcParams,subplot,exp,legend,ion,ioff
-##         import pylab
-##         pOut=plotRollingRegression(pairedRows,models,['lnIncome','needFood','countOnFriends','freedom'],title=title)
-##         pylab.figure(pOut)
-##         pylab.ylabel('Weighted OLS coefficient (for %s)'%models[0]['depvar'])
-##         pylab.ylim(-2,2)
-##         ##pylab.savefig(fileName+'_plot.pdf',format='pdf',transparent=True)# dpi=None, facecolor='w', edgecolor='w',          orientation='portrait', papertype=None, format=None,          transparent=False)
-##         for ff in ['pdf','png']:
-##             pylab.savefig(fileName+'_plot.'+ff,format=ff,transparent=True)
-##         pylab.hold(False)
-##         return()
-
-## #            rollingPostPlotFcn(
-## #defaults['paths']['tex']+tableFileName
-
-
-##     kernels={'nBins':30,'kernelFullRange':[2.2,13.0],        'squareFracRange':.1}
-##     model={'model': 'lnIncome  male age agesq100 edu3 marrasmarr sepdivwid needFood countOnFriends enviroSatis freedom '+dWaves,'depvar':'swl','method':'regress','regoptions':'[pweight=weight],robust  ','kernel':kernels}#beta
-
-
-##     for kUpdate,mUpdate in [
-## [{'rollingVar':'lnIncome','kernelFullRange':[2.2,13.0]},{'depvar':'swl'}],
-## #[{'rollingVar':'govdo2005','kernelFullRange':[-1.7,2.04]},{'depvar':'swl'}],
-## [{'rollingVar':'lnIncome','kernelFullRange':[2.2,13.0]},{'depvar':'ladder'}],
-## [{'rollingVar':'govdo2005','kernelFullRange':[-1.7,2.04]},{'depvar':'ladder'}]
-## ]:
-
-##         for width,name in [[.1,'  A'],[.2,' B'],[.3,' C'],[.4,' D'],]:
-##             kernels.update({'squareFracRange':width}) # This will change them all! it's a pointer
-##             kernels.update(kUpdate)
-##             model.update(mUpdate)
-##             outPrint+='\n'+ latex.regTable('sp '+model['depvar']+' by '+model['rolling']['rollingVar']+' '+name, semiParametric(model) ,noshowvars='r(p)',comments='OLS model for %s. Groups: %s'%(model['depvar'],model['rolling']['rollingVar']), rollingPostPlotFcn=gallupPlotsRollingRegression)
-##     doSystem('pdftk %s*_plot.pdf cat output %sgallupRollingRegAll.pdf'%(defaults['paths']['tex'],defaults['paths']['tex']))
-
-
 def stripdtagz(dfp):
     assert not dfp.endswith('.dta.dta')
     if dfp.endswith('.dta.gz'):
@@ -3663,209 +2101,6 @@ def stripdtagz(dfp):
     if dfp.endswith('.dta'): # No; all are compress now!
         dfp=os.path.splitext(dfp)[0]
     return(dfp)
-
-################################################################################################
-################################################################################################
-def checkAvailabilityMicro(stataDataFile,regionVar='wp5',waveVar='wave',force=False):
-################################################################################################
-################################################################################################
-    #microLevel_Gallup_withAll_slim.dta
-
-    """
-
-    2008/9: This appears to be rather brilliant in that it identifies variables that are missing for a particular country/wave but are there for others rather than removing any variable that it doesn't recognize, a priori.  ie this allows doing by-region/by-wave regressions with "all available variables" for each region/wave.
-
-    2009 May: copied from regressions-gallup.py, to make general!
-
-    2009 May: waveVar=None should do the stats ignoring waves. NOT DONE YET!
-
-
-Comments:
-If I had an explicit list of the variables to consider, then I would not have to deal with Stata's horrid name truncation.
-
-    """
-
-    stataDataFilens=stripdtagz(stataDataFile) # Strip .dta/dta.gz suffix
-
-    logfile=stataDataFilens+'_availability_'+regionVar+'_'+waveVar+'.txt'
-    sds={'lf':logfile,'rv':regionVar,'wv':waveVar}
-    if force or not os.path.exists(logfile):
-        doFileR='%stmpcheckAvailability.do'%stataDataFilens
-        outPrint="""
-        """+stataLoad(stataDataFilens)+"""
-*This takes the ready-to-use dataset and uses Stata's own output to find which variables are available.
-* Following line takes a "." a tthe end in v10.
-*label values %(rv)s
-
-log using "%(lf)s", text replace
-
-sort %(wv)s %(rv)s
-by %(wv)s %(rv)s: sum * , nowrap
-
-log close
-
-"""%sds
-        #lnincomeh2 cannotAfford* freedom corrupt age* male
-        ESCm=open(doFileR,'wt')
-        ESCm.write(outPrint+'\n')
-        ESCm.close()
-        print 'Finished writing '+doFileR+' file'
-        if  'yes'==raw_input('Need to run Stata to check variable availability. Okay??  (say "yes, otherwise the next step will fail!")'):
-            stataSystem(doFileR[0:-3])
-
-    assert not regionVar=='wp5' or 'allup' in stataDataFile
-
-    cMissingVars={}
-    rrr=[sec.split('\n') for sec in open(logfile).read().replace('cannotAffo~r','cannotAffordShelter').replace('cannotAffo~d','cannotAffordFood').split('\n->')[1:]]
-    import re
-    for sec in rrr:
-        wavecon=re.findall('%(wv)s =(.*?), %(rv)s =(.*?)$'%sds,sec[0])[0]
-        # Following was for gallup version of thie functions:
-        #wave,wp5=int(wavecon[0]),int(wavecon[1])
-        wave,wp5=wavecon[0].strip(),wavecon[1].strip()
-        wave,wp5=waveVar+'='+str(wave),regionVar+'='+str(wp5)
-        #print wave,wp5
-
-        if wave not in cMissingVars:
-            cMissingVars[wave]={}
-        if wp5 not in cMissingVars[wave]:
-            cMissingVars[wave][wp5]=[]
-        #print sec[4:]#re.split('\\s+',sec)
-        for line in [ss for ss in sec[4:] if '|' in ss]:
-            varname=line.split('|')[0].strip()
-            fields=re.split('\\s+',line.split('|')[1])[1:]
-            #stdev=fields[2]
-            #print varname,'std=',stdev
-            if fields[0].strip()=='0' or fields[2] in ['.'] or float(fields[2])==0.0:
-                cMissingVars[wave][wp5]+=[varname]
-                #print('%s missing in %s for gpCountry %s'%(varname,wave,wp5))
-            #print fields
-
-
-    return(cMissingVars)
-
-
-
-
-
-################################################################################################
-################################################################################################
-def removeUnavailableVarsByRegion(varsString, survey=None, wave=None,regionVar=None,waveVar='wave',region=None,country=None,datafilename=None,multiwave=None):
-
-################################################################################################
-################################################################################################
-
-    """
-    2009 May: moved from regressions-gallup.py
-
-    maybe not all features generalised yet
-
-    Note existence of removeUnavailableVariables in the codebook class: it doesn't do byregion but works straight from in-memory codebook...
-
-    """
-    assert not survey # Not implemented / used yet. could set datafilename, I guess, or use a more clever codebook.
-    assert not (country and region)
-    if country and not regionVar: # Compatibility with gallup
-        regionVar='wp5'
-        region=country
-
-    region=str(region)
-    if waveVar==None:
-        assert not wave
-        wave=''
-
-    # If wave is a list, rather than a single integer, then the multiwave keyword must be given
-    if wave and isinstance(wave,list):
-        assert isinstance(multiwave,basestring)
-        if multiwave=='any':
-            anyVar=[]
-            for awave in wave:
-                anyVar+=removeUnavailableVarsByRegion(varsString, survey=survey, wave=awave,regionVar=regionVar,waveVar=waveVar,region=region,country=country,datafilename=datafilename,multiwave=multiwave).split(' ')
-                #removeUnavailableVars(varsString, survey=survey, wave=awave,country=country,datafilename=datafilename).split(' ')
-            return(' '.join(uniqueInOrder(anyVar)))
-        assert multiwave=='all'
-        foo
-
-    if datafilename==None:
-        assert regionVar=='wp5'
-        datafilename=WP+'microLevel_Gallup_withAll_slimmest'
-    global missingVars
-    if not missingVars:
-        missingVars=checkAvailabilityMicro(datafilename,regionVar=regionVar,waveVar=waveVar)
-    toRemove=[]
-    if 'wave='+wave in missingVars and regionVar+'='+region in missingVars['wave='+wave]:
-        toRemove=missingVars[waveVar+'='+wave][regionVar+'='+region]
-    varslist=[vv for vv in varsString.split(' ') if vv and vv not in toRemove ]
-    #if int(region)==24:
-    #    sdkf
-    return(' '.join(varslist))
-
-
-##########
-
-
-
-
-################################################################################################
-################################################################################################
-def extractCodebooks_likely_retired(surveys=None):
-
-    """
-This is the main__ function copied  from retired extractCodebooks.py
-This should be unused, since these files should be all created on the fly as needed by the codebook class when called with fromPDF...
-
-"""
-    if surveys==None:
-        surveys=defaults['availableSurveys']
-    if isinstance(surveys,basestring):
-        surveys=[surveys]
-    for survey in surveys:
-         CCHScodebookFromPDF_TXTtoTSV()
-    foooo
-
-
-
-
-
-
-
-
-
-
-
-    for survey in ['CCHS21']+surveysToExtract:
-        print 'Finding all variables and their descriptions for '+survey
-        firstchoice=defaults['inputPath'] +survey+'_codebook_text.txt'
-        if not os.path.exists(firstchoice):
-            print '         **** No raw (_codebook_text.txt) codebook information found for '+firstchoice+ ' (for '+survey+')'
-            if survey in ['GSS19']:
-                """Don't overwrite tsv file in this case: it's made straight from StatsCan's spreadsheet! """
-                print '      Oh, that is because the definitive .tsv is straight from StatsCan spreadsheet'
-        elif survey in ['ESC1','ESC2','EDS','GSS17','GSS19','GSS20']: # extract from raw PDF form!!
-            print 'Reading '+defaults['inputPath'] +survey+'_codebook_text.txt ...'
-            source=''.join(file(defaults['inputPath'] +survey+'_codebook_text.txt','rt').readlines())
-            allVars=re.findall('\n\nVariable Name:\s+([^ 	]+)\s.*?\n\n(.*?)\n\n(.*?)\nCoverage:',source,re.DOTALL)
-            fout=open(WP+survey+'_codebook.tsv','wt')
-            for var in allVars:
-                pass#fout.write('%s\t%s\n'%(var[0],var[1].replace('\n',' ')))
-            fout.close()
-            foo
-        elif survey in ['CCHS31','CCHS21']:
-            assert not "Huh? I am really not sure that we want to do this! There's a specific functiton, above."
-            source=''.join(file(defaults['inputPath'] +survey+'_codebook_text.txt','rt').readlines())
-            allVars=re.findall('\n\nVariable Name\s+([^ 	]+)\s.*?\n\n(.*?)\n\n(.*?)\nQuestion:',source,re.DOTALL)
-            fout=open(WP+survey+'_codebook.tsv','wt')
-            for var in allVars:
-                pass#fout.write('%s\t%s\n'%(var[0],var[1].replace('\n',' ')))
-            fout.close()
-            foo
-        else:
-            foisodif
-
-
-
-
-
 
 ################################################################################################
 ################################################################################################
@@ -4052,7 +2287,7 @@ def parseNLregression(logFile):#,plotTitle='%(rhsv)s',name=None,skipPlots=False,
     ############################################################################################
     """
 Jan 2013: I'm not yet integrating this into my latex class because I cannot get the functions syntax to work properly.
-So, instead, I'll be running these outside of latexclass for now, and using the explicit equation syntax. :((
+So, instead, I'll be running these outside of latexclass for now, and using the explicit equation syntax. 
 
 This parses the output resulting from doNLregression.
     """
@@ -4254,31 +2489,7 @@ def readStataEstimateResults(logtxt):
         May 2011: Adding suest tests???
         """
         from pylab import isnan
-##         parts=re.findall('Variable\s*\|\s*active\s*\n--------------------[-+-]*\n(.*?)--------------------[-+-]*\n(.*?)--------------------[-+-]*\n\s*legend:(.*?)\n',logtxt,re.DOTALL)
-##         if len(parts)==0:
-##             print 'CAUTION!! Found no estimates-like table in log txt for  this section '
-
-##             return({})
-##         assert len(parts)==1 # Only one estimates table found for the text given
-##         vars=parts[0][0]
-##         statss=parts[0][1]
-##         legendstats=parts[0][2].strip().split('/')
-##         # do the strip()'ing right in the regexp, although it makes it less readable:
-##         coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),vars)
-##         coefOrder=[c[0] for c in coefss]
-##         coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
-##         # For logit etc output, the cut points are in statss so far (oops):
-##         if 'Statistics' in statss:
-##             statsWithoutCutpoints=re.findall('(Statistics.*)',statss,re.DOTALL)[0]
-##         else:
-##             statsWithoutCutpoints=statss
-##         stats=dict([[n,v] for n,v in re.findall('\s*([^\s]+)\s*\|(.*?)\n',statsWithoutCutpoints) if v.strip() ])
-##         #assert len(stats.keys())>1
-
-##         #coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
-
-##         outModel={'estcoefs':coefs,'eststats':stats,'estCoefOrder':coefOrder}
-
+##         
         outModel=None
 
         """
@@ -4514,19 +2725,6 @@ May 2011: Adding suest tests. Or maybe tests in general???
 
 
 
-##             # Remove from combineColumns, the list of groups of models to add (CRgroup is for my coefficient plucking trick, which is totally separate)
-##             combineColumns=[ccc for ccc in    [[ar for ar in cc if ar+1 in showModels] for cc in combineColumns] if ccc]
-##             # Actually, fixing combineColumns is tougher than that! Need to have these point to indices of the new model list. To make this easier, modelNum's have been put into the model dict. So:
-##             combineColumns= [[[im for im in range(len(models)) if obi+1==models[im]['modelNum'] ][0]  for obi in cc]     for cc in combineColumns]
-
-##         # THIS IS VERY DANGEROUS. DO NOT CALL RENUMBERMODELS IF YOU ARE CR GROUPS....!! IE THIS NEEDS TO BE FIXED, SINCE I THINK IT MAY
-##         if renumberModels:
-##             for imm in range(len(models)):
-##                 models[imm]['modelNum']=imm+1 # An innovation Sept 2008: This ought to simplify some later stuff, no!??! Rewrite all the model/calc numbering, through this functoin! Should do same with the name!
-
-
-
-
 
 
 
@@ -4595,24 +2793,6 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
 
     covar={}
 
-    """ Following is code until Feb 2013, when I'm trying to fix the problem with omitted variables. :((
-    for segment in segments:
-        rows=segment.split('\n')
-        cols=[cc for cc in rows[0].split(' ') if cc]
-        for col in cols:
-            if col not in covar:
-                covar[col]={}
-        for row in rows[1:]:
-            entries=[ss for ss in row.split(' ') if ss]
-            assert len(entries)==1+len(cols) # Hm. This may happen with time series names?? Or, when I've mistakenly listed a variable twice, Stata? puts an "o." prefix on the second copy, and this part of the name can get wrapped? or form a separate column? or something... Try deleting the log file and fixing the duplicate variable.
-            for icol in range(len(cols)):
-                if entries[1+icol]=='0':
-                    entries[1+icol]=''
-                covar[cols[icol]][entries[0]] = tonumeric(entries[1+icol])
-                if entries[0] not in covar:
-                    covar[entries[0]]={}
-                covar[entries[0]][cols[icol]] = tonumeric(entries[1+icol])
-    """
     omittedVars=[]
     # Remove all lines that are just "o."'s.  Also, replace all whitespace with single tabs:
     # Using: '\t'.join(rr.split()) replaces all multi-white space with tabs. :)
@@ -4679,7 +2859,7 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
 def readStataVariablesCovarianceMatrix(txt):
     """
     August 2009. Now relies on a more general matrix-reading functoin.
-    See cpblStataLatexRegressions.py for function(s) producing this..
+    See pystataLatexRegressions.py for function(s) producing this..
     """
     ev=re.findall("""(matrix list sampleIndepCorr,nohalf.*?END: matrix list)""",txt,re.DOTALL)
     assert len(ev)<2
@@ -4746,292 +2926,6 @@ symmetric e\(V\).(\d*),(\d*).(.*?)END: matrix list""",txt,re.DOTALL)
     assert nCols==len(covar)
 
     return(covar)
-
-
-################################################################################################
-################################################################################################
-def stataSumMulti(vars, ifs=None):
-    ############################################################################################
-    ############################################################################################
-    """
-    this creates code to be read by readStataSumMulti
-    oh-oh. the means must be done separately, since if multiple variables are given together, the smalleest common N will be used!  I could make a flag for doing them together...? agh. This is now ugly, and collapse would be better.?
-    """
-    if ifs is None:
-        ifs=[' 1 ']
-    assert isinstance(ifs,list)
-    #if isinstance(vars,list):
-    #    vars=' '.join(vars)
-    if isinstance(vars,basestring):
-        vars=[vv for vv in vars.split(' ') if vv]
-
-    return('\n'.join(['\n'.join(["""
-                *BEGIN MEAN LIST MULTI
- mean """+var+""" [pw=weight] if cssaSample & ("""+anif+"""),
-                *END MEAN LIST MULTI
-                """ for var in vars])+"""
-                *BEGIN SUM LIST MULTI
- sum """+' '.join(vars)+""" [w=weight] if cssaSample & ("""+anif+"""), separator(0) """+(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
-                *END SUM LIST MULTI
-""" for anif in ifs]))
-
-
-
-################################################################################################
-################################################################################################
-def readStataSumMulti(txt):
-    ############################################################################################
-    ############################################################################################
-    """
-    When you can get by passing several variables at once to get sum info for a subset of a sample (e.g. using e(sample) etc.
-    Text passed in here is currently a log excerpt which has already had replace('\n> ','') done.
-    2010 Jan update: This now looks for both "sum" and "mean" commands, since both (or at least the latter??) is needed. Well.. not yet.
-
-    Oct 2011: the retired v1 version may be revived, if I'm changing the original focus. But I'm completely rewriting this to accept means being split up by variable but sums not. makes use of dgetget and dsetset
-"""
-
-    from pylab import sqrt
-
-    print ' Following probably needs optional nowrap, since I added that May 2010. ie should be able to read either version, with or without nowrap (v11).'
-    #""" +(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
-    sumCommands=re.findall(""".\s+.BEGIN SUM LIST MULTI
-.\s+sum ([^\n]*?) \[w=weight\] if ([^,]*),([^\n]*)
-(.*?)
------------.*?
-(.*?)
-.\s+.END SUM LIST MULTI""",txt,re.DOTALL)
-    meanCommands=re.findall(""".\s+.BEGIN MEAN LIST MULTI
-.\s+mean (.*?) \[pw=weight\] if ([^,]*)([^\n]*)
-
-Mean estimation  +Number of obs +=([^\n]*)
-
----*
-([^\n]*)
----[+-]*
-(.*?)
----*
-
-.\s+.END MEAN LIST MULTI""",txt,re.DOTALL)
-    #print '45678',sumCommands
-    sums={}
-
-    assert sumCommands
-    assert meanCommands
-    assert (not sumCommands and not meanCommands) or ( sumCommands and  meanCommands) #Could this be disabled for some old log files?...
-
-
-    # Now, possibly OVERWRITE some elements with the correct values from
-
-    # STill need to compare N's from sum and mean .... hmmmmm ******************* !!!!!!!!!!!!!!!!!!!!!
-
-    """
-    mean health [pweight=weight]
-
-Mean estimation                     Number of obs    =   24911
-
---------------------------------------------------------------
-             |       Mean   Std. Err.     [95% Conf. Interval]
--------------+------------------------------------------------
-      health |   .6849366   .0018781      .6812553    .6886178
---------------------------------------------------------------
-
-"""
-
-
-
-    from cpblUtilities import dsetset, dgetget
-    for sc in meanCommands: # There could be more than one...
-        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
-        assert '*' not in sc[0] # No wildcards allowed
-        vvars=[ss for ss in sc[0].split(' ') if ss]
-        rows=[ss for ss in sc[5].split('\n') if ss]
-        condition=sc[1]
-        assert len(rows)==len(vvars)
-        N=tonumeric(sc[3])
-        assert N
-        amean={}
-        #dsetset(sums,[condition],amean)
-
-        cols=['mean','seMean','ciL','ciH']
-        for irow in range(len(rows)):
-            onerow=tonumeric([ss for ss in rows[irow].split('|')[1].split(' ') if ss])
-            for icol,col in enumerate(cols):
-                assert dgetget(sums,[condition,vvars[irow],col],None) is None
-                dsetset(sums,[condition,vvars[irow],col], onerow[icol])
-                        #tonumeric(dict(zip(cols,
-            assert dgetget(sums,[condition,vvars[irow],'N'],None) is None
-            dsetset(sums,[condition,vvars[irow],'N'],   N)
-
-    # Now also get the stddev, the min, and the max from the "sum" command, and add these statistics in to the same dict... Nothing from the "mean" command should be overwritten, and the "N" should be identical for each.  AGH No: 2011 Oct: N will not be the same, since if there are multiple variables given in one sum called, the lowest common N will be used.
-
-
-    for sc in sumCommands: # There could be more than one...
-        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
-        vvars=[ss for ss in sc[0].split(' ') if ss]
-        #print vvars
-        rows=[ss for ss in sc[4].split('\n') if ss]
-        #print rows
-        condition=sc[1]
-        assert len(rows)==len(vvars)
-
-        cols=['checkN','junkWeight','junkMean','stddev','min','max']
-        #if not meanCommands:
-        #    cols=['N','weight','mean','stddev','min','max']
-        #    print 'CAUTION!!!!!!!!!!!!!!!! this is a very old .. rerun stata'
-        for irow in range(len(rows)):
-            #asum[vvars[irow]].update(tonumeric(dict(zip(cols,[ss for ss in rows[irow].split('|')[1].split(' ') if ss]))))
-            onerow=tonumeric([ss for ss in rows[irow].split('|')[1].split(' ') if ss])
-            for icol,col in enumerate(cols):
-                assert dgetget(sums,[condition,vvars[irow],col],None) is None
-                dsetset(sums,[condition,vvars[irow],col], onerow[icol])
-
-            asum=sums[condition]
-            assert asum[vvars[irow]]['N']==asum[vvars[irow]]['checkN'] # Every variable should have the same count, and it should be the same as that from the mean command.
-
-            if not meanCommands:
-                asum[vvars[irow]]['junkseMean']=asum[vvars[irow]]['stddev']/sqrt(asum[vvars[irow]]['N'])
-                print ' CAUTION! Using incorrectly weighted stddev for calculation of mean s.e. because mean list multi does not exist... (rerun Stata?) '
-            if asum[vvars[irow]]['N']==1:
-                asum[vvars[irow]]['junkseMean']=0.0 # We don't know further properties of the single value, so assume no s.e.
-
-    for condition in sums:
-      for avar in sums[condition]:
-         pass
-    return(sums)
-
-
-################################################################################################
-################################################################################################
-def readStataSumMulti_v1_retired(txt):
-    ############################################################################################
-    ############################################################################################
-    """
-    When you can get by passing several variables at once to get sum info for a subset of a sample (e.g. using e(sample) etc.
-    Text passed in here is currently a log excerpt which has already had replace('\n> ','') done.
-    2010 Jan update: This now looks for both "sum" and "mean" commands, since both (or at least the latter??) is needed. Well.. not yet.
-"""
-
-    from pylab import sqrt
-    #########txt=open(WP+'develAccounting.log','rt').read().replace('\n> ','')
-
-    ##return({})
-    print ' Following probably needs optional nowrap, since I added that May 2010. ie should be able to read either version, with or without nowrap (v11).'
-    #""" +(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
-    sumCommands=re.findall(""".\s+.BEGIN SUM LIST MULTI
-.\s+sum ([^\n]*?) \[w=weight\] if ([^,]*),([^\n]*)
-(.*?)
------------.*?
-(.*?)
-.\s+.END SUM LIST MULTI""",txt,re.DOTALL)
-    meanCommands=re.findall(""".\s+.BEGIN MEAN LIST MULTI
-.\s+mean (.*?) \[pw=weight\] if ([^,]*)([^\n]*)
-
-Mean estimation  +Number of obs +=([^\n]*)
-
----*
-([^\n]*)
----[+-]*
-(.*?)
----*
-
-.\s+.END MEAN LIST MULTI""",txt,re.DOTALL)
-    #print '45678',sumCommands
-    sums={}
-
-    assert sumCommands
-    assert meanCommands
-    assert (not sumCommands and not meanCommands) or ( sumCommands and  meanCommands) #Could this be disabled for some old log files?...
-
-
-    # Now, possibly OVERWRITE some elements with the correct values from
-
-    # STill need to compare N's from sum and mean .... hmmmmm ******************* !!!!!!!!!!!!!!!!!!!!!
-
-    """
-    mean health [pweight=weight]
-
-Mean estimation                     Number of obs    =   24911
-
---------------------------------------------------------------
-             |       Mean   Std. Err.     [95% Conf. Interval]
--------------+------------------------------------------------
-      health |   .6849366   .0018781      .6812553    .6886178
---------------------------------------------------------------
-
-"""
-
-
-
-
-    for sc in meanCommands: # There could be more than one...
-        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
-        assert '*' not in sc[0] # No wildcards allowed
-        vvars=[ss for ss in sc[0].split(' ') if ss]
-        rows=[ss for ss in sc[5].split('\n') if ss]
-        condition=sc[1]
-        assert len(rows)==len(vvars)
-        if 0: # OCt 2011: following is wrong now; I need to separate vars in "mean" command so each can have separate N.
-           assert condition not in sums # ie, if there are multiple sumCommands, they must have different "if" conditions (else why not combine them!)
-
-        N=tonumeric(sc[3])
-        assert N
-        amean={}
-        sums[condition]=amean
-        cols=['mean','seMean','ciL','ciH']
-        for irow in range(len(rows)):
-            amean[vvars[irow]]=tonumeric(dict(zip(cols,[ss for ss in rows[irow].split('|')[1].split(' ') if ss])))
-            amean[vvars[irow]]['N']=N
-            #if amean[vvars[irow]]['N']==0:
-            #    amean[vvars[irow]].update({'stddev':fNaN,'seMean':fNaN,'mean':fNaN})
-            #    #del amean[vvars[irow]]
-            #    continue
-            #if amean[vvars[irow]]['N']==1:
-            #    amean[vvars[irow]]['seMean']=0.0 # We don't know further properties of the single value, so asmeane no s.e.
-
-
-    # Now also get the stddev, the min, and the max from the "sum" command, and add these statistics in to the same dict... Nothing from the "mean" command should be overwritten, and the "N" should be identical for each.  AGH No: 2011 Oct: N will not be the same, since if there are multiple variables given in one sum called, the lowest common N will be used.
-
-
-
-
-    for sc in sumCommands: # There could be more than one...
-        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
-        vvars=[ss for ss in sc[0].split(' ') if ss]
-        #print vvars
-        rows=[ss for ss in sc[4].split('\n') if ss]
-        #print rows
-        condition=sc[1]
-        assert len(rows)==len(vvars)
-
-        asum=sums[condition]
-        cols=['checkN','junkWeight','junkMean','stddev','min','max']
-        #if not meanCommands:
-        #    cols=['N','weight','mean','stddev','min','max']
-        #    print 'CAUTION!!!!!!!!!!!!!!!! this is a very old .. rerun stata'
-        for irow in range(len(rows)):
-            asum[vvars[irow]].update(tonumeric(dict(zip(cols,[ss for ss in rows[irow].split('|')[1].split(' ') if ss]))))
-            # Is following obselete!?!?!? Jan 2010
-            if asum[vvars[irow]]['N']==0:
-                asum[vvars[irow]].update({'stddev':fNaN,'seMean':fNaN,'mean':fNaN})
-                #del asum[vvars[irow]]
-                print 'huhhhhhhhhhhhhhhhhhhh??????????????????????????'
-                continue
-
-            assert asum[vvars[irow]]['N']==asum[vvars[irow]]['checkN'] # Every variable should have the same count, and it should be the same as that from the mean command.
-
-            if not meanCommands:
-                asum[vvars[irow]]['junkseMean']=asum[vvars[irow]]['stddev']/sqrt(asum[vvars[irow]]['N'])
-                print ' CAUTION! Using incorrectly weighted stddev for calculation of mean s.e. because mean list multi does not exist... (rerun Stata?) '
-            if asum[vvars[irow]]['N']==1:
-                asum[vvars[irow]]['junkseMean']=0.0 # We don't know further properties of the single value, so assume no s.e.
-
-
-
-
-
-
-
-    return(sums)
 
 
 
@@ -5846,79 +3740,6 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
         }
 
 
-    #plt.show()
-
-
-##     if 0:
-##         results={}
-##         vars=[]
-##         for areg in regs:
-##             checks= re.findall(r"""
-## \s*oaxaca\s+(\w*)(.*?),\s*by\((.*?)\)[^\n]*
-## .*?
-## ([^\n]*) regression\s+Number of obs =\s+([^\n]*)
-## -------------+-
-##     """,areg,re.DOTALL)
-##             assert len(checks)==1
-##             #print checks[0]
-##             quantile=tonumeric(checks[0][2])
-##             depvar=checks[0][0]
-##             #assert quantile==tonumeric(checks[0][3])
-##             results[quantile]= readStataEstimateResults(areg)
-##             vars+=results[quantile]['estcoefs'].keys()
-
-##         vars=uniqueInOrder(vars)
-##         quantiles=sorted(results.keys())
-##         qReg={'quantiles':quantiles}
-
-##     from pylab import array
-##     for rhsv in vars:
-##         vnew=substitutedNames(rhsv,subs=substitutions)
-##         qReg[vnew]={}
-##         for astat in ['b','p','se']:
-##             qReg[vnew][astat]=array(tonumeric([results[qq]['estcoefs'][rhsv][astat] for qq in quantiles]))
-##         qReg[vnew]['coef']=list(qReg[vnew]['b'])
-##         qReg[vnew]['ciH']=list(qReg[vnew]['coef']+qReg[vnew]['se']*1.96)
-##         qReg[vnew]['ciL']=list(qReg[vnew]['coef']-qReg[vnew]['se']*1.96)
-
-
-##     RHS=substitutedNames(vars,subs=substitutions)
-##     # Now we have a data structure that contains all the estimates. Make a plot for each variable?
-##     import pylab as plt
-##     import matplotlib as mpl
-
-##     from cpblUtilities import plotWithEnvelope, savefigall
-
-##     plt.ioff() # Do not show plots
-
-##     for ivv in range(len(RHS))*int(not skipPlots):
-##         RHSvar=RHS[ivv]
-
-##         x=tonumeric(qReg['quantiles'])
-##         y=qReg[RHSvar]['coef']
-##         ciL,ciH=qReg[RHSvar]['ciL'],qReg[RHSvar]['ciH']
-
-##         plt.figure(ivv+1)
-##         plt.clf()
-##         ax=plt.gcf().add_subplot(111)
-
-##         ax.plot([min(x),max(x)],[0,0],'k') # Plot the zero line.
-##         plotWithEnvelope(x,y,ciL,ciH)#yLow,yHigh,facecolor='g',alpha=0.5):
-
-##         plt.axis('tight')
-##         plt.title(plotTitle%{'rhsv':RHSvar})
-##         plt.ylabel('Coefficient')
-##         plt.xlabel('quantile')
-##         assert name
-##         pfn=name.replace(' ','')+'-'+''.join([ch for ch in RHSvar if ch.isalpha() or ch.isdigit()])#(ch>='a' and ch<='z') or (ch>='A' and ch<='Z') or ch in '0123456789'])
-## p        #plt.savefig(pfn+'.pdf',transparent=True)
-##         #plt.savefig(pfn+'.png')
-##         savefigall(pfn)
-
-##     assert qReg
-##    return({'qReg':qReg})
-
-
 def compareMeansByGroup(vars,latex=None):
     pass # Placeholder for now; see cpblstatalatex.
 
@@ -5988,7 +3809,7 @@ estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
     print """
 
 
-    CAUTION!!!!!!!!!!!!!!!!!1 IT LOOKS LIKE OAXACA NOT DONE. NEED TO MAKE TABLE STILS!?!?!?
+    CAUTION! IT LOOKS LIKE OAXACA NOT DONE. NEED TO MAKE TABLE STILL?
 
     """
 
@@ -6000,22 +3821,6 @@ estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
     return('')
 
 
-def macroScatterPlot(microfile=None,macrofile=None,y=None,x=None,CR=None):
-    """
-    Do a collapse command, then plot the results.
-    this is not finished. but see regressionsCCHS for code to do it custom, which makes more sense.
-
-    """
-
-##     assert not microfile or not macrofile # Only supply one!
-##     if '.dta' in microfile:
-##         stataSystem(stataLoad(microfile)+"""
-##         collapse (mean) %(cr)s_SWL=SWL %(cr)s_lnHHincome (sd) %(cr)s_sd_SWL=SWL %(cr)s_sd_lnHHincome=%(cr)s_lnHHincome [w=weight], by(%(CR)suid)
-##          outsheet using tmpsome%(CR)smeans.tsv, noquote replace
-##          sort %(CR)suid
-##          gzsave "tmpsome%(CR)smeans", replace
-##          restore
-##         """%{'cr':CR.lower(),'CR':CR}
 
 def loadStataDataNumpy(DTAfile,onlyVars=None,forceUpdate=False,ifClause=None,suffix=None,allowNonexistingVariables=False,extraStataCode='',dtypeoverrides=None):#treeKeys=None,vectors=False,singletLeaves=False,
     """
@@ -6108,12 +3913,12 @@ def loadStataDataForPlotting(DTAfile,treeKeys=None,onlyVars=None,vectors=False,f
 
 (JAn 2013): Don't I usually want data in pandas format? So see new loadStataDataNumpy, which is not yet equally as good.
 
-(April2010: !!! See loadMacroData in masterPrepareSurveys!!! Which stuff should go in cpblStata and which in masterPrepareSurveys???)
+(April2010:  See loadMacroData in masterPrepareSurveys!!! Which stuff should go in pystata and which in masterPrepareSurveys???)
 
     Export DTA as TSV and load into Python for matplotlib....
     March 2010
 
-So, this is a useful general tool for loading a Stata file, and so it should be in cpblStata.py. However, whenever you are loading macro data from standard surveys with some CR details and for years for which I have full census infos, you should instead use the loadMacroData() function in masterPrepareSurveys, which is more specific but nicer.
+So, this is a useful general tool for loading a Stata file, and so it should be in pystata.py. However, whenever you are loading macro data from standard surveys with some CR details and for years for which I have full census infos, you should instead use the loadMacroData() function in masterPrepareSurveys, which is more specific but nicer.
 
 (Hm, Why am I treating the DTA as the file of record? I should just make sure that tsvs get made for census and survey means...)
 
@@ -6184,7 +3989,7 @@ def runBatchSet(sVersion,rVersion,stataCodeFunction,dVersion=None,mainDataFile=N
 April 2010:  do the generic sequence of running code, compiling, etc.
 This is poorly named so far...
 
-So this takes a function which produces stata code and cpblStata's stataLaTeXclass objects and generates a PDF with pretty tables of the results.
+So this takes a function which produces stata code and pystata's stataLaTeXclass objects and generates a PDF with pretty tables of the results.
 
 
 mainDataFile: this is a .dta.gz file that will be used for desc stats.
@@ -6250,7 +4055,7 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
           """)
 
     # Create a latexfile instance for all output. (or one per function if we're doing them in parallel!)
-    latexfile=latexRegressionFile('tablesPreview',modelVersion=sVersion,regressionVersion=rVersion,substitutions=substitutions,texNameSuffix=texNameSuffix)
+    latexfile=latexRegressionFile( 'tablesPreview',modelVersion=sVersion,regressionVersion=rVersion,substitutions=substitutions,texNameSuffix=texNameSuffix)
     updateLF(latexfile)
     lastLF='0'
     latexfiles={'0':latexfile}
@@ -6344,102 +4149,6 @@ def WPpd(ff):
         ff+='.pandas'
     return(ff)
 
-
-
-############################################################################################################
-#
-def addGini(subsetVar=None,subsetValues=None,incomeVars=None,giniPrefix='gini',giniVar=None,opts=None):
-    #
-    ##########################################################################
-    """
-CPBL. summer 2010.  [now replaced by the rank function, which does ginis too???]
-
-subsetVar=None:  If not specified, ginis will be calculated for entire dataset. Otherwise, you'll get them calculated for each value of the subsetVar (or those specified by subsetValues).
-subsetValues=None:  Can specify explicitly which values the subsetVar takes, or leave this unspecified to use all of them.
-incomeVars=None: This is the list of variables for which to calculate ginis. (poorly named). e.g. lnHHincome, SWL, etc.
-giniVar=None: This seems to be a name for the resulting gini value (only one!?)
-opts=None: No longer used. Aug 2010
-    """
-    if incomeVars==[]:
-        1/0
-        return('')
-    if incomeVars==None:
-        incomeVars=['AdjHHincome','HHincome']
-    print 'inc vars',incomeVars
-    if opts==None:
-        opts=''
-    if subsetValues:
-        assert subsetVar
-        for isv,sv in enumerate(subsetValues):
-            if isinstance(sv,basestring):
-                subsetValues[isv]='"'+sv+'"'
-
-
-    # Add gini, calculated for each Province or etc.
-
-    print ' (addGini): This gini function needs to find a new way to do it that creates valid s.e.s, maybe with bootstrapping...'
-    outs=''
-    for incVar in incomeVars:
-        if giniVar==None:
-            theginiVar=giniPrefix+incVar
-        else:
-            theginiVar=giniVar
-
-        if subsetValues:
-            giniIfs = [' if %s==%s '%(subsetVar,str(vv)) for vv in subsetValues]
-            for giniIf in giniIfs:
-                outs+="""
-                * Following line requires svyset already set, and seems to require ngp somewhat less than number of values in tabulate, otherwise it gives a "no observations" error. #:(((
-                *svylorenz %(vv)s, %(opts)s
-                * Agh, I cannot get SEs to work. tryied ineqerr, svylorenz, etc.
-                ineqdeco %(vv)s %(ifs)s [w=weight]
-                capture gen gini%(vv)s=.
-                capture gen se_gini%(vv)s=.
-                replace gini%(vv)s= r(gini) %(ifs)s
-                replace se_gini%(vv)s= r(se_gini) %(ifs)s
-                replace se_gini%(vv)s=0 %(ifs)s
-            """%{'opts':opts,'ifs':giniIf,'vv':incVar,}
-
-        elif not subsetVar: # Just do ginis on the whole set:
-            outs+="""
-            capture noisily drop """+theginiVar+"""
-            capture noisily drop se"""+theginiVar+"""
-            gen """+theginiVar+"""=.
-            gen se"""+theginiVar+"""=.
-            quietly ineqdeco """+incVar+""" [pw=weight]
-            replace """+theginiVar+"""=r(gini)
-            replace se_"""+theginiVar+"""=r(segini)
-            }
-            """
-        else: # This is now the normal: just specify the subsetVar, and ginis will be calculated separately for ALL values of it, using a Stata loop
-            outs+="""
-            *levelsof """+subsetVar+""",local(tmpGiniLevels)
-            *foreach l of local tmpGiniLevels {
-            *di `l'
-            *ineqdeco """+incVar+""" if CMAuid==`l'  [pw=weight]
-            *capture gen dd=.
-            *replace """+theginiVar+"""=r(gini) if CMAuid==`l'
-            *replace se_"""+theginiVar+"""=r(segini) if CMAuid==`l'
-            *}
-
-            capture noisily drop """+theginiVar+"""
-            capture noisily drop se_"""+theginiVar+"""
-            capture  drop tmpGgroup
-            gen """+theginiVar+"""=.
-            gen se_"""+theginiVar+"""=.
-            egen tmpGgroup = group("""+subsetVar+""")
-            su tmpGgroup, meanonly
-            forvalues i = 1/`r(max)' {
-            di "gini of """+incVar+""" for """+subsetVar+""" group `i' "
-            capture noisily {
-            quietly ineqdeco """+incVar+""" if tmpGgroup==`i'
-            replace """+theginiVar+"""=r(gini) if tmpGgroup==`i'
-            replace se_"""+theginiVar+"""=r(segini) if tmpGgroup==`i'
-            }
-            }
-
-       """ #'`"
-    return(outs)
 
 
 
@@ -6556,9 +4265,6 @@ def stataAddMeansByGroup(groupVar,meanVars,weightExp='[pw=weight]',groupType=str
     #
     ##########################################################################
     """
-I need to do this frequently, and every time I have to read docs and etc. Sigh.
-I can't tell whether this is redundant from some masterPrepare... funcction.. #:(
-
 
 This is REALLY inefficient compared with collapsing with preserve/restore...
 [But collapse doesn't allow pweights for calculating semean !?][oct2011]
@@ -6726,7 +4432,7 @@ Can easily add se_ from weighted variance
 Other stats similar, e.g. weighted median:r(p50)
 Here we use w, not pw, because pw is not allowed for mean.
 
-TODO: make a cpblStataCodebook version of this
+TODO: make a pystataCodebook version of this
 TODO: add s.e.m. option (easy)
 TODO: consolidate this with the two functions above: I've written nearly the same thing a few times.
 
@@ -6922,141 +4628,6 @@ Sept 2010: oops. I may want "beta" too... AAAAHHHHH I hate Stata. Can't see how 
 	    assert not forceUpdate
 
     return(outS)
-
-
-##############################################################################
-##############################################################################
-#
-def parallelCollapseCode(stataFile,listOfDicts=None,mergeAllVars=None,parallelSafe=None,forceUpdate=False,combinedOutputName=''):
-    #  NO!!!!!!!!!!!!!  COLLAPSE DOES NOT ALLOW S.E.M. USING PWEIGHTS!
-    ##########################################################################
-    ##########################################################################
-    """
-    Rather than doing all collapses at once, waste RAM like crazy (big server) and do them piecewise! This is also useful for being able to add a mean or two to the list of meaned variables without redoing all of them.
-ie the plan is to load up a Stata file, and then use collapse to create some means, but not worry about whether these are all the means we want. 
-
-There could be trouble if this runs more than one instance at once?
-
-Also, in order it easy to generate a single do file, in general, this function must not execute. Rather, it will return a list of statacodes (one for each collapse) and one other stata code (for merging)...
-
-each dict in listOfDicts has structure:
-dict(
-stataFile:'', # only if the single argument, stataFile, is not given
-by:'',
-weight:'weight',
-postLoadCode:'',
-varsToMean:'',
-meanPrefix:'',
-meanSuffix:'',
-makeSEs:False,
-savefile:None
-)
-default values will be filled in where absent.
-For the time being, "if" clauses can be done with the postLoadCode...
-
-AGHGH Dec 2012: I drafted this, but it's not tested and not used anywhere!!, since it turns out I probably want to stick with my mechanisms in masterPrepareSurveys.py for recodeCCHS.  Nice idea, though.
-
-Two ways to call:
-
-parallelCollapses(listOfDicts)   # with "stataFile" field in each Dict.
-parallelCollapses(stataFile,listOfDicts)
-
-2012 Dec: This will look for the set of unique collapse variables, and merge the means into one file for each set of collapse vars.
-So, with that feature, I may want to replace my normal CR-means functions with this general one.
-Though... shouldn't I be doing all this in pandas?
-
-2013 Feb: implemented SEs. Btw, the right way to do means and se's is just using a regression. :|
-	"""
-    if listOfDicts is None:
-        assert isinstance(stataFile,list) or isinstance(stataFile,dict) 
-	listOfDicts=stataFile
-    else:
-	assert not any('stataFile' in ad for ad in stataFile)
-        for ad in listOfDicts:
-           ad['stataFile']=stataFile
-
-
-    if isinstance(listOfDicts,list):
-       stataOut=[parallelCollapseCode(ad,parallelSafe=parallelSafe,forceUpdate=forceUpdate)[0] for ad in listOfDicts]
-       combines=[]
-       outfiles=[]
-       mergeVars=[]
-
-       for uby in uniqueInOrder([ sf['by'] for sf  in listOfDicts]):
-           ld=[df for df in listOfDicts if df['by']==uby]
-	   assert len(uniqueInOrder([LL['stataFile'] for LL in ld]))==1 # Ensure they're all from the same source file. So we can use that for naming the output, along with a provided outputsuffix and the collapse vars. [no, not anymore]
-	   outfiles+=[WP+str2pathname(combinedOutputName+'-'+uby)]
-			   #ld[0]['stataFile']+'-'+outputSuffix+'-'+'_'.join(fromToList))]
-	   combines+=[stataLoad(ld[0]['savefile'])+'\n'.join(stataMerge(uby,sf['savefile']) for sf in ld[1:] if sf)+"""
-           """+stataSave(outfiles[-1])]
-	   mergeVars+=[uby]
-
-       if 0 and mergeAllVars:
-	       combine=stataLoad(listOfDicts[0]['savefile'])+'\n'.join(stataMerge(mergeAllVars,sf['savefile']) for sf in listOfDicts[1:] if sf)
-       return(stataOut,combines,outfiles,mergeVars) 
-
-    cd=listOfDicts
-    assert isinstance(cd,dict)
-    stataFile=cd['stataFile']
-    commonPrefix=cd.get('meanPrefix','')
-    commonSuffix=cd.get('meanSuffix','')
-
-    fromToList=[vv for vv in cd.get('varsToMean','').strip().split(' ') if vv]
-    assert fromToList
-    fromtos=' '.join(['%s%s%s=%s'%(commonPrefix,ft,commonSuffix,ft) for ft in fromToList])
-    if cd.get('makeSEs',True):
-	    fromtos+=' (semean) '+' '.join(['%sse_%s%s=%s'%(commonPrefix,ft,commonSuffix,ft) for ft in fromToList])
-    ###allcollapsedvars=' '+' '.join(['%s%s'%(commonPrefix,ft) for ft in fromToList])+' '
-    weight=cd.get('weight','weight')
-    bykey=cd.get('by')
-    assert bykey
-    savefile=cd.get('savefile',stataFile+'-'+commonPrefix+commonSuffix+'-'+'_'.join(fromToList))
-    cd['savefile']=savefile # Update this field, since the recursion top will look.
-
-    stataout=stataLoad(stataFile)+'\n'+listOfDicts.get('postLoadCode','')+"""
-
-        collapse  """+fromtos+ ' [pw='+weight+'],  by('+bykey+""") fast
-
-"""+stataSave(savefile)
-
-    #assert stataout*(forceUpdate or fileOlderThan(WPdta(savefile),WPdta(stataFile)))
-    return(stataout*(forceUpdate or fileOlderThan(WPdta(savefile),WPdta(stataFile))),'','')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -7402,83 +4973,6 @@ estat bootstrap, all
     """%{'bm':model,'st':statistic,'N':N,'bopt':boptions})
 
 
-def stataLpoly_old(stataFile,xvar,yvar,outfilename=None,precode='',shelf=False):
-    """
-    Use the relatively nice looking output from Stata's polynomial regression to generate non-parametric fits. Output vectors x,y,seL,seU are returned and also saved in shelf file (or pandas file: old code will need to be updated)
-
-    Should really move this to locfit (or etc) in rpy
-
-2013: use shelf=True to invoke the old mode, with four return values and shelf file saving.
-
-95% confidene envelope is shown.
-
-    """
-    if outfilename is None:
-        outfilename=WP+'stataLpoly-%s-%s-%s'%(os.path.split(stataFile)[1],xvar,yvar)
-
-    if shelf: #Prior to 2013 mode.
-       pyfile=outfilename+'.pyshelf'
-       if fileOlderThan(pyfile,WPdta(stataFile)):
-           stataSystem(stataLoad(stataFile)+'\n'+precode+"""
-           lpoly %s %s [aw=weight], gen(x y) se(s1) nogr
-           g seU=y+invnormal(.975)*s1
-           g seL=y-invnormal(.975)*s1
-
-           keep if ~missing(x)
-           outsheet x y seU seL using %s, replace
-           *tw rarea seL seU x
-           """%(yvar,xvar,outfilename+'.tsv'),filename='stataLpoly_'+os.path.split(outfilename)[1])
-
-           lpoly=tonumeric(tsvToDict(outfilename+'.tsv',utf8=False,vectors=True))
-           shelfSave(pyfile,lpoly)
-       else:
-          lpoly=shelfLoad(pyfile)
-       return(lpoly['x'],lpoly['y'],lpoly['seL'],lpoly['seU'])
-
-       
-    pyfile=outfilename+'.pandas'
-    import pandas as pd
-    if fileOlderThan(pyfile,WPdta(stataFile)):
-        stataSystem(stataLoad(stataFile)+'\n'+precode+"""
-        lpoly %s %s [aw=weight], gen(x y) se(s1) nogr
-        g seU=y+invnormal(.975)*s1
-        g seL=y-invnormal(.975)*s1
-
-        keep if ~missing(x)
-        outsheet x y seU seL using %s, replace
-        *tw rarea seL seU x
-        """%(yvar,xvar,outfilename+'.tsv'),filename='stataLpoly_'+os.path.split(outfilename)[1])
-        lpoly=pd.read_csv(outfilename+'.tsv',sep='\t')
-        lpoly.save(outfilename+'.pandas')
-    else:
-       lpoly=pd.DataFrame.load(outfilename+'.pandas')
-    return(lpoly)
-
-    """
-    lpoly lifeToday gwp_rankAdjHHincome [aw=weight], gen(x y) nogr
-    loc b=r(bwidth)
-    lpoly  lifeToday gwp_rankAdjHHincome [aw=weight], nogr at(x) bw(`b') gen(y1) se(s1)
-    lpoly lifeToday cardd  [aw=weight], nogr at(x) bw(`b') gen(y0) se(s0)
-    g u1=y1+invnormal(.975)*s1
-    g l1=y1-invnormal(.975)*s1
-    g u0=y0+invnormal(.975)*s0
-    g l0=y0-invnormal(.975)*s0
-    tw rarea l0 u0 x||rarea l1 u1 x||line y0 x||line y1 x
-
-    # Python:
-
-        x,y,seU,seL=
-    l1, u1, u0, l0, x, y1, y0=[lpoly[v] for v in ['l1', 'u1', 'u0', 'l0', 'x', 'y1', 'y0']]
-
-    from pylab import *
-
-    close('all')
-    for vv in ['l1', 'u1', 'u0', 'l0', 'y1', 'y0']:
-        plot(x,lpoly[vv],label=vv)
-    transLegend()
-
-    """
-
 def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=False,weight='weight'):
     """
     Produce a Pandas dataframe from the relatively nice-looking output of Stata's polynomial regression to generate non-parametric fits. 
@@ -7690,9 +5184,8 @@ def numericIndicatorCoefficientsFromModel(models,variableNamesToNumeric,xname='x
 def log_asinh_truncate(fromvar,tovar,truncate=True):
     """
     Transform currency or etc variables from pos/neg log-large ranges, or from zeros and large pos ranges, to something tractable in a linear/parametric regression:
-    We do three things:
-    Use arc sinh transform to deal with zeros and negatives
-    Take log
+    We do two things:
+    Use arc sinh (asinh^{-1}) transform to deal with zeros and negatives
     Truncate to +/- 99% percentile to get rid of extremes
     """
     return("""
@@ -7710,7 +5203,7 @@ def log_asinh_truncate(fromvar,tovar,truncate=True):
     sum %(fv)s %(tv)s
     """%{'fv':fromvar,'tv':tovar})
 
-from cpblStataLatexRegressions import latexRegressionFile
+from pystataLatexRegressions import latexRegressionFile
 
 
 
