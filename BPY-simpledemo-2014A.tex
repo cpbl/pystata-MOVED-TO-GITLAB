@@ -1,0 +1,436 @@
+
+    \renewcommand{\ctNtabCols}{4}
+    \renewcommand{\ctFirstHeader}{\ctSubsequentHeaders \hline }
+    \renewcommand{\ctSubsequentHeaders}{	&\multicolumn{2}{c}{\sltcheadername{aq1}}	&\multicolumn{1}{c}{\sltcheadername{Special}}\\ 
+	&\sltcheadername{(1)}	&\sltcheadername{(2)}	&\sltcheadername{(3)}\\ 
+}
+    \renewcommand{\ctBody}{\sltrheadername{conservatives handle crime}	& \wrapSigFivePercent{$-$.042}	& \wrapSigFivePercent{$-$.068}	& \wrapSigFivePercent{$-$.042}\\ 
+\showSEs{	& \coefse{.021}	& \coefse{.034}	& \coefse{.020} \\ }{}
+\sltrheadername{aq6a}	& $-$.12	& $-$.051	& $-$.12\\ 
+\showSEs{	& \coefse{.071}	& \coefse{.031}	& \coefse{.071} \\ }{}
+\sltrheadername{aq7a}	& \wrapSigFivePercent{.21}	& \wrapSigFivePercent{.060}	& \wrapSigFivePercent{.21}\\ 
+\showSEs{	& \coefse{.10}	& \coefse{.027}	& \coefse{.097} \\ }{}
+\sltrheadername{constant}	& \wrapSigOneThousandth{2.2}	& 3e-17	& \wrapSigOneThousandth{2.2}\\ 
+\showSEs{	& \coefse{.057}	& \coefse{.028}	& \coefse{.056} \\ }{}
+\hline 
+clustering	& wards	& 	& \\ 
+$\beta$ coefs	& 	& \YesMark	& \\ 
+obs.	& 1935	& 1935	& 1935\\ 
+$R^2$(adj)	& .008	& .008	& .008\\ 
+N$_{\rm clusters}$	& 397	& 	& \\ 
+log likelihood	& $-$2652	& $-$2736	& $-$2652\\ 
+}
+    
+    % Default caption:
+    \renewcommand{\ctCaption}{ {\color{blue} simple demo \footnotesize \cpblColourLegend   Regression carried out on Sat Oct 25 10:38:10 2014 Regression methods: ['reg']. Dependent vars: ['aq1']  Common model: aq5a aq6a aq7a  if 1 } }
+    % This .tex file is meant to be called by something from
+    % cpblTables.sty. If it is not, then output something crude:
+    \ifx\@ctUsingWrapper\@empty
+    %Code to be executed if the macro is undefined
+    \begin{table}
+    \begin{tabular}{lc|cc}
+    \ctFirstHeader
+    \ctBody
+    \end{tabular}
+    \end{table}
+    \else
+    %Code to be executed if the macro IS defined
+    \fi
+
+    % Better yet, for version "CA" of cpblTables, define methods so that the format need not be specified in the call.
+    \renewcommand{\ctStartTabular}{\begin{tabular}{lc|cc}}
+    \renewcommand{\ctStartLongtable}{\begin{longtable}[c]{lc|cc}}
+    
+
+% BEGIN TRANSPOSED VERSION
+
+    \renewcommand{\ctNtabColsTrans}{12}
+    \renewcommand{\ctFirstHeaderTrans}{	&	&\begin{sideways}\sltcheadername{conservatives handle crime}\end{sideways}	&\begin{sideways}\sltcheadername{aq6a}\end{sideways}	&\begin{sideways}\sltcheadername{aq7a}\end{sideways}	&\begin{sideways}\sltcheadername{constant}\end{sideways}	&\begin{sideways}\sltcheadername{clustering}\end{sideways}	&\begin{sideways}\sltcheadername{$\beta$ coefs}\end{sideways}	&\begin{sideways}\sltcheadername{obs.}\end{sideways}	&\begin{sideways}\sltcheadername{$R^2$(adj)}\end{sideways}	&\begin{sideways}\sltcheadername{N$_{\rm clusters}$}\end{sideways}	&\begin{sideways}\sltcheadername{log likelihood}\end{sideways}\\ 
+\hline\hline
+}
+    \renewcommand{\ctSubsequentHeadersTrans}{	&	&\begin{sideways}\sltcheadername{conservatives handle crime}\end{sideways}	&\begin{sideways}\sltcheadername{aq6a}\end{sideways}	&\begin{sideways}\sltcheadername{aq7a}\end{sideways}	&\begin{sideways}\sltcheadername{constant}\end{sideways}	&\begin{sideways}\sltcheadername{clustering}\end{sideways}	&\begin{sideways}\sltcheadername{$\beta$ coefs}\end{sideways}	&\begin{sideways}\sltcheadername{obs.}\end{sideways}	&\begin{sideways}\sltcheadername{$R^2$(adj)}\end{sideways}	&\begin{sideways}\sltcheadername{N$_{\rm clusters}$}\end{sideways}	&\begin{sideways}\sltcheadername{log likelihood}\end{sideways}\\ 
+\hline
+}
+    \renewcommand{\ctBodyTrans}{\sltheadernum{(1)}	& \sltrheadername{aq1}	& \wrapSigFivePercent{$-$.042}	& $-$.12	& \wrapSigFivePercent{.21}	& \wrapSigOneThousandth{2.2}	& wards	& 	& 1935	& .008	& 397	& $-$2652\\ 
+\showSEs{	& 	& \coefse{.021}	& \coefse{.071}	& \coefse{.10}	& \coefse{.057}	& 	& 	& 	& 	& 	&  \\ }{}
+\hline
+\sltheadernum{(2)}	& \sltrheadername{aq1}	& \wrapSigFivePercent{$-$.068}	& $-$.051	& \wrapSigFivePercent{.060}	& 3e-17	& 	& \YesMark	& 1935	& .008	& 	& $-$2736\\ 
+\showSEs{	& 	& \coefse{.034}	& \coefse{.031}	& \coefse{.027}	& \coefse{.028}	& 	& 	& 	& 	& 	&  \\ }{}
+\sltheadernum{(3)}	& \sltrheadername{Special}	& \wrapSigFivePercent{$-$.042}	& $-$.12	& \wrapSigFivePercent{.21}	& \wrapSigOneThousandth{2.2}	& 	& 	& 1935	& .008	& 	& $-$2652\\ 
+\showSEs{	& 	& \coefse{.020}	& \coefse{.071}	& \coefse{.097}	& \coefse{.056}	& 	& 	& 	& 	& 	&  \\ }{}
+}
+    
+    % Default caption:
+    \renewcommand{\ctCaptionTrans}{ {\color{blue} simple demo \footnotesize \cpblColourLegend   Regression carried out on Sat Oct 25 10:38:10 2014 Regression methods: ['reg']. Dependent vars: ['aq1']  Common model: aq5a aq6a aq7a  if 1 } }
+
+    % Better yet, for version "CA" of cpblTables, define methods so that the format need not be specified in the call.
+    \renewcommand{\ctStartTabularTrans}{\begin{tabular}{lp{3cm}*{10}{r}}}
+    \renewcommand{\ctStartLongtableTrans}{\begin{longtable}[c]{lp{3cm}*{10}{r}}}
+    
+
+%-------------------------------------------------------------------------------
+%       name:  <unnamed>
+%        log:  /home/cpbl/bin/github/pystata/workingData/logs/BPY-simpledemo-2014
+% > A2014_10_25_103810_.log
+%   log type:  text
+%  opened on:  25 Oct 2014, 10:38:10
+% 
+% . 
+% .         * CPBL BEGIN TABLE:simple demo: AT 2014_10_25_103810
+% . 
+% .         
+% .             * CPBL BEGIN MODEL:simple demo_1:
+% .             
+% .             * ie Start of estimate 1 (for table "simple demo")
+% . 
+% .             
+% . 
+% . 
+% . 
+% . * ENSURE THAT ALL VARIABLES IN THE EQUATION EXIST BY SETTING MISSING ONES TO 
+% > ALL ZEROs:
+% . foreach var in  aq5a aq6a aq7a  aq5a aq6a aq7a  {
+%   2. capture confirm variable `var',exact
+%   3. if _rc~=0 {
+%   4. di " CAUTION!!!!!!!! `var'  DID NOT EXIST in MODEL:simple demo_1:!"
+%   5. capture gen `var'=0
+%   6. }
+%   7. }
+% 
+% . 
+% . 
+% . *flag:clustering=wards
+% . 
+% . * ALLOW FOR POSSIBILITY THAT THERE ARE NO OBSERVATIONS MEETING THIS CONDITION
+% > ... REPLACE REGRESSION WITH DUMMY REGRESSION IN THIS CASE, AND KEEP GOING. (c
+% > aptureNoObservations==True)
+% . capture  noisily reg aq1 aq5a aq6a aq7a  if 1 [pw=aweightt], cluster(awardid)
+% >  robust 
+% (sum of wgt is   1.9350e+03)
+% 
+% Linear regression                                      Number of obs =    1935
+%                                                        F(  3,   396) =    3.45
+%                                                        Prob > F      =  0.0168
+%                                                        R-squared     =  0.0095
+%                                                        Root MSE      =  .95367
+% 
+%                               (Std. Err. adjusted for 397 clusters in awardid)
+% ------------------------------------------------------------------------------
+%              |               Robust
+%          aq1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+% -------------+----------------------------------------------------------------
+%         aq5a |  -.0415413   .0207227    -2.00   0.046    -.0822815   -.0008011
+%         aq6a |  -.1156122   .0714559    -1.62   0.106    -.2560925    .0248681
+%         aq7a |   .2126297   .1004521     2.12   0.035     .0151436    .4101158
+%        _cons |    2.23904   .0565951    39.56   0.000     2.127775    2.350304
+% ------------------------------------------------------------------------------
+% 
+% . 
+% . 
+% . if _rc==2000 |_rc==302 |_rc==2001 {
+% . capture gen _dummyOne=1
+% . reg _dummyOne _dummyOne
+% . } 
+% 
+% . else {
+% . if _rc!=0 {
+% . di _rc
+% . di foodle untrapped error! (following line should stop execution if reached)
+% . error _rc
+% . }
+% . 
+% . }
+% 
+% . 
+% . 
+% . 
+% . 
+% .                 capture drop cssaSample
+% 
+% .                 gen cssaSample=e(sample)
+% 
+% .     estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a r2_p 
+% > N  N_clust ll r2_o) 
+% 
+% ----------------------------------------------------------------
+%                                          Variable |   active    
+% --------------------------------------------------+-------------
+%                                              aq5a | -.04154128  
+%                                                   |  .02072266  
+%                                                   |     0.0457  
+%                                              aq6a | -.11561224  
+%                                                   |  .07145587  
+%                                                   |     0.1065  
+%                                              aq7a |  .21262969  
+%                                                   |  .10045211  
+%                                                   |     0.0349  
+%                                             _cons |  2.2390395  
+%                                                   |  .05659509  
+%                                                   |     0.0000  
+% --------------------------------------------------+-------------
+%                                                r2 |  .00951553  
+%                                              r2_a |  .00797671  
+%                                              r2_p |             
+%                                                 N |       1935  
+%                                           N_clust |        397  
+%                                                ll | -2651.8567  
+%                                              r2_o |             
+% ----------------------------------------------------------------
+%                                                   legend: b/se/p
+% 
+% .     * ereturn list
+% .     
+% . 
+% . 
+% . 
+% . 
+% . 
+% .         * CPBL END MODEL:simple demo_1:
+% .         
+% .             * CPBL BEGIN MODEL:simple demo_2:
+% .             
+% .             * ie Start of estimate 2 (for table "simple demo")
+% . 
+% .             
+% . 
+% . 
+% . 
+% . * ENSURE THAT ALL VARIABLES IN THE EQUATION EXIST BY SETTING MISSING ONES TO 
+% > ALL ZEROs:
+% . foreach var in  aq5a aq6a aq7a  aq5a aq6a aq7a  {
+%   2. capture confirm variable `var',exact
+%   3. if _rc~=0 {
+%   4. di " CAUTION!!!!!!!! `var'  DID NOT EXIST in MODEL:simple demo_2:!"
+%   5. capture gen `var'=0
+%   6. }
+%   7. }
+% 
+% . 
+% . 
+% . 
+% .                    capture drop z_*
+% 
+% .                    gen z_dSample = aq1<. & aq5a<. & aq6a<. & aq7a<. & 1
+% 
+% . zscore  aq1 aq5a aq6a aq7a  if z_dSample & 1 [w=aweightt]
+% (analytic weights assumed)
+% z_aq1 created with 1577 missing values
+% z_aq5a created with 1577 missing values
+% z_aq6a created with 1577 missing values
+% z_aq7a created with 1577 missing values
+% 
+% .                 foreach var of varlist z_aq1 z_aq5a z_aq6a z_aq7a {
+%   2.                 quietly sum `var'
+%   3.                 if r(N)==0 {
+%   4.                 di "Filling in values for `var', which is all missing"
+%   5.                 replace `var'=0
+%   6.                 }
+%   7.                 }
+% 
+% .     
+% . 
+% .                      
+% . * ALLOW FOR POSSIBILITY THAT THERE ARE NO OBSERVATIONS MEETING THIS CONDITION
+% > ... REPLACE REGRESSION WITH DUMMY REGRESSION IN THIS CASE, AND KEEP GOING. (c
+% > aptureNoObservations==True)
+% . capture noisily reg z_aq1 z_aq5a z_aq6a z_aq7a if 1 [w=aweightt], beta robust
+% >  
+% (analytic weights assumed)
+% (sum of wgt is   1.9350e+03)
+% 
+% Linear regression                                      Number of obs =    1935
+%                                                        F(  3,  1931) =    3.76
+%                                                        Prob > F      =  0.0105
+%                                                        R-squared     =  0.0095
+%                                                        Root MSE      =    .996
+% 
+% ------------------------------------------------------------------------------
+%              |               Robust
+%        z_aq1 |      Coef.   Std. Err.      t    P>|t|                     Beta
+% -------------+----------------------------------------------------------------
+%       z_aq5a |  -.0684055   .0335709    -2.04   0.042                -.0684055
+%       z_aq6a |  -.0506357   .0310763    -1.63   0.103                -.0506357
+%       z_aq7a |    .060164   .0274182     2.19   0.028                  .060164
+%        _cons |   3.21e-17   .0284976     0.00   1.000                        .
+% ------------------------------------------------------------------------------
+% 
+% . 
+% . 
+% . if _rc==2000 |_rc==302 |_rc==2001 {
+% . capture gen _dummyOne=1
+% . reg _dummyOne _dummyOne
+% . } 
+% 
+% . else {
+% . if _rc!=0 {
+% . di _rc
+% . di foodle untrapped error! (following line should stop execution if reached)
+% . error _rc
+% . }
+% . 
+% . }
+% 
+% . 
+% . 
+% . 
+% . 
+% .                 capture drop cssaSample
+% 
+% .                 gen cssaSample=e(sample)
+% 
+% .     estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a r2_p 
+% > N  N_clust ll r2_o) 
+% 
+% ----------------------------------------------------------------
+%                                          Variable |   active    
+% --------------------------------------------------+-------------
+%                                            z_aq5a | -.06840554  
+%                                                   |  .03357086  
+%                                                   |     0.0417  
+%                                            z_aq6a | -.05063569  
+%                                                   |  .03107626  
+%                                                   |     0.1034  
+%                                            z_aq7a |  .06016395  
+%                                                   |  .02741815  
+%                                                   |     0.0283  
+%                                             _cons |  3.209e-17  
+%                                                   |  .02849755  
+%                                                   |     1.0000  
+% --------------------------------------------------+-------------
+%                                                r2 |  .00951553  
+%                                              r2_a |  .00797671  
+%                                              r2_p |             
+%                                                 N |       1935  
+%                                           N_clust |             
+%                                                ll | -2735.8956  
+%                                              r2_o |             
+% ----------------------------------------------------------------
+%                                                   legend: b/se/p
+% 
+% .     * ereturn list
+% .     
+% . 
+% .                    capture drop z_*
+% 
+% .                  
+% . 
+% . 
+% . 
+% . 
+% .         * CPBL END MODEL:simple demo_2:
+% .         
+% .             * CPBL BEGIN MODEL:simple demo_3:
+% .             
+% .             * ie Start of estimate 3 (for table "simple demo")
+% . 
+% .             
+% . 
+% . 
+% . 
+% . * ENSURE THAT ALL VARIABLES IN THE EQUATION EXIST BY SETTING MISSING ONES TO 
+% > ALL ZEROs:
+% . foreach var in  aq5a aq6a aq7a  aq5a aq6a aq7a  {
+%   2. capture confirm variable `var',exact
+%   3. if _rc~=0 {
+%   4. di " CAUTION!!!!!!!! `var'  DID NOT EXIST in MODEL:simple demo_3:!"
+%   5. capture gen `var'=0
+%   6. }
+%   7. }
+% 
+% . 
+% . 
+% . *name:Special
+% . 
+% . * ALLOW FOR POSSIBILITY THAT THERE ARE NO OBSERVATIONS MEETING THIS CONDITION
+% > ... REPLACE REGRESSION WITH DUMMY REGRESSION IN THIS CASE, AND KEEP GOING. (c
+% > aptureNoObservations==True)
+% . capture  noisily reg aq1 aq5a aq6a aq7a  if 1 [pw=aweightt], robust 
+% (sum of wgt is   1.9350e+03)
+% 
+% Linear regression                                      Number of obs =    1935
+%                                                        F(  3,  1931) =    3.76
+%                                                        Prob > F      =  0.0105
+%                                                        R-squared     =  0.0095
+%                                                        Root MSE      =  .95367
+% 
+% ------------------------------------------------------------------------------
+%              |               Robust
+%          aq1 |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+% -------------+----------------------------------------------------------------
+%         aq5a |  -.0415413   .0203869    -2.04   0.042    -.0815239   -.0015586
+%         aq6a |  -.1156122   .0709538    -1.63   0.103    -.2547664    .0235419
+%         aq7a |   .2126297   .0969004     2.19   0.028     .0225892    .4026702
+%        _cons |    2.23904   .0561941    39.84   0.000     2.128832    2.349247
+% ------------------------------------------------------------------------------
+% 
+% . 
+% . 
+% . if _rc==2000 |_rc==302 |_rc==2001 {
+% . capture gen _dummyOne=1
+% . reg _dummyOne _dummyOne
+% . } 
+% 
+% . else {
+% . if _rc!=0 {
+% . di _rc
+% . di foodle untrapped error! (following line should stop execution if reached)
+% . error _rc
+% . }
+% . 
+% . }
+% 
+% . 
+% . 
+% . 
+% . 
+% .                 capture drop cssaSample
+% 
+% .                 gen cssaSample=e(sample)
+% 
+% .     estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a r2_p 
+% > N  N_clust ll r2_o) 
+% 
+% ----------------------------------------------------------------
+%                                          Variable |   active    
+% --------------------------------------------------+-------------
+%                                              aq5a | -.04154128  
+%                                                   |   .0203869  
+%                                                   |     0.0417  
+%                                              aq6a | -.11561224  
+%                                                   |  .07095382  
+%                                                   |     0.1034  
+%                                              aq7a |  .21262969  
+%                                                   |  .09690044  
+%                                                   |     0.0283  
+%                                             _cons |  2.2390395  
+%                                                   |  .05619411  
+%                                                   |     0.0000  
+% --------------------------------------------------+-------------
+%                                                r2 |  .00951553  
+%                                              r2_a |  .00797671  
+%                                              r2_p |             
+%                                                 N |       1935  
+%                                           N_clust |             
+%                                                ll | -2651.8567  
+%                                              r2_o |             
+% ----------------------------------------------------------------
+%                                                   legend: b/se/p
+% 
+% .     * ereturn list
+% .     
+% . 
+% . 
+% . 
+% . 
+% . 
+% .         * CPBL END MODEL:simple demo_3:
+% .         
+% .         * CPBL END TABLE:simple demo:
+% . 
+% . log close
+%       name:  <unnamed>
+%        log:  /home/cpbl/bin/github/pystata/workingData/logs/BPY-simpledemo-2014
+% > A2014_10_25_103810_.log
+%   log type:  text
+%  closed on:  25 Oct 2014, 10:38:10
+% -------------------------------------------------------------------------------

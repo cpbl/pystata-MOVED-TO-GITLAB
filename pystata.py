@@ -1,9 +1,10 @@
 #!/usr/bin/python
 """
 CPBL, 2005-2014+
-This is now 10 years of learning python, changes, frustrations, and tools which were built for a custom need.
-Much code should be edited out, and some still needs to be replaced with pandas methods.
-Inline documentation is horrid, as of the first github release  / Oct 2014.
+This is now 10 years of learning python, changes, rewrites, and tools which were built for a custom need.
+Much code could probably be edited out, and some still needs to be revised to use new pandas methods.
+Inline documentation is not great, as of the first github release  / Oct 2014, so start out with the demo.
+
 Please help by separating out things that make sense, and cleaning up that which doesn't.
 
 Also currently depends heavily on cpblUtilities and latex-stat-tables .. and cpblDefaults. These can be excised...
@@ -5181,15 +5182,15 @@ def numericIndicatorCoefficientsFromModel(models,variableNamesToNumeric,xname='x
     dfout=pd.DataFrame(DD).set_index('modelNum',drop=False)
     fier
 
-def log_asinh_truncate(fromvar,tovar,truncate=True):
+def asinh_truncate(fromvar,tovar,truncate=True):
     """
     Transform currency or etc variables from pos/neg log-large ranges, or from zeros and large pos ranges, to something tractable in a linear/parametric regression:
     We do two things:
-    Use arc sinh (asinh^{-1}) transform to deal with zeros and negatives
+    Use arg sinh (asinh^{-1}) transform to deal with zeros and negatives
     Truncate to +/- 99% percentile to get rid of extremes
     """
     return("""
-    * Create log version (using arcsinh transform first, to deal with zeros: (Burbidge, Magee, and Robb 1988; MacKinnon and Magee 1990; Pence 2006):
+    * Create log version (using argsinh transform first, to deal with zeros: (Burbidge, Magee, and Robb 1988; MacKinnon and Magee 1990; Pence 2006):
     gen %(tv)s= ln(%(fv)s + sqrt(%(fv)s^2+1))
     * Truncate %(tv)s to its 99th percentile, so I can use it linearly:
         quietly su %(tv)s,d
@@ -5202,6 +5203,7 @@ def log_asinh_truncate(fromvar,tovar,truncate=True):
     * }
     sum %(fv)s %(tv)s
     """%{'fv':fromvar,'tv':tovar})
+log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
 from pystataLatexRegressions import latexRegressionFile
 
