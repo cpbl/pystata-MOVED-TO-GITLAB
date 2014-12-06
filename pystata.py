@@ -3,7 +3,7 @@
 CPBL, 2005-2014+
 This is now 10 years of learning python, changes, rewrites, and tools which were built for a custom need.
 Much code could probably be edited out, and some still needs to be revised to use new pandas methods.
-Inline documentation is not great, as of the first github release  / Oct 2014, so start out with the demo.
+Inline documentation is not great, as of the first github release  / Oct 2014, so start out with the demo, and with the README description for an overview
 
 Please help by separating out things that make sense, and cleaning up that which doesn't.
 
@@ -12,21 +12,35 @@ Also currently depends heavily on cpblUtilities and latex-stat-tables .. and cpb
 """
 
 
+try:
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements
+    from cpblUtilitiesMathGraph import tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget
+    from cpblUtilitiesUnicode import str2latex
+except ImportError:
+    print("Unable to find CPBL's utilities package")
 
-from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements
 from copy import deepcopy
 
-from cpblDefaults import  paths, WP, IP, RDC, PUMF
-from cpblDefaults import defaults
+paths, WP, IP={},'./','./'
+RDC=False
+defaults={}
+try:
+    from cpblDefaults import  paths, WP, IP
+    from cpblDefaults import  RDC
+    from cpblDefaults import defaults
+except ImportError:
+    print("Unable to find CPBL's defaults settings ")
 
 import os
 import re
 
-codebookFilename=   defaults['native']['paths']['working']+'tmpCodebook'
-codebookTSVfilename=defaults['native']['paths']['working']+'tmpCodebook.tsv'
-codebookTeXfilename=defaults['native']['paths']['working']+'tmpCodebook.tex'
-mcodebook={} # This is a master codebook variable used to collect descriptions of variables that I actually use. Contrast rawCodebooks masterCodebook, below.
-
+try:
+    codebookFilename=   defaults['native']['paths']['working']+'tmpCodebook'
+    codebookTSVfilename=defaults['native']['paths']['working']+'tmpCodebook.tsv'
+    codebookTeXfilename=defaults['native']['paths']['working']+'tmpCodebook.tex'
+    mcodebook={} # This is a master codebook variable used to collect descriptions of variables that I actually use. Contrast rawCodebooks masterCodebook, below.
+except KeyError:
+    print("  CPBL's defaults not defined")
 global rawCodebooks
 # Load up lists of *all* variables for surveys, if this info is available: (No, I need to reprogram thi to do it based just on the codebook class I've made)
 ##import extractCodebooks
@@ -307,7 +321,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
             version=''
         if not filename:
             import sys
-            tempfilename=WP+'make_'+ sys._getframe(1).f_code.co_name+'-'+version+'.do'  # Get calling (parent) functio name
+            tempfilename=WP+'make_'+ (sys._getframe(1).f_code.co_name).replace('<module>','unknownCaller')+'-'+version+'.do'  # Get calling (parent) functio name
             #import tempfile
             #tempfilename = tempfile.mktemp(suffix='.do')
         elif filename==WP:
@@ -866,8 +880,10 @@ def substitutedNames(names, subs=None,newCol=1):
                 names[iname]=names[iname].replace(ps[0],ps[newCol])
     return(names)
 
-
-from pystataCodebooks import stataCodebookClass
+try:
+    from pystataCodebooks import stataCodebookClass
+except ImportError:
+    print("Unable to find pystataCodebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -984,8 +1000,11 @@ def toBoolVar(newname,oldname,surveyName=''):
     #codebookEntry(newname,sn,prompt)
     return(outs)
 
+try:
+    from cpblUtilities import cpblTableStyC
+except ImportError:
+    print("Unable to find cpblTables module")
 
-from cpblUtilities import cpblTableStyC
 
 
 
@@ -3294,7 +3313,7 @@ q(\w*)\s+\|.*?
     import pylab as plt
     import matplotlib as mpl
 
-    from cpblUtilities import plotWithEnvelope, savefigall
+    from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
 
     plt.ioff() # Do not show plots
 
@@ -3416,7 +3435,7 @@ Or... i may be able to get a list of the non-excluded variables, at least, from 
     import pylab as plt
     import matplotlib as mpl
 
-    from cpblUtilities import plotWithEnvelope, savefigall
+    from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
 
     plt.ioff() # Do not show plots
 
@@ -3475,7 +3494,7 @@ Plot the results of quantile regressions from possibly more than one model (regi
         import pylab as plt
         import matplotlib as mpl
 
-        from cpblUtilities import plotWithEnvelope, savefigall
+        from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
 
         plt.ioff() # Do not show plots
 
@@ -3618,7 +3637,7 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
 
         difflhs={subsamp:signSwitch*oaxaca['overall']['difference']['b']}
         sedifflhs={subsamp:oaxaca['overall']['difference']['se']}
-        from cpblUtilities import categoryBarPlot, savefigall, figureFontSetup
+        from cpblUtilitiesMathGraph import categoryBarPlot, savefigall, figureFontSetup
         from pylab import array
         diffpredictions[subsamp][depvar]=signSwitch*oaxaca['overall'][strExplained]['b']
         sediffpredictions[subsamp][depvar]=oaxaca['overall'][strExplained]['se']
@@ -4684,9 +4703,10 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
     rcParams.update({'text.usetex': False,}) #Grrr. need it for plusminus sign, but can't deal with all foreign characters in country and region names?!
     from scipy import stats
     import numpy as np
-    from cpblUtilities import plotWithEnvelope,transLegend,savefigall,sortDictsIntoQuantiles,finiteValues,shelfSave,shelfLoad
+    from cpblUtilities import plotWithEnvelope,transLegend,savefigall,sortDictsIntoQuantiles,finiteValues
+    from cpblUtilitiesMathGraph import shelfSave,shelfLoad
     # Because numpy and scipy don't have basic weight option in mean, sem !!!
-    from cpblUtilities import wtmean,wtsem,wtvar
+    from cpblUtilitiesMathGraph import wtmean,wtsem,wtvar
     from inequality import ineq,cpblGini
 
 
@@ -4987,10 +5007,9 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=Fals
 
     2014: yvar can be a list of variables (not in old, shelf option). Incidentally, lpoly with gen() is weird! It creates its N new points as variables in the existing rowspace, though they have nothing to do with those existing rows. Only makes sense if you drop everything else after creating them. Convenient, though.
 
-I am not sure that multiple yvars is working yet?!
+I am not sure that multiple yvars is working yet?
 
-2014:Oct: It looks like you can do this all in numpy now! they have CI for nonparametric methods, using bootstraps. Oh, it may be beta and hard to install?
-
+2014:Oct: It looks like you can do this all in numpy now: they have CI for nonparametric methods, using bootstraps. Oh, it may be beta and hard to install? pyqt_fit
 
     """
     import pandas as pd
@@ -5042,6 +5061,7 @@ I am not sure that multiple yvars is working yet?!
 
     else:
        lpoly=pd.load(outfilename+'.pandas')
+    #assert len(lpoly)
     return(lpoly)
 
     """
@@ -5205,7 +5225,10 @@ def asinh_truncate(fromvar,tovar,truncate=True):
     """%{'fv':fromvar,'tv':tovar})
 log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
-from pystataLatexRegressions import latexRegressionFile
+try:
+    from pystataLatexRegressions import latexRegressionFile
+except ImportError:
+    print("Unable to find pystataLatexRegressions module")
 
 
 

@@ -13,7 +13,7 @@ Oh. In Stata, "label list" gives an instant readout of all value labels. Use thi
 
 from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, doSystem,shelfSave,shelfLoad
 from copy import deepcopy
-#from cpblStata import stataSystem,stataLoad
+#from pystata import stataSystem,stataLoad
 from cpblDefaults import defaults, paths, WP, IP, RDC, PUMF
 
 from codecs import open # arrrrgh. i hate unicode in python<3. dec 2011
@@ -35,7 +35,7 @@ class stataCodebookClass (dict):  #  # # # # #    MAJOR CLASS    # # # # #  #
     """
     Allow outsiders to access the main data member, the dict "codebook". This is basically, then, just a wrapper for the associated functions. It's a child of dict, so you can refer to instances directly.
 
-    N.B.: There are othe functions, in extractCodebooks, that get the info from non-Stata means.. Well, maybe I'll move those into cpblStata too??
+    N.B.: There are othe functions, in extractCodebooks, that get the info from non-Stata means.. Well, maybe I'll move those into pystata too??
 
     Dec 2008, CPBL.
 
@@ -395,7 +395,7 @@ Fields in a stataCodebookClass object:
         """
         import os
         from cpblUtilities import doSystem
-        from cpblStata import stripdtagz
+        from pystata import stripdtagz
 
         datafilepath=stripdtagz(datafilepath)
         sourceDir,sourceName=os.path.split(datafilepath)
@@ -436,7 +436,7 @@ codebook `var'
         if forceC:
 
             print '    To create '+CdoFileName+':  '
-            from cpblStata import stataSystem,stataLoad
+            from pystata import stataSystem,stataLoad
             rlogfn=stataSystem("""
               clear
             set more off
@@ -718,7 +718,7 @@ Oh, no! I ca not just disclose the raw log file!
     \hline
     }""")+r"""
         \renewcommand{\ctBody}{"""
-        from cpblStata import substitutedNames
+        from pystata import substitutedNames
         for vv in showVars:
             #if newmode: # Should still leave '_' fixing up to a str2latex function, no?
             # Nov 2010: Agh!!! I'm sure I'll break things for someone else, but my variable names come with tex substitutions, so do NOT detex them, as was being done until today. I removed two ".replace('_','-')"'s!!!
@@ -1441,7 +1441,7 @@ This is just used to make a note of a new variable that was defined in raw Stata
 
 
         """
-        from cpblStata import stataSafeDrop
+        from pystata import stataSafeDrop
         dropped=[]
         if keep==None:
             keep=[]
@@ -1842,7 +1842,7 @@ baseValue is the value to exclude!  ie if it is in valuesNames, it will be ignor
 
 examples of usage?
 """
-    print "REally!? apr 201: don't use this: you should be using cpblStataCodebook.py functions" # See above, too.
+    print "REally!? apr 201: don't use this: you should be using pystataCodebook.py functions" # See above, too.
     # Apart from nicer names, this is necessary because I want tab,gen() to be able to replace existing dummies; it ca not.
     outs=""
     if missing==None:
