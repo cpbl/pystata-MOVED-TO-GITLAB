@@ -11,10 +11,27 @@ Oh. In Stata, "label list" gives an instant readout of all value labels. Use thi
                 
 """
 
-from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, doSystem,shelfSave,shelfLoad
+try:
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, doSystem,shelfSave,shelfLoad
+except ImportError:
+    print("pystataCodebooks: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+
 from copy import deepcopy
 #from pystata import stataSystem,stataLoad
-from cpblDefaults import defaults, paths, WP, IP, RDC, PUMF
+try:
+    from cpblDefaults import  paths, WP, IP
+    from cpblDefaults import  RDC
+    from cpblDefaults import defaults
+except ImportError:
+    print("pystata: Unable to find (or import?) CPBL's defaults settings ")
+    paths={'working':'./',
+           'input':'./',
+           'tex':'./',
+           'scratch':'./',   }
+    WP=paths['working']
+    IP=paths['input']
+    RDC,PUMF=False,False
+    defaults={'paths':paths}
 
 from codecs import open # arrrrgh. i hate unicode in python<3. dec 2011
 

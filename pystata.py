@@ -17,20 +17,24 @@ try:
     from cpblUtilitiesUnicode import str2latex
 except ImportError:
     import sys
-    print("pystata: Unable to find or import? CPBL's utilities package")
-    print(sys.path)
+    print("pystata: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
 
 from copy import deepcopy
 
-paths, WP, IP={},'./','./'
-RDC=False
-defaults={}
 try:
     from cpblDefaults import  paths, WP, IP
     from cpblDefaults import  RDC
     from cpblDefaults import defaults
 except ImportError:
-    print("pystata: Unable to find CPBL's defaults settings ")
+    print("pystata: Unable to find (or import?) CPBL's defaults settings ")
+    paths={'working':'./',
+           'input':'./',
+           'tex':'./',
+           'scratch':'./',   }
+    WP=paths['working']
+    IP=paths['input']
+    RDC=False
+    defaults={'paths':paths}
 
 import os
 import re
@@ -910,7 +914,7 @@ def substitutedNames(names, subs=None,newCol=1):
 try:
     from pystataCodebooks import stataCodebookClass
 except ImportError:
-    print("pystata: Unable to find pystataCodebooks module, part of pystata package")
+    print("pystata: Unable to find (or unable to import) pystataCodebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1030,7 +1034,7 @@ def toBoolVar(newname,oldname,surveyName=''):
 try:
     from cpblUtilities import cpblTableStyC
 except ImportError:
-    print("pystata: Unable to find cpblTables module")
+    print("pystata: Unable to find (or unable to import) cpblTables module")
 
 
 
@@ -5253,7 +5257,7 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 try:
     from pystataLatexRegressions import latexRegressionFile
 except ImportError:
-    print("pystata: Unable to find pystataLatexRegressions module")
+    print("pystata: Unable to find (or unable to import) pystataLatexRegressions module")
 
 
 
