@@ -11,13 +11,14 @@ Also currently depends heavily on cpblUtilities and latex-stat-tables .. and cpb
 
 """
 
-
 try:
-    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements
-    from cpblUtilitiesMathGraph import tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
+    from cpblUtilitiesMathGraph import tonumeric, fNaN, seSum,seMean
     from cpblUtilitiesUnicode import str2latex
 except ImportError:
-    print("Unable to find CPBL's utilities package")
+    import sys
+    print("pystata: Unable to find or import? CPBL's utilities package")
+    print(sys.path)
 
 from copy import deepcopy
 
@@ -29,7 +30,7 @@ try:
     from cpblDefaults import  RDC
     from cpblDefaults import defaults
 except ImportError:
-    print("Unable to find CPBL's defaults settings ")
+    print("pystata: Unable to find CPBL's defaults settings ")
 
 import os
 import re
@@ -356,7 +357,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
     if not dodir:
         dodir=WP
     if '.' in dofilenameNoSuffix:
-        cwarning('Please use function str2pathname when choosing filenames for use in  stataSystem')
+        cwarning('You have more than one period in your dofilenameNoSuffix: '+dofilenameNoSuffix+' : Please use function str2pathname when choosing filenames for use in  stataSystem')
         #assert 0 # Try to just replace these out before calling stataSystem...
         oldF=dofilenameNoSuffix
         dofilenameNoSuffix=str2pathname(dofilenameNoSuffix)#.replace('.','-')
@@ -532,14 +533,39 @@ dta2df=dta2dataframe
 def dataframe2dta(df,fn,forceToString=None):
     """
     Feb 2013: This is a crude beginning to an analogue for writing a dataset when we may want to force Stata to see some numeric fields as strings.
+    Yes, pandas does this already, but not on Apollo, and I don't always love its behaviour.
 
+    2014Dec: look for things that ought to be strings.
+
+   To do: 
+      - only reset index if it's named?
+      - automate forceToString a bit
 	"""
+
+
     import pandas as pd
+    if forceToString is not False: # look for automatic force-to-string unless we're told not to
+        dfr=df.reset_index()
+        fts=[cc   for cc in dfr.columns if isinstance(dfr[cc][0],str)]
+        if fts:
+            print('  dataframe2dta: Found string columns automatically: '+str(fts))
+        if forceToString:
+            forceToString=np.unique(fts+list(forceToString))
+        else:
+            forceToString=fts
     if forceToString:
 	    df.reset_index().append(pd.Series(dict([(fts,'dummy') for fts in forceToString])),ignore_index=True).to_csv(fn+'.tsv',sep='\t',header=True,index=False)
     else:
 	    df.to_csv(fn+'.tsv',sep='\t',header=True)
     tsv2dta(fn)
+    print('  Saved a CPBL df->TSV->dta.gz version as'+fn+'.dta.gz')
+
+    # Ultimately, we should transition to pandas's version. So that it's there for comparison, make a .dta (not .dta.gz) version using Pandas: 
+    # REmaining issues iwth it: if there are -inf's in a column, the column ends up as string. File bug report?
+    #for infvv in df.columns:
+    #    df[infvv][np.isinf( df[invff])]=np.nan
+    df.to_stata(fn+'.dta')
+    print('  Saved a pandas to_stata() version as '+fn+'.dta')
     return
 
 ###########################################################################################
@@ -559,6 +585,7 @@ def df2dta(df,filepath=None,index=False,             forceToString=None,sortBy=N
    Note: If this is run on Apollo, the old method below uses a tsv intermediate file, and is yucky.
 
 See the previous (draft?) function; does that provide a simpler way of forcing to string for after Apollo gets a pandas upgrade?
+Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to get to dta, but unlike this one, does automatic string-variable finding.
 
    """
    import pandas as pd
@@ -883,7 +910,7 @@ def substitutedNames(names, subs=None,newCol=1):
 try:
     from pystataCodebooks import stataCodebookClass
 except ImportError:
-    print("Unable to find pystataCodebooks module, part of pystata package")
+    print("pystata: Unable to find pystataCodebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1003,7 +1030,7 @@ def toBoolVar(newname,oldname,surveyName=''):
 try:
     from cpblUtilities import cpblTableStyC
 except ImportError:
-    print("Unable to find cpblTables module")
+    print("pystata: Unable to find cpblTables module")
 
 
 
@@ -5007,8 +5034,6 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=Fals
 
     2014: yvar can be a list of variables (not in old, shelf option). Incidentally, lpoly with gen() is weird! It creates its N new points as variables in the existing rowspace, though they have nothing to do with those existing rows. Only makes sense if you drop everything else after creating them. Convenient, though.
 
-I am not sure that multiple yvars is working yet?
-
 2014:Oct: It looks like you can do this all in numpy now: they have CI for nonparametric methods, using bootstraps. Oh, it may be beta and hard to install? pyqt_fit
 
     """
@@ -5228,7 +5253,7 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 try:
     from pystataLatexRegressions import latexRegressionFile
 except ImportError:
-    print("Unable to find pystataLatexRegressions module")
+    print("pystata: Unable to find pystataLatexRegressions module")
 
 
 
