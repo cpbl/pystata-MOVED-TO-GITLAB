@@ -548,6 +548,7 @@ def dataframe2dta(df,fn,forceToString=None):
 
 
     import pandas as pd
+    import numpy as np
     if forceToString is not False: # look for automatic force-to-string unless we're told not to
         dfr=df.reset_index()
         fts=[cc   for cc in dfr.columns if isinstance(dfr[cc][0],str)]
@@ -557,7 +558,7 @@ def dataframe2dta(df,fn,forceToString=None):
             forceToString=np.unique(fts+list(forceToString))
         else:
             forceToString=fts
-    if forceToString:
+    if forceToString not in [None,False,[]]:
 	    df.reset_index().append(pd.Series(dict([(fts,'dummy') for fts in forceToString])),ignore_index=True).to_csv(fn+'.tsv',sep='\t',header=True,index=False)
     else:
 	    df.to_csv(fn+'.tsv',sep='\t',header=True)
@@ -568,7 +569,7 @@ def dataframe2dta(df,fn,forceToString=None):
     # REmaining issues iwth it: if there are -inf's in a column, the column ends up as string. File bug report?
     #for infvv in df.columns:
     #    df[infvv][np.isinf( df[invff])]=np.nan
-    df.to_stata(fn+'.dta')
+    df.to_stata(fn+'.dta') # Still fails on Apollo, 2015. Put this in try/except.
     print('  Saved a pandas to_stata() version as '+fn+'.dta')
     return
 

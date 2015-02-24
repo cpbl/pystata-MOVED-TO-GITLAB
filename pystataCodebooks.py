@@ -1,12 +1,13 @@
 #!/usr/bin/python
 """
 
-Oh. In Stata, "label list" gives an instant readout of all value labels. Use this rather than labelbook !?! [oct 2011]
+To do: 
+ - In Stata, "label list" gives an instant readout of all value labels. Use this rather than labelbook !?! [oct 2011]
 
 2013: Also, use statsmodels' pydta package as soon as its slightly mature! (now?)
 
 2013: Major issue with value labels has been horrid unicode support by Stata. How to get good encoding in .log output?
- --> TO DO!! read in with codec, not file!
+ --> TO DO: read in with codec, not file
                 # May 2013: check for funny chars?
                 
 """
@@ -56,9 +57,9 @@ class stataCodebookClass (dict):  #  # # # # #    MAJOR CLASS    # # # # #  #
 
     Dec 2008, CPBL.
 
-    May 2009: this seems a mess. I have redundant code and efforts in differently places... Maybe consolidate more/all in this quite-extensive class... I am trying today to add a fromPDF option. It takes the .txt file (or the .pdf filee!)
+    May 2009: this seems a mess. I have redundant code and efforts in differently places... Maybe consolidate more/all in this quite-extensive class... I am trying today to add a fromPDF option. It takes the .txt file (or the .pdf filee)
 
-    I should also make it so that if the fromXXXX argument is the name of a survey rather than a filename, the appropriate filename is constructed. (Hm, I am just making a survey= argument that should do the best from what's available!)
+    I should also make it so that if the fromXXXX argument is the name of a survey rather than a filename, the appropriate filename is constructed. (Hm, I am just making a survey= argument that should do the best from what's available)
 
 
     July 2009: I am changing an argument from forceRecreate to recreate. It's None as default.  a "False" means do not recreate even if you think you should! ie if the file is outdated. a "True" means recreate no matter what. The default will do the smart thing if you're not in a rush or suspect the codebook log file is broken (in which case you should just delete it anyway).
@@ -78,7 +79,7 @@ Fields in a stataCodebookClass object:
 
     """
 
-    def __init__(self,fromDTA=None,fromTSV=None,fromPDF=None, loadName=None,codebook=None,  recreate=None, toLower=None,showVars=None,survey=None,version=None,stringsAreTeX=None):#*args,foo=None):  # Agh. June 2010: added "version" here!! this might confuse things, but there was a bug...
+    def __init__(self,fromDTA=None,fromTSV=None,fromPDF=None, loadName=None,codebook=None,  recreate=None, toLower=None,showVars=None,survey=None,version=None,stringsAreTeX=None):#*args,foo=None):  # Agh. June 2010: added "version" here this might confuse things, but there was a bug...
         """ Allow instantiation from a dict (codebook=dict) or from a Stata dataset itself (fromDTA=filename)
 
         myCodebook=stataCodebookClass()
@@ -108,7 +109,7 @@ Fields in a stataCodebookClass object:
             self.clear( )
             self.update({})
 
-        if survey not in [None]: # I think (April 2010) that this is just becoming an interface to self.load() !
+        if survey not in [None]: # I think (April 2010) that this is just becoming an interface to self.load() 
             self._survey=survey
             assert fromDTA==None and codebook==None and fromTSV==None and fromPDF==None
 
@@ -117,15 +118,15 @@ Fields in a stataCodebookClass object:
             if toLower:
                 self.allNamesToLowercase() # Hmm... this may have already been done in most cases, april 2010
             return
-            # feb2010: Following untested!!!!!!! And I am not sure PDF really works?! And should I add fromTSV option!?  Some surveys come with a spreadsheet codebook...
-            # This should really check for a saved file!! ie try self.load(survey-codebook.pythonshelf) or etc.
+            # feb2010: Following untested And I am not sure PDF really works? And should I add fromTSV option?  Some surveys come with a spreadsheet codebook...
+            # This should really check for a saved file ie try self.load(survey-codebook.pythonshelf) or etc.
             dta=defaults['rawStataFile'][survey]
             return(self.stataCodebookClass(fromPDF=survey,fromDTA=dta))
 
 
         if fromDTA and fromPDF and not fromTSV: # New initialisation mode, July 2009: load best available / combine them
             """
-            What is this mode for? Only for starting to recode a survey, when the raw data are in DTA format and a PDF is also available. So.... should not really make any stats or tables from this yet, as we're about to recode it!!!
+            What is this mode for? Only for starting to recode a survey, when the raw data are in DTA format and a PDF is also available. So.... should not really make any stats or tables from this yet, as we're about to recode it
 
             """
 
@@ -136,7 +137,7 @@ Fields in a stataCodebookClass object:
 
             # Get (better!) codebook from the PDF:
             codebookPDF=stataCodebookClass(fromPDF=fromPDF,recreate=recreate,toLower=toLower)
-            #self.fromPDFCodebook(fromPDF) # PRovide filename without suffix! but with full path
+            #self.fromPDFCodebook(fromPDF) # PRovide filename without suffix but with full path
 
 
             if all([kk.isupper() for kk in codebookPDF]):
@@ -154,8 +155,8 @@ Fields in a stataCodebookClass object:
             """
 
             # Next, Get codebook from the Stata file:
-            # This now also includes summary statistics!! (Feb 2009)
-            self.fromStataCodebook(fromDTA,recreate=recreate,showVars=showVars) # PRovide filename without dta suffix! but with full path
+            # This now also includes summary statistics (Feb 2009)
+            self.fromStataCodebook(fromDTA,recreate=recreate,showVars=showVars) # PRovide filename without dta suffix but with full path
             #codebookDTA=stataCodebookClass(fromDTA=fromDTA,recreate=recreate) # This will skip doing means since 'weight' does not exist.
             assert self.keys()
             if all([kk.isupper() for kk in self]):
@@ -190,7 +191,7 @@ Fields in a stataCodebookClass object:
                     self[vv]['fulldesc']=codebookPDF[VV]['concept']+(': ``'+codebookPDF[VV]['question']+"''")*(not codebookPDF[VV]['question']=='')
 
 
-            # DEC 2009: I'M TURNING THIS FUNCTOINALITY OFF FOR THE MOMENT!!! If you want means, you have to ask for them specifically. So then we do not waste our time getting means of every single variable........
+            # DEC 2009: I'M TURNING THIS FUNCTOINALITY OFF FOR THE MOMENT If you want means, you have to ask for them specifically. So then we do not waste our time getting means of every single variable........
             if 0:
                 if 'weight' in self:
                     sumstats=self.getDescriptiveStatistics(fromDTA,weightvar='weight',recreate=recreate,showVars=None)##,showVars=None,weightvar=None,ifcondition=None)
@@ -208,8 +209,8 @@ Fields in a stataCodebookClass object:
 
         elif fromDTA:
             assert not self
-            self.fromStataCodebook(fromDTA,recreate=recreate,toLower=toLower,showVars=showVars) # PRovide filename without dta suffix! but with full path
-            if 0: # SEEEE ABOVE COMENT!!!!!!!!!!
+            self.fromStataCodebook(fromDTA,recreate=recreate,toLower=toLower,showVars=showVars) # PRovide filename without dta suffix but with full path
+            if 0: # SEEEE ABOVE COMENT
                 if 'weight' in self:
                     sumstats=self.getDescriptiveStatistics(fromDTA,weightvar='weight',recreate=recreate,showVars=None)##,showVars=None,weightvar=None,ifcondition=None)
                     for vv in sumstats:
@@ -218,11 +219,11 @@ Fields in a stataCodebookClass object:
                     print '   stataCodebookClass:__init__: Skipping creation of DescriptiveStatistics because I do not know of a "weight" variable.'
         elif fromPDF:
             assert not self
-            self.fromPDFCodebook(fromPDF,toLower=toLower) # PRovide filename without suffix! but with full path
+            self.fromPDFCodebook(fromPDF,toLower=toLower) # PRovide filename without suffix but with full path
 
         if fromTSV:
             assert not self
-            self.fromTSVCodebook(fromTSV) # PRovide filename without suffix! but with full path
+            self.fromTSVCodebook(fromTSV) # PRovide filename without suffix but with full path
         if codebook:
             assert not self
             self.clear()
@@ -245,7 +246,7 @@ Fields in a stataCodebookClass object:
 
     ################################################################
     ################################################################
-    def fromTSVCodebook(self,datafilepath): # PRovide filename without dta suffix! but with full path
+    def fromTSVCodebook(self,datafilepath): # PRovide filename without dta suffix but with full path
     ################################################################
     ################################################################
         print('Loading codebook from TSV for '+datafilepath)
@@ -269,7 +270,7 @@ Fields in a stataCodebookClass object:
     ################################################################
         """ PDF derivatives go in workingPath (while DTA source derivatives can go in IP to save time).
 
-        April 2010: Made gss22 PUMF work. maybe gss17.  but there's still TONNES to clean up in this messy class. Is not all this info available in a spreadsheet somewhere from stats can? Ridiculous lengths I am going to for little good.
+        April 2010: Made gss22 PUMF work. maybe gss17.  but there's still TONNES to clean up in this messy class. Is not all this info available in a spreadsheet somewhere from stats can? Ridiculous lengths I am going to for little good (well, motivated by crappy DTAs from various places)
 
         2012Nov: added toLower
         """
@@ -302,7 +303,7 @@ Fields in a stataCodebookClass object:
                             vv['varname']=vv['varname'].lower()
 
                 if 'GSS22' in txtfile or 'GSS17' in txtfile:
-                    # Ca not get the question text for GSS22! hmmm.
+                    # Ca not get the question text for GSS22 hmmm.
                     reFields=[['\nVariable Name:','varname'],
                               ['Position:','position'],
                               ['Length:','length'],
