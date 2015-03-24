@@ -1515,12 +1515,12 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
                 hgroups+=[[hh,1,colformats[ih]]]
         if any([hh[1]>1 for hh in hgroups]):
             """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
-            headersLine='\\toprule\n'+ '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
+            headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
             # IF there are numbers, too, then show them as a second row
             if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
         else:
-             headersLine='\\toprule\n'*0+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+             headersLine='\\cpbltoprule\n'*0+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
              # IF there are numbers, too, then show them as a second row!
              if any(['modelNum' in model or 'texModelNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
@@ -1620,7 +1620,7 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
                     '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
 
             if model['format'].endswith('|'):
-                body+='\\hline\n' # or should it be: (r'\cline{1-\ctNtabCols}'+' \n')
+                body+='\\bottomrule\n' # or should it be: (r'\cline{1-\ctNtabCols}'+' \n')
         else:
             assert 0
 
