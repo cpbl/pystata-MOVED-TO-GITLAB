@@ -1278,13 +1278,13 @@ def older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefrows,extrar
 
 ###########################################################################################
 ###
-def composeLaTeXregressionTable(models,tableFormat=None,suppressSE=False,showFlags=None,showStats=None,substitutions=None,modelTeXformat=None,transposed=None,multirowLabels=True,showOnlyVars=None,hideVars=None):
-    ### retired:,variableOrder=None
+def composeLaTeXregressionTable(models,tableFormat=None,suppressSE=False,showFlags=None, showStats=None,substitutions=None,modelTeXformat=None,transposed=None,multirowLabels=True,showOnlyVars=None,hideVars=None):
+    ### retired arguments:,variableOrder=None
     #######################################################################################
     """ CPBL, March 2008: This is part of a package to produce latex
-    tables of regression coefficients, using Stata as an engine. It
-    composes the main parts of the tabular output for all formats of
-    table.
+    tables of regression coefficients, using Stata as an engine. 
+
+    This function composes the main parts of the tabular output for all formats of LaTeX table.
 
     It could be used on its own, since it starts from well after Stata results stage. See regressions-demo for an example.
 
@@ -1342,7 +1342,7 @@ Hm... but this doesn't yet include multi-level labels, right? tpyical applicatio
 
 May 2011: adding different treatment for suestTests values, which just have a p-value.
 
-June 2011: Need to update this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...
+June 2011: Need to update this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...  [Isn't this done? Check]
 
     """
 
@@ -1515,12 +1515,12 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
                 hgroups+=[[hh,1,colformats[ih]]]
         if any([hh[1]>1 for hh in hgroups]):
             """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
-            headersLine='\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
+            headersLine='\\toprule\n'+ '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
             # IF there are numbers, too, then show them as a second row
             if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
         else:
-             headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+             headersLine='\\toprule\n'*0+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
              # IF there are numbers, too, then show them as a second row!
              if any(['modelNum' in model or 'texModelNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
@@ -1528,17 +1528,17 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
         return(r'\ctSubsequentHeaders \hline ',headersLine)
 
 
-    headersLine='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
-    # IF there are numbers, too, then show them as a second row
-    if any(['modelNum' in model or 'texModelNum' in model for model in models]):
-        headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \n'
-    headersLine1=headersLine+r'\hline'+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-    headersLine2=headersLine+r'\hline'+'\n'
+    if 0: # March 2015: I think the following lines are all obseleted by the smartColumnHeader call:
+        headersLine='\t&'.join(['']+ [r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+        # IF there are numbers, too, then show them as a second row
+        if any(['modelNum' in model or 'texModelNum' in model for model in models]):
+            headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \n'
+        headersLine1=headersLine+r'\hline'+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
+        headersLine2=headersLine+r'\hline'+'\n'
     headersLine1,headersLine2=smartColumnHeader([substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models],
                                                 [model.get('texModelNum','(%d)'%(model.get('modelNum',0))) for model in models],
                                                 colformats=[mm['format'] for mm in models])
-
-    varsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
+    varsAsRowsElements= deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
 
     # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     # Second, do preparaation as though models as rows:

@@ -3287,9 +3287,10 @@ copy "%s" "%s", replace
         return(stout)
 
     def saveAndIncludeFig(self,figname=None,caption=None,texwidth=None,title=None, # It seems title is not used.
-                          onlyPNG=False,rcparams=None,transparent=False,eps=False,
+                          onlyPNG=False,rcparams=None,transparent=False,eps=False,  # EPS is useless. No transparency or gradients. Make it from png?
                           # And include options from savefigall() [April 2011]
-                          ifany=None,fig=None,skipIfExists=False,pauseForMissing=True,bw=False,FitCanvasToDrawing=False,rv=False):
+                          ifany=None,fig=None,skipIfExists=False,pauseForMissing=True,bw=False,FitCanvasToDrawing=False,rv=False,
+                          dpi=None):
         """ Save a figure (already drawn) and include it in the latex file.
 
         Dec 2009: Also, create a .tex file that can be included in other drafts. ie this means caption etc can be updated automatically too.
@@ -3364,7 +3365,7 @@ June 2012: Added / Passing rv option through to savefigall
                 print '   Skipping  saving figure '+figlocation+figfile+' because it already exists and self.skipStataForCompletedTable==True'
                 rootAndTail=True# Huh? this is a kluge based soley on "if rootandtail" below. I dont' know what root and tail are right now.
             else:
-                rootAndTail=savefigall(figlocation+figfile,transparent=transparent,ifany=ifany,                           fig=fig,pauseForMissing=pauseForMissing,bw=bw,FitCanvasToDrawing=FitCanvasToDrawing,eps=eps,rv=rv)
+                rootAndTail=savefigall(figlocation+figfile,transparent=transparent,ifany=ifany,                           fig=fig,pauseForMissing=pauseForMissing,bw=bw,FitCanvasToDrawing=FitCanvasToDrawing,eps=eps,rv=rv,dpi=dpi)
                 print "      Wrote a figure: "+figname+'.[pdf/png]'
 
         if rootAndTail:
@@ -3491,7 +3492,7 @@ June 2012: Added / Passing rv option through to savefigall
                    ['' ,ses1,ses2,''],
                    ]
 
-        cpblTableStyC(cpblTableElements(body='\\\\ \n'.join(['&'.join(LL) for LL in body])+'\\\\ \n\\cline{1-\\ctNtabCols}\n ',cformat=None,firstPageHeader=' & '.join(headers)+'\\\\ \n\\hline\\hline\n',otherPageHeader=None,tableTitle='Comparing means for %s and %s (%s)'%(ifnames[0],ifnames[1],tableName),caption=None,label=None,ncols=None,nrows=None,footer=None,tableName=tableName,landscape=None),filepath=paths['tex']+tablenamel+'.tex',masterLatexFile=self)
+        cpblTableStyC(cpblTableElements(body='\\\\ \n'.join(['&'.join(LL) for LL in body])+'\\\\ \n\\cline{1-\\ctNtabCols}\n ',cformat=None,firstPageHeader='\\hline\\hline '+'\\hline\\hline '+' & '.join(headers)+'\\\\ \n\\hline\\hline\n',otherPageHeader=None,tableTitle='Comparing means for %s and %s (%s)'%(ifnames[0],ifnames[1],tableName),caption=None,label=None,ncols=None,nrows=None,footer=None,tableName=tableName,landscape=None),filepath=paths['tex']+tablenamel+'.tex',masterLatexFile=self)
 #logfname+'-compareMeans-'+str2pathname('-'.join(ifNames))
 
 
