@@ -1520,7 +1520,7 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
             if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
         else:
-             headersLine='\\cpbltoprule\n'*0+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+             headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
              # IF there are numbers, too, then show them as a second row!
              if any(['modelNum' in model or 'texModelNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
@@ -1631,9 +1631,10 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
         formats='lp{3cm}*{%d}{r}'%(ntexcols-2) # or: 'l'+'c'*nvars
 
     ###assert not '&' in [cellsvmmodel[0] for cellsvmmodel in cellsvm] # This would be a mistake in regTable caller?
-    headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'+r'\hline'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
-    headersLine1=headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
-    headersLine2=headersLine+'\n'
+    # Unlike for non-transposed, we aren't using smartHeaders function here...
+    headersLine='\t&'.join(['','']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(vv,substitutions) for vv in coefVars+flagsVars+statsVars])+'\\\\ \n'####cellsvmmodel[0] for cellsvmmodel in cellsvm])+'\\\\ \n'+r'\hline'#\cline{1-\ctNtabCols}'
+    headersLine1='\\cpbltoprule \n'+headersLine+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
+    headersLine2='\\hline \n '+headersLine+r'\hline'+'\n'
 
 
     modelsAsRowsElements=deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
