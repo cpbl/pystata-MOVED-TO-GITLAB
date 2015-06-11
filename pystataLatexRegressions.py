@@ -1073,7 +1073,10 @@ I've added various other flag/settings specified starting with *.
 
             words=[LL for LL in aline.split(' ') if LL]
             method=words[0]
-            if method in ['svy:reg','svy:regress','reg','areg','regress','ologit','oprobit','logit','probit','xtreg']:
+            if method in ['ivregress','ivreg']:
+                method=' '.join(words[0:2])
+                words=[method]+words[2:]
+            if method in ['svy:reg','svy:regress','reg','areg','regress','ologit','oprobit','logit','probit','xtreg','ivregress 2sls','ivreg 2sls']:
                 depvar=words[1]
                 therest=' '.join(words[2:])
                 if '[' in aline:
@@ -1095,10 +1098,15 @@ I've added various other flag/settings specified starting with *.
                 toaddmodel['code'].update(moreCodes)
                 models+=[toaddmodel]
                 precode=''
+                loaddata=''
                 moreCodes={}
                 extraFields={}
             #elif aline=='*|': 
             #    self.addSeparator(models)#       models+='|'
+            elif method in ['gzuse','use']:
+                if 'loadData' not in moreCodes:
+                    moreCodes['loadData']=''
+                moreCodes['loadData']+=aline+'\n'
             elif aline.startswith('*name:'): # Syntax to add a flag to next model
                 precode+=aline+'\n'
                 extraFields['name']=':'.join(aline.split(':')[1:])
@@ -1765,9 +1773,14 @@ Bugs:
         # (string, list) of the model specs.
 
         # This line was buggy when "if" not exist: kill it (july 2008): allspecs=[model['model'][0:model['model'].find(' if ')] for model in models]
-        allspecs=[model['model'].split(' if ')[0] for model in models if 'model' in model] # For 'isMean', there would be no 'model'
-        allCovariates= ' '.join( uniqueInOrder(re.split(' ',' '.join(allspecs)))  )
+#        def getModelSpecification(am):
+#            if am['method'].startswith('ivreg'):
+#
+# 2015 June. Following seems not used
+#        allspecs=[model['model'].split(' if ')[0] for model in models if 'model' in model] # For 'isMean', there would be no 'model'
+#        allCovariates= ' '.join( uniqueInOrder(re.split(' ',' '.join(allspecs)))  )
 
+        
         tablenamel=self.generateLongTableName(tablename,skipStata=skipStata)
         for ttt in models:
             ttt['tableName']=tablenamel
@@ -1786,11 +1799,11 @@ Bugs:
         outs=''
 
         print """regTable(): Initiated "%s"(%s) %s with %d models in %d groups. """%(tablenamel,extraTexFileSuffix,skipStata*' in skipStata mode ',len(models),len([omm for omm in originalModels if omm not in ['|']])),
-
+        
 
         tableLogName=defaults['paths']['stata']['tex']+tablenamel+'.log'
         tableLogNameWithDate=defaults['paths']['stata']['working']+'logs/'+tablenamel+time.strftime('%Y_%m_%d_%H%M%S_')+'.log'
-
+        
         if self.skipStataForCompletedTables and os.path.exists(tableLogName):
             if not skipStata:
                 print '  Skipping Stata for %s because latex.skipStataForCompletedTables is set ON!!!! and this table is done.'%tablenamel
@@ -1837,47 +1850,36 @@ Bugs:
             """%(im+1,tablename)
 
 
-            # Jan 2010 and Im' just now finding that regressors includes the whole "if" clause?.
-            RHSvars=model['model'].split(' if ')  # Spe 2010: WTF is this?? it looks like I forgot a [0]. Ah, this is not used. Line is junk.
-            assert len(RHSvars)<3 # Did you write more than one if in your model?
 
-            RHSvarsNoWildcards=' '.join([vv for vv in model['model'].split(' if ')[0].split(' ') if vv and '*' not in vv])
-
-            # Jan 2010: ELIMINATE or carefully replace "regressors" which for some reason contains the if clause, etc...
+            assert len(model['model'].split(' if '))<3 # Did you write more than one if in your model?
+            #            def multireplace(ss,adict,onlyIf=True):
+            #                 if not onlyIf: return(ss)
+            #                 for cfrom,cto in adict.items():
+            #                     ss=ss.replace(cfrom,cto)
+            #                 return(ss)
+            #             def removeIVREGchars(ss,method=None):
+            #                 return(  multireplace(ss,{'(':'',')':'','=':' '},onlyIf='ivreg' in method)  )
+            #             def extractRHS(model)
+            #             # For case of ivreg, remove =,(,).  For case of Stata's factor varialbe notation, ...
+            if 0:
+                RHSvarsNoWildcards=' '.join([vv for vv in removeIVREGchars(model['model'].split(' if ')[0]).split(' ') if vv and '*' not in vv])
 
             # At this point, all models should be multi-field'ed dicts.
             ###if isinstance(model,list):  # Use extra features....
-            if 1:
-                # Remove the constant term from the actual stata call.
-                regressors=' '.join([mm for mm in model['model'].split(' if ')[0].split(' ') if mm not in ['cons']])
-                # Check that we're not feeding a redundant list to corr (in accounting mode) later down the line:
-                redundantRegressors=' '+deepcopy(regressors)+' '
-                for vvv in uniqueInOrder(regressors.split(' ')):
-                    redundantRegressors=redundantRegressors.replace(' %s '%vvv,' ',1)
-                    #uniqueRegressors= ' '.join(
-                if redundantRegressors.strip():#not uniqueRegressors==regressors:
-                    print 'CAUTION!!! list of regressors contains redundant term!!!  Eliminating redundancies: ',redundantRegressors.strip()
-                    regressors=' '.join(uniqueInOrder(regressors.split(' ')))
 
-                regressors+=' if '+model['model'].split(' if ')[1]
-
-                if model['name']: # So first element can be empty; then it is ignored
-                    model['stataModelName']=model['name'] # Used to be columnName[im]
-                    #rowModelNames[im]=model['name']
+            if model['name']: # So first element can be empty; then it is ignored
+                model['stataModelName']=model['name'] # Used to be columnName[im]
+                #rowModelNames[im]=model['name']
                     
                     
-                # New method: just store modified flags in model:
-                model['textralines']=parseFlags(model.get('flags',None))
+            # New method: just store modified flags in model:
+            model['textralines']=parseFlags(model.get('flags',None))
 
             
 
 	    modelregoptions=model.get('regoptions',',robust') # CAREFUL!! For "beta" case, what is used below is not he same as what the model[regoptions] contains
 
             #RHSvars=regressors.split(' [')[0].split(' if ')[0]
-            if ' if ' not in regressors:
-                regressors+=' if 1 '
-
-            assert ' if ' in regressors
 
             assert betas in [None,False,True]
             doBetaMode=False
@@ -1897,66 +1899,55 @@ Bugs:
                     debugprint("""Caution! Switching to analytic weights for beta calculation. This reprodcues Stata's own "beta" coefficients when normalisation is done over the right sample, etc.""")
                     modelregoptions=modelregoptions.replace('[pw=','[w=').replace('[pweight=','[w=')
 
-            # Following fails if there are redundant (repeated) RHS variables here...
-            regressionLine= 'capture  noisily '*(captureNoObservations==True or not stopForErrors) +model['method'] +' '+ model['depvar'] +' '+ regressors +' '+ modelregoptions
-
 
             from cpblUtilities import flattenList
             # Following section can be rewritten, since these are mostly not used any more. Write their specific purposes here, where you creat them. [aug2012 --> [] ]
-            # Agh. oka, try. make new lookups under RHS (lists) and RHSs (strings)
+            #  make new lookups under RHS (lists) and RHSs (strings)
             RHS={}
+            # (Before 2015, we used to Remove the constant term from the actual stata call. Not sure why. Stopped doing that.)
+            RHS['rawWithIf']=  model['model'].split(' if ')[0]   + ' if ' + ( ' 1' if 'if' not in model['model'] else model['model'].split(' if ')[1])
+            RHS['ifCondition']=RHS['rawWithIf'].split(' if ')[1]
             ###RHS['raw']=''.join([cc for cc in (model['depvar'] +' '+ re.sub('".*?"','',regressors)).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]).split(' ') # >='A' and cc[0]<='z'
-            RHS['rawBeforeIf']=regressors.split(' if ')[0].split(' ')
-            RHS['inConditions']=uniqueInOrder(''.join([cc for cc in (re.sub('".*?"','',regressors.split(' if ')[1])).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]).split(' '))
+            ###RHS['rawBeforeIf']=RHS['rawWithIf'].split(' if ')[0].split(' ')
+            RHS['cleanedBeforeIf']=[ss for ss in re.sub('\(|\)|=',' ',RHS['rawWithIf'].split(' if ')[0]).split(' ') if ss]# Deals with ivregress syntax.. This is now a list of words.
+            RHS['mentionedBeforeIf']=[ss for ss in re.sub('\(|\)|#|=',' ',RHS['rawWithIf'].split(' if ')[0]).split(' ') if ss]# Deals with ivregress syntax, and interactions notation. Leaves i.var as is.  NOT USED?
+
+            RHS['inConditions']=uniqueInOrder(''.join([cc for cc in (re.sub('".*?"','',RHS['rawWithIf'].split(' if ')[1])).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]).split(' '))
             # Assume there are no wildcards or etc after the "if"
             # What about weight var? where is that?
-            RHS['inIndicators']=flattenList([av[2:].split('#') for av in RHS['rawBeforeIf'] if av.startswith('i.') ])
-            RHS['inInteractions']=flattenList([av.split('#')  for av in RHS['rawBeforeIf'] if not av.startswith('i.') ])
-            RHS['wildcards']=[av for av in RHS['rawBeforeIf'] if '*' in av]
+            RHS['inIndicators']=flattenList([av[2:].split('#') for av in RHS['cleanedBeforeIf'] if av.startswith('i.') ])
+            RHS['inInteractions']=flattenList([av.split('#')  for av in RHS['cleanedBeforeIf'] if not av.startswith('i.') ])
+            RHS['wildcards']=[av for av in RHS['cleanedBeforeIf'] if '*' in av]
             RHS['inConditions']=[]
             #RHS['includingWildCardsAndInteractions']=[av[2:] if av.startswith('i.') else av for av in RHS['rawBeforeIf']]
             # Only single interactions, ie like xxx#yyy and not xxx##yyy, are recognised so far:
-            RHS['simplest']=flattenList([av for av in RHS['rawBeforeIf'] if '*' not in av and not av.startswith('i.') and '#' not in av ],unique=True)
+            RHS['simplest']=flattenList([av for av in RHS['cleanedBeforeIf'] if '*' not in av and not av.startswith('i.') and '#' not in av ],unique=True)
             # Now, compile some lists:
             RHSs={'used':' '.join(RHS['simplest']+RHS['inConditions']+RHS['inIndicators']+RHS['inInteractions'])}
-            # Do not auto-create variables in f.e. indicators, since we are not going to display the results and therefore notice that they're missing. 
+            # Do not auto-create variables in f.e. indicators, since we are not going to display the results and therefore notice that they're missing.
+            if 0:
+                # Check that we're not feeding a redundant list to corr (in accounting mode) later down the line:
+                redundantRegressors=' '+deepcopy(regressors)+' '
+                for vvv in uniqueInOrder(regressors.split(' ')):
+                    redundantRegressors=redundantRegressors.replace(' %s '%vvv,' ',1)
+                    #uniqueRegressors= ' '.join(
+                if redundantRegressors.strip():#not uniqueRegressors==regressors:
+                    print 'CAUTION!!! list of regressors contains redundant term!!!  Eliminating redundancies: ',redundantRegressors.strip()
+                    regressors=' '.join(uniqueInOrder(regressors.split(' ')))
+
+
+            
             RHSs['autoCreate']=' '.join(RHS['simplest']+RHS['inConditions']+RHS['inInteractions'])
             RHSs['zScoreVars']=' '.join([model['depvar']]+RHS['simplest']) #+RHS['inInteractions'])
-            RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['rawBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars])
+            RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['cleanedBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars])
+
+
+            # Following fails if there are redundant (repeated) RHS variables here...
+            regressionLine= 'capture  noisily '*(captureNoObservations==True or not stopForErrors) +model['method'] +' '+ model['depvar'] +' '+ RHS['rawWithIf'] +' '+ modelregoptions
+
+
             
-            if 0:
-                # Following line is a bit misguided: the "if" exists in regressors, not after [weight]  part.
-                thisRegVarsUsed=''.join([cc for cc in (model['depvar'] +' '+ regressors +' '+ modelregoptions).split(' if ')[0] if cc not in '[]=,'])
-                # Dec 2009. Fixing above line to find all variables used in the if statement too: (but exclude strings. using the re.sub):
-                thisRegVarsUsedList=uniqueInOrder([cc for cc in (model['depvar'] +' '+ re.sub('".*?"','',regressors)).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]) # >='A' and cc[0]<='z'
-
-                def removeIndicatorsAndSplitInteractions(avarlist):
-                    """ In Stata 11+, there is syntax i.xxx, xxx#yyy, i.xxx#yyy for variables xxx and yyy. I want NOT to list any i. variables, but to list the others separately.
-                    This also removes wildcards from th elist.
-                    """
-                    for ivl in range(len(avarlist))[::-1]:
-                        vvv=avarlist[ivl]
-                        if vvv.startswith('i.') or '*' in vvv: # I do not want to ensure i.xxx exists, since it will be suppressed in regression output (as of Aug 2012)
-                            avarlist.pop(ivl)
-                        elif '#' in vvv:
-                            avarlist.extend(thisRegVarsUsedList.pop(ivl).split('#'))
-                    return(avarlist)
-
-                thisRegVarsUsed=' '.join(thisRegVarsUsedList)
-
-                # What the hell? dec 2009: this looks like it includes LHS var. REMOVED: model['depvar'] +' '+
-                thisRegRHSvars=''.join([cc for cc in ( regressors +' '+ modelregoptions).split(' if ')[0] if cc not in '[]=,'])
-                #assert depvar in thisRegRHSvars
-                thisRegVarsUsedNoWildcard=' '.join([cc if not cc.startswith('i.') else cc for cc in thisRegVarsUsed.split(' ') if cc and '*' not in cc])
-                # Overwrite that: (aug 2012):
-                thisRegVarsUsedNoWildcard=' '.join(removeIndicatorsAndSplitInteractions(thisRegVarsUsedList))
-
-                thisRegRHSvarsNoWildcard=' '.join([cc for cc in thisRegRHSvars.split(' ') if cc and '*' not in cc])
-                # Overwrite that: (aug 2012):
-                thisRegRHSvarsNoWildcard=' '.join(removeIndicatorsAndSplitInteractions([cc for cc in thisRegRHSvars.split(' ') if cc]))
-
             self.variablesUsed+= ' '+model['depvar']+' '+RHSs['used']
-
 
             assert 'code' in model
 
@@ -2015,7 +2006,7 @@ capture gen `var'=0
                 #zscoreLine=zscoreLine.replace(' if ',' if z_dSample & ')
                 #else:
                 #    zscoreLine=zscoreLine+' if z_dSample '
-                zscoreLine+=' if z_dSample & '+ (regressors+' '+modelregoptions).split(' if ')[1].split(',')[0]#.replace(' if ',' if z_dSample & ')
+                zscoreLine+=' if z_dSample & '+ RHS['ifCondition']
                 #zscoreLine+='\n'+  '\n'.join(["""
                 #*sum z_%s 
                 #*if r(N)==0 {
@@ -2043,15 +2034,15 @@ capture gen `var'=0
 
                 # Heavily modify the regression call:
                 
-                preIf,postIf=regressors.split(' if ')
+                ##########3preIf,postIf=regressors.split(' if ')
 
-                regressionLine= 'capture noisily '*(captureNoObservations==True or not stopForErrors) +model['method'] +' z_'+ model['depvar'] +' '+ ' '.join([('*' not in vv and '#' not in vv and not vv.startswith('i.'))*'z_'+vv for vv in preIf.split(' ') if vv]) +' if '+postIf +' '+ modelregoptions
+                regressionLine= 'capture noisily '*(captureNoObservations==True or not stopForErrors) +model['method'] +' z_'+ model['depvar'] +' '+ ' '.join([('*' not in vv and '#' not in vv and not vv.startswith('i.'))*'z_'+vv for vv in RHS['cleanedBeforeIf'] if vv]) +' if '+RHS['ifCondition'] +' '+ modelregoptions
 
                 # Also, set up the zscore normalisation, etc.
 
                 model['code']['before']+="""
                    capture drop z_*
-                   gen z_dSample = """+ ' & '.join(['%s<.'%vv for vv in zscoreVars.split(' ') if vv and '*' not in vv])+ ' & '+postIf+'\n'+zscoreLine+"""
+                   gen z_dSample = """+ ' & '.join(['%s<.'%vv for vv in zscoreVars.split(' ') if vv and '*' not in vv])+ ' & '+RHS['ifCondition']+'\n'+zscoreLine+"""
 
                      """#+model['code']['before']+'\n'
 
@@ -2063,7 +2054,6 @@ capture gen `var'=0
 
             ###outs+='\n'+regressionLine+'\n' "
 
-            
             if captureNoObservations==True and not model.get('special','') == 'suestTests':
                 model['code']['existenceConditionBefore']='* ALLOW FOR POSSIBILITY THAT THERE ARE NO OBSERVATIONS MEETING THIS CONDITION... REPLACE REGRESSION WITH DUMMY REGRESSION IN THIS CASE, AND KEEP GOING. (captureNoObservations==True)'
                 model['code']['existenceConditionAfter']="""
@@ -2127,7 +2117,7 @@ error _rc
                 model['subSumPlotParams']['comments']=                model['subSumPlotParams'].get('comments','')+r'\ctDraftComment{'+str2latex(regressionLine)+'} '
 
             # Now also run the after-regression code required, for instance to do some statistical tests:
-            incomeVars=[iii for iii in possibleIncomeVars  if iii and  iii in regressors.split(' ')]
+            incomeVars=[iii for iii in possibleIncomeVars  if iii and  iii in RHS['mentionedBeforeIf']]
             if incomeVars: # Careful. It's actually possible, with semiparametric [ie rolling regression.], for an income variable to be dropped as collinear, ie everyone has same income.
                 outs+= '\n capture test 0=%s\n'%('+'.join(incomeVars))
 
@@ -2410,7 +2400,7 @@ copy "%s" "%s", replace
                 r2=mm['eststats']['r2']
             else:
                 r2=mm['eststats'].get('r2_p','noR2')
-            if r2 in badR2:  # Huh? What about r2-p?
+            if r2 in badR2 and 'ivreg' not in mm['method']:  # Huh? What about r2-p?  N.b.: I'm not detecting failed ivregress yet (2015)
                 print ' Suppressing model %d (name="%s") from LaTeX table because the regression failed'%(mm['modelNum'],mm['name'])
                 mm['eststats']['r2']=fNaN
                 mm['eststats']['r2_a']=fNaN
@@ -3993,7 +3983,6 @@ To make this produce a table, ust use latexfile.updateSettings ... Can no longer
 When outside RDC, use noStats=True to skip the descriptive statistics.
 What is "launch"? It seems not used.
         """
-
         if statsCondition==None:
             statsCondition=' 1 '
 
@@ -4027,7 +4016,6 @@ What is "launch"? It seems not used.
             from cpblUtilities import doSystemLatex
             ##doSystemLatex(self.fname,latexPath=None,launch=launch)
             doSystemLatex(self.fname,latexPath=defaults['native']['paths']['tex'],launch=launch,tex=None,viewLatestSuccess=True,bgCompile=True)
-
         return(self.fpathname+'.tex')
 
     ###########################################################################################
@@ -4690,6 +4678,7 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
             # I'll have to revise this a bunch if I want to put the descriptive statistics back in.
             if variableOrder:
                 varsOrder=orderListByRule(varsOrder,variableOrder)
+                
 
             body=''
             # I want values show in top left triangle, so first var in varsOrder has easiest to read corrs.

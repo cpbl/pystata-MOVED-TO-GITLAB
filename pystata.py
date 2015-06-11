@@ -204,7 +204,6 @@ standardSubstitutions=[ # Make LaTeX output look prettier. Third column is for s
 ['satisHousing','satisfaction with housing'],
 ['satisOtherTime','work-life balance'],
 ['satisRelFamily','good family relations'],
-
      ]
 
 # Fill in any unfilled third columns: ( this if for non-tex output, maybe?)
@@ -396,13 +395,11 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
         if RDC:
             systemcom='cd %s && %s stata -v7000 -b do %s.do '%(dodir,niceString, dofile) #-m%d  mem
         else:
-            stataexec=['/usr/bin/stata12','/usr/bin/stata','/usr/local/stata12/stata-mp']
+            stataexec=['/usr/bin/stata14','/usr/bin/stata','/usr/local/stata12/stata-mp']
             stataexec=[ss for ss in stataexec if os.path.exists(ss)][0]
             if not stataexec:
                 print(' **** STATA not found on this CPU. Aborting statasystem() call...')
                 return
-            systemcom=tmpDirCom+' && cd %s && %s stata12 -b do %s.do '%(dodir,niceString, dofile) # -m%d  mem
-            # Hm, some options disappeared in stata 12??
             systemcom=tmpDirCom+' && cd %s && %s %s  -b do %s.do '%(dodir,niceString,stataexec,dofile)
     print 'Initiating stata ...: '+systemcom+' with expected logfile at '+logfile
 
@@ -569,8 +566,12 @@ def dataframe2dta(df,fn,forceToString=None):
     # REmaining issues iwth it: if there are -inf's in a column, the column ends up as string. File bug report?
     #for infvv in df.columns:
     #    df[infvv][np.isinf( df[invff])]=np.nan
-    df.to_stata(fn+'.dta') # Still fails on Apollo, 2015. Put this in try/except.
-    print('  Saved a pandas to_stata() version as '+fn+'.dta')
+    try:
+        df.to_stata(fn+'.dta') # Still fails on Apollo, 2015. Put this in try/except.
+        print('  Saved a pandas to_stata() version as '+fn+'.dta')
+    except ValueError:
+        print( '     FAILED to use built-in Pandas writer to Stata...  (but succeeded in one by pystata method)')
+        
     return
 
 ###########################################################################################
@@ -1393,6 +1394,7 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
     coefVars=orderListByRule(byVar.keys(),variableOrder,dropIfKey=hideVars)
     statsVars=orderListByRule(orderListByRule(byStat.keys(),['r2','r2_a','r2_p','N','p','N_clust']),variableOrder,dropIfKey=hideStats)
     flagsVars=orderListByRule(byTextraline.keys(),variableOrder,dropIfKey=hideVars)
+
 
     if showOnlyVars: # In which case variableOrder, variableOrder will have no effect:
         coefVars=[vv for vv in showOnlyVars if vv in coefVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
@@ -2477,7 +2479,7 @@ sigma                                             |
 
             if len(sections)==2:
                 assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
-                assert command in [None,'OLS','ols','reg','regress','qreg',]
+                assert command in [None,'OLS','ols','reg','regress','qreg','ivregress 2sls']
                 #print 'OLS etc'
                 varsS,statss=sections[0],sections[1]
             elif command in ['xtreg']:
@@ -4480,7 +4482,7 @@ I'm building in a much faster alternative into this same function! useStataColla
 
 def genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
     """
-2014 Oct: calculate weighted mean (and, todo, s.e.m.). without collapse, etc.
+2014 Oct: calculate weighted mean (and, todo, s.e.m.). without collapse, etc.: ie, preserve micro dataset while adding macro versions of them.
 Can easily add se_ from weighted variance
 Other stats similar, e.g. weighted median:r(p50)
 Here we use w, not pw, because pw is not allowed for mean.
@@ -5027,7 +5029,7 @@ estat bootstrap, all
     """%{'bm':model,'st':statistic,'N':N,'bopt':boptions})
 
 
-def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=False,weight='weight'):
+def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceUpdate=False,weight='weight'):
     """
     Produce a Pandas dataframe from the relatively nice-looking output of Stata's polynomial regression to generate non-parametric fits. 
     Output vectors x,y,seL,seU are returned and also saved in shelf file (or pandas file: old code will need to be updated)
@@ -5036,25 +5038,29 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=Fals
 
     2013: use shelf=True to invoke the old mode, with four return values and shelf file saving.
 
-    95% confidene envelope is shown.
+    95% confidence envelope is shown/calculated by default
 
     2014: yvar can be a list of variables (not in old, shelf option). Incidentally, lpoly with gen() is weird! It creates its N new points as variables in the existing rowspace, though they have nothing to do with those existing rows. Only makes sense if you drop everything else after creating them. Convenient, though.
 
 2014:Oct: It looks like you can do this all in numpy now: they have CI for nonparametric methods, using bootstraps. Oh, it may be beta and hard to install? pyqt_fit
 
+    If forcenew is false, then lpolys for a given (xvar,yvars,precode) will be saved to a unique temporary file, to be reused instead of recalculating next time.  (This means that if a loop is called with only the precode changing, values will not be reused inappropriately).
     """
     import pandas as pd
     if isinstance(yvars,basestring):
         yvars=[yvars]
     if stataFile.endswith('.dta.gz'): stataFile=stataFile[:-7]
     if outfilename is None:
-        outfilename=paths['scratch']+'stataLpoly-%s-%s-%s'%(os.path.split(stataFile)[1],xvar,'-'.join(yvars))
+        outfilename=paths['scratch']+'stataLpoly-'+'-'.join([   os.path.split(stataFile)[1],xvar,]+yvars+[str(abs(hash(precode)) % (10 ** 8))])
+
     if outfilename.endswith('.pandas'): outfilename=outfilename[:-7]
        
     pyfile=outfilename+'.pandas'
     DOLPOLY="""
     capture drop xxxx
     capture drop yyyy
+    * If weight variable is not specified, and there is no variable "weight", we assume no weighting (ie, weight=1)
+    capture noisily gen weight=1
     capture noisily {
         lpoly %(yvar)s %(xvar)s [aw=%(weight)s], gen(xxxx yyyy) se(s1) nogr
         gen seU%(yvar)s=yyyy+invnormal(.975)*s1
@@ -5065,7 +5071,7 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceNew=Fals
     }
     """
     #yvar=yvars[0] # HORRID KLIDGE 2014 oct: I don't think I'm doing multiple yvars yet...
-    if fileOlderThan(pyfile,WPdta(stataFile)) or forceNew:
+    if fileOlderThan(pyfile,WPdta(stataFile)) or forceUpdate:
         stout=stataLoad(stataFile)+'\n'+precode+DOLPOLY%{'yvar':yvars[0],'xvar':xvar,'weight':weight}
         if len(yvars)>1: print("  N.B. stataLpoly(): The order of variables you provide matters. Make sure that the first is the most continuous, as its x-fit values will be used for the others.")
         for yvar in yvars[1:]:
@@ -5137,6 +5143,7 @@ graphexport pdf mygraph, dropeps
     assert ee in ['','.pdf'] # This needs more work! see format=, above
     print('Invoking :     graphexportpdf '+pp+'/'+ff+',  dropeps')
     return("""
+    set scheme s1rcolor 
     graphexportpdf """+pp+'/'+ff+""",  dropeps
     """)
 
