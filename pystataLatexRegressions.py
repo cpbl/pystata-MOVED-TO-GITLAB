@@ -1065,7 +1065,8 @@ I've added various other flag/settings specified starting with *.
         extraFields={}# Some fields can be specified by string.
         if not defaultModel:
             defaultModel={}
-        for aline in lines:
+        for aline in lines: #TOdo2015: Integrate use of parseStataComments(txt) here:
+
             if aline in ['|','*|']:# Syntax to put a divider line between two models.
                 #assert models
                 self.addSeparator(models)
@@ -1103,6 +1104,9 @@ I've added various other flag/settings specified starting with *.
                 extraFields={}
             #elif aline=='*|': 
             #    self.addSeparator(models)#       models+='|'
+
+            # TO DO!!!! This section should use parseStataComments(txt) instead.
+            
             elif method in ['gzuse','use']:
                 if 'loadData' not in moreCodes:
                     moreCodes['loadData']=''
@@ -5075,8 +5079,9 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
         statacode+='\n log close \n'
         if os.path.exists(tableLogName+'.log'):
             models=oaxacaThreeWays_parse(tableLogName,substitutions=substitutions)
-
-
+        else:
+            print(' Did not find Blinder-Oaxaca log file for %s: rerun Stata.'%tableLogName)
+            models=[]
 
 
         # NOW MAKE A PLOT OF THE FINDINGS: SUBSAMPLE DIFFERENCE ACCOUNTING
@@ -5128,8 +5133,9 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 
 
             cutoffTooSmallToPlot=.01 # If you change this, change the %.2f below, too
-            tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS'][subsamp]) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
+            #tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS'][subsamp]) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
 
+            tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS']) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
             omittedComments=''
             if tooSmallToPlot[subsamp]:
                 omittedComments=' The following variables are not shown because their contribution was estimated with 95\\%% confidence to be less than %.2f of the predicted difference: %s. '%(cutoffTooSmallToPlot,'; '.join(tooSmallToPlot[subsamp]))
@@ -5144,8 +5150,8 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             labelLoc='eitherSideOfZero'
             labelLoc=None#['left','right'][int(model['diffLHS'][subsamp]>0)]
             cbph=categoryBarPlot(np.array([r'$\Delta$'+model['depvar'],r'predicted $\Delta$'+model['depvar']]+plotvars),
-        np.array([model['diffLHS'][subsamp],model['diffpredictions'][subsamp][model['depvar']]]  +  [model['diffpredictions'][subsamp][vv] for vv in plotvars]),labelLoc=labelLoc,sortDecreasing=False,
-        yerr=np.array( [model['diffLHS_se'][subsamp],model['diffpredictions_se'][subsamp][model['depvar']]]+[model['diffpredictions_se'][subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+model['depvar']:colours['darkgreen'],r'predicted $\Delta$'+model['depvar']:colours['green']})
+        np.array([model['diffLHS'],model['diffpredictions'][subsamp]['Total']]  +  [model['diffpredictions'][subsamp][vv] for vv in plotvars]),labelLoc=labelLoc,sortDecreasing=False,
+        yerr=np.array( [model['diffLHS_se'],model['diffpredictions_se'][subsamp]['Total']]+[model['diffpredictions_se'][subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+model['depvar']:colours['darkgreen'],r'predicted $\Delta$'+model['depvar']:colours['green']})
             #plt.figlegend(yerr,['SS','ww'],'lower left')
             assert model['depvar'] in ['swl','SWL','ladder','{\\em nation:}~ladder','lifeToday'] # model['depvar'] needs to be in the two lookup tables in following two lines:
             shortLHSname={'SWL':'SWL','swl':'SWL','lifeToday':'life today','ladder':'ladder','{\\em nation:}~ladder':'ladder'}[model['depvar']]
@@ -5179,43 +5185,30 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 lastPlotXlim=plt.xlim()
             # Save without titles:
             # Plots need redoing?
-            needReplacePlot=fileOlderThan(paths['graphics']+model['name']+'-%d.png'%imodel,tableLogName+'.log')
-            # May 2011: logic below not well tested! Well, I don't think it does anything, and skipstata is inappropriate use.
-            fog
 
+            imageFN=paths['graphics']+os.path.split(tableLogName)[1]+'-vs-%s%d'%(str2pathname(model['name']),imodel)
+            needReplacePlot=fileOlderThan(imageFN+'.png',tableLogName+'.log')
 
+            #if latex is None and needReplacePlot:
+            #    savefigall(paths['graphics']+name+'-%s'%fileSuffixes[ioaxaca])
+            #elif needReplacePlot or not latex.skipStataForCompletedTables:
 
-
- stataAddMeansByGroup(groupVar,meanVars,weightExp='[pw=weight]',groupType=str):#stataFile,subsetVar=None,subsetValues=None,incomeVars=None,giniPrefix='gini',opts=None):
- meansByMultipleCategories(groupVars,meanVars,meansFileName,weightExp='[pw=weight]',forceUpdate=False,sourceFile=None,precode='',useStataCollapse=False):
-genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
- compareMeansByGroup(vars,latex=None):
-                #pass # Placeholder for now; see cpblstatalatex.
-
-
-
-
-
-            if latex is None and needReplacePlot:
-                savefigall(paths['graphics']+name+'-%s'%fileSuffixes[ioaxaca])
-            elif needReplacePlot or not latex.skipStataForCompletedTables:
-
-                latex.saveAndIncludeFig(name+'-%s'%fileSuffixes[ioaxaca],caption=None,texwidth=None,title=None, # It seems title is not used!
+            #fileSuffixes[ioaxaca]
+            self.saveAndIncludeFig(imageFN,caption=None,texwidth=None,title=None, # It seems title is not used!
                           onlyPNG=False,rcparams=None,transparent=False,
-                          ifany=None,fig=None,skipIfExists=False,pauseForMissing=True)
-            if titles:
-                plt.title(titles[ioaxaca])
+                          ifany=None,fig=None,skipIfExists=not needReplacePlot and self.skipSavingExistingFigures  ,pauseForMissing=True)
+            #if titles:
+            #    plt.title(titles[ioaxaca])
+
             #self.saveAndIncludeFig(figname=str2pathname('%s-%02d%s-%sV%s'%(model['tableName'],model['modelNum'],model['name'],subsamp,basecase)),title=title,caption=caption+'.\n '+r' Error bars show $\pm$1 s.e.  '+plotparams.get('comments','')+vgroupComments+omittedComments,texwidth='1.0\\textwidth') #model.get('subSumPlotParams',{})
 
             # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
             if 'accountingPlot' not in model:
                 model['accountingPlot']={}
             model['accountingPlot'][subsamp]={'labels':np.array(rhsvars+['predicted '+model['depvar'],model['depvar']]),
-        'y':np.array( [model['diffpredictions'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions'][subsamp][model['depvar']],model['diffLHS'][subsamp]]),
-        'yerr':np.array( [model['diffpredictions_se'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions_se'][subsamp][model['depvar']],model['diffLHS_se'][subsamp]])
+        'y':np.array( [model['diffpredictions'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions'][subsamp]['Total'],model['diffLHS']]),
+        'yerr':np.array( [model['diffpredictions_se'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions_se'][subsamp]['Total'],model['diffLHS_se']])
         }
-
-
 
         return(statacode*(not skipStata))
 
