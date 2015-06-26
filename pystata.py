@@ -3975,7 +3975,7 @@ oaxaca """+model+""", by(oaxGroup) xb %s %s                       detail%s
 
 estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
 * CPBL END BLINDER-OAXACA DECOMPOSITION
-"""%(options,oaxacaOptions,dlist) for options,name in [['pooled','pooled'],['',groupNames[1]],['swap',groupNames[0]]]])+"""
+"""%(options,oaxacaOptions,dlist) for options,name in [['pooled','pooled'],['',groupNames[0]],['swap',groupNames[1]]]])+"""
 """
     # Note: in above, default (no pooled/omega/swap arguments) is the "threefold decomposition from the viewpoint of group 2"
     if referenceModel:
@@ -4025,7 +4025,9 @@ To do:
     qSequences=re.findall(r"""\s*.\s+CPBL BEGIN BLINDER-OAXACA DECOMPOSITION
 (.*?
 )\s*.\s+CPBL END BLINDER-OAXACA DECOMPOSITION""",logTxt,re.DOTALL)
-    assert len(qSequences)>=1
+    if not  len(qSequences)>=1:
+        print('  BLINDER-OAXACA FAILED to parse the log file. Stata may have failed. INVESTIGATE. Aborting...')
+        return([])
 
     oax=[]
     for qSequence in qSequences:

@@ -3386,7 +3386,9 @@ June 2012: Added / Passing rv option through to savefigall
 
         if substitutions is None:
             substitutions=self.substitutions
-
+        if isinstance(showVars,basestring):
+            showVars=[vv for vv in showVars.split(' ') if vv]
+                
         tablenamel=self.generateLongTableName(tableName)#,skipStata=False)
         print """regTable(): Initiated "%s" with %d variables. """%(tablenamel,len(showVars))
 
@@ -3434,6 +3436,7 @@ June 2012: Added / Passing rv option through to savefigall
             }
             }
             """).replace('\n            ','\n') for vv in showVars if vv])
+
         statacode+="""
         * CPBL END TABLE:%s: AT %s
 
@@ -3460,12 +3463,14 @@ June 2012: Added / Passing rv option through to savefigall
         assert len(fa)==1
         meanRE='\s*Mean estimation\s*Number of obs\s*=\s*(\w*)\n(.*?)\n'
         meanRE='\s*Mean estimation\s*Number of obs\s*=\s*(\w*)\n[^\|]*\|[^\|]*\|\s*([^\s]*)\s+([^\s]*)\s+([^\s]*)\s+([^\s]*)\n[\s-]*' 
+        meanRE=r'\s*Mean estimation\s*Number of obs\s*=\s*([^\s]*)\n[^\|]*\|[^\|]*\|\s*([^\s]*)\s+([^\s]*)\s+([^\s]*)\s+([^\s]*)\n[\s-]*' 
         testRE='.*? Prob > ([Fchi2]*) = +([^\s]*)\s*'
         WilcoxonTestRE='.*? Prob > \|z\| = +([^\s]*)\s*'
 
         vps=re.findall('\n-~-~-~-~-~-~-~-~\n\s*mean (\w*) if ([^\n]*)\n'+meanRE+'\s*test ([ \w]*)\n'+testRE+'\s*mean'+' (\w*) if ([^\n]*)\n'+meanRE+  '\s*test ([ \w]*)\n'+testRE+'\s*.x~x~x~x~x~x~x~x~x~\n\s*ranksum ([^\n]*)\n'+WilcoxonTestRE+'\s*\*--~--~--~--~--~',fa[0],re.DOTALL)
         if not len(vps) == len(showVars):
             print "    RegExp fails to match to Number of variables, though maybe some didn't exist? Or the format's changed / r.e. broken. Instead, assuming code has changed. Aborting. Rerun Stata..."
+            stophere
             return(statacode)
         varDicts=[]
         body=[]
@@ -3488,7 +3493,6 @@ June 2012: Added / Passing rv option through to savefigall
 
         cpblTableStyC(cpblTableElements(body='\\\\ \n'.join(['&'.join(LL) for LL in body])+'\\\\ \n\\cline{1-\\ctNtabCols}\n ',cformat=None,firstPageHeader='\\hline\\hline '+'\\hline\\hline '+' & '.join(headers)+'\\\\ \n\\hline\\hline\n',otherPageHeader=None,tableTitle='Comparing means for %s and %s (%s)'%(ifnames[0],ifnames[1],tableName),caption=None,label=None,ncols=None,nrows=None,footer=None,tableName=tableName,landscape=None),filepath=paths['tex']+tablenamel+'.tex',masterLatexFile=self)
 #logfname+'-compareMeans-'+str2pathname('-'.join(ifNames))
-
 
         
         """
@@ -5048,7 +5052,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 rerun=True,
                 substitutions=None,
                 commonOrder=True,
-                        skipStata=False):
+                        skipStata=False,figsize=None):
         import time
         # Choose an output do-file and log-file name
         tablenamel=self.generateLongTableName(tablename,skipStata=skipStata)
@@ -5098,7 +5102,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             import numpy as np
             plt.ioff()
             figureFontSetup()
-            plt.figure(217)
+            plt.figure(217,figsize=figsize)
             plt.clf()
             """
             What is the logic here? I want to
@@ -5149,13 +5153,14 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 
             labelLoc='eitherSideOfZero'
             labelLoc=None#['left','right'][int(model['diffLHS'][subsamp]>0)]
-            cbph=categoryBarPlot(np.array([r'$\Delta$'+model['depvar'],r'predicted $\Delta$'+model['depvar']]+plotvars),
+            DV=substitutedNames(model['depvar'],substitutions)
+            cbph=categoryBarPlot(np.array([r'$\Delta$'+DV,r'predicted $\Delta$'+DV]+plotvars),
         np.array([model['diffLHS'],model['diffpredictions'][subsamp]['Total']]  +  [model['diffpredictions'][subsamp][vv] for vv in plotvars]),labelLoc=labelLoc,sortDecreasing=False,
-        yerr=np.array( [model['diffLHS_se'],model['diffpredictions_se'][subsamp]['Total']]+[model['diffpredictions_se'][subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+model['depvar']:colours['darkgreen'],r'predicted $\Delta$'+model['depvar']:colours['green']})
+        yerr=np.array( [model['diffLHS_se'],model['diffpredictions_se'][subsamp]['Total']]+[model['diffpredictions_se'][subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+DV:colours['darkgreen'],r'predicted $\Delta$'+DV:colours['green']})
             #plt.figlegend(yerr,['SS','ww'],'lower left')
-            assert model['depvar'] in ['swl','SWL','ladder','{\\em nation:}~ladder','lifeToday'] # model['depvar'] needs to be in the two lookup tables in following two lines:
-            shortLHSname={'SWL':'SWL','swl':'SWL','lifeToday':'life today','ladder':'ladder','{\\em nation:}~ladder':'ladder'}[model['depvar']]
-            longLHSname={'SWL':'satisfaction with life (SWL)','swl':'satisfaction with life (SWL)','lifeToday':'life today','ladder':'Cantril ladder','{\\em nation:}~ladder':'Cantril ladder'}[model['depvar']]
+            assert DV in ['swl','SWL','ladder','{\\em nation:}~ladder','lifeToday'] # model['depvar'] needs to be in the two lookup tables in following two lines:
+            shortLHSname={'SWL':'SWL','swl':'SWL','lifeToday':'life today','ladder':'ladder','{\\em nation:}~ladder':'ladder'}[DV]
+            longLHSname={'SWL':'satisfaction with life (SWL)','swl':'satisfaction with life (SWL)','lifeToday':'life today','ladder':'Cantril ladder','{\\em nation:}~ladder':'Cantril ladder'}[DV]
             # Could put here translations
 
             xxx=plt.legend(cbph['bars'][0:3],[r'$\Delta$'+shortLHSname+' observed',r'$\Delta$'+shortLHSname+' explained','explained contribution'],{True:'lower left',False:'lower right'}[abs(plt.xlim()[0])>abs(plt.xlim()[1])])
@@ -5175,7 +5180,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             plt.xlabel(r'$\Delta$ %s'%shortLHSname)
             #plt.subtitle('Error bars show two standard error widths')
 
-            plt.xlabel('mean and explained difference in '+longLHSname)
+            plt.xlabel('Mean and explained difference in '+longLHSname)
             plt.ylim(-1,len(plotvars)+3) # Give just one bar space on top and bottom.
             #plt.ylim(np.array(plt.ylim())+np.array([-1,1]))
 
@@ -5186,7 +5191,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             # Save without titles:
             # Plots need redoing?
 
-            imageFN=paths['graphics']+os.path.split(tableLogName)[1]+'-vs-%s%d'%(str2pathname(model['name']),imodel)
+            imageFN=paths['graphics']+os.path.split(tableLogName)[1]+'-using-%s%d'%(str2pathname(model['basecase']),imodel)
             needReplacePlot=fileOlderThan(imageFN+'.png',tableLogName+'.log')
 
             #if latex is None and needReplacePlot:
@@ -5205,7 +5210,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
             if 'accountingPlot' not in model:
                 model['accountingPlot']={}
-            model['accountingPlot'][subsamp]={'labels':np.array(rhsvars+['predicted '+model['depvar'],model['depvar']]),
+            model['accountingPlot'][subsamp]={'labels':np.array(rhsvars+['predicted '+DV,DV]),
         'y':np.array( [model['diffpredictions'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions'][subsamp]['Total'],model['diffLHS']]),
         'yerr':np.array( [model['diffpredictions_se'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions_se'][subsamp]['Total'],model['diffLHS_se']])
         }
