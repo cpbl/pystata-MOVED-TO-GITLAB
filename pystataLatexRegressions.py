@@ -4031,6 +4031,8 @@ What is "launch"? It seems not used.
         #######################################################################################
 
         """
+2015: This is surely entire entirely obselete now. see oaxacaThreeWays
+
         Use coefficients and sums from a regression to "explain" the difference between two subsamples from a single regression equation.
 
         Generate a figure and a table of the results.
@@ -5028,6 +5030,195 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
         # Use the function defined outside the latex class?
         return(models2df(models,latex=self))
                 
+    def oaxacaThreeWays(self,tablename,model,
+                groupConditions,
+                groupNames,
+                        datafile=None,
+                preamble=None,  # This nearly-must include  stataLoad(datafile)
+
+                referenceModel=None,
+                referenceModelName=None,
+                savedModel=None,
+                oaxacaOptions=None,
+                dlist=None,
+                rerun=True,
+                substitutions=None,
+                commonOrder=True,
+                        skipStata=False):
+        import time
+        # Choose an output do-file and log-file name
+        tablenamel=self.generateLongTableName(tablename,skipStata=skipStata)
+        tableLogName=defaults['paths']['stata']['tex']+tablenamel
+        tableLogNameWithDate=defaults['paths']['stata']['working']+'logs/'+tablenamel+time.strftime('%Y_%m_%d_%H%M%S_')+'.log'
+        preamble='' if preamble is None else preamble
+        if self.skipStataForCompletedTables and os.path.exists(tableLogName+'.log'):
+            if not skipStata:
+                print '  Skipping Stata for %s because latex.skipStataForCompletedTables is set ON!!!! and this table is done.'%tablenamel
+            outs+="""
+            """
+            skipStata=True
+
+        # Generate the Stata code.  As a matter of pracice, we should alwas include the file loading INSIDE the logfile (ie caller should specify datafile)
+        statacode="""
+            log using """+tableLogName+""".log, text replace
+            """
+        statacode+=''     if datafile is None else stataLoad(datafile)
+        statacode+='' if preamble is None else preamble
+        statacode+= oaxacaThreeWays_generate(model=model,
+                                             groupConditions=groupConditions,
+                                             groupNames=groupNames,
+                                             referenceModel=referenceModel,
+                                             referenceModelName=referenceModelName,
+                                             oaxacaOptions=oaxacaOptions,
+                                             dlist=dlist,
+                                         )
+        statacode+='\n log close \n'
+        if os.path.exists(tableLogName+'.log'):
+            models=oaxacaThreeWays_parse(tableLogName,substitutions=substitutions)
+
+
+
+
+        # NOW MAKE A PLOT OF THE FINDINGS: SUBSAMPLE DIFFERENCE ACCOUNTING
+        for imodel, model in enumerate(models):
+            depvar=model['depvar']
+            subsamp=model['subsamp']
+            basecase=model['basecase']
+            tooSmallToPlot={subsamp:[]}
+
+
+            from cifarColours import colours
+            import pylab as plt
+            from cpblUtilities import figureFontSetup, categoryBarPlot
+            import numpy as np
+            plt.ioff()
+            figureFontSetup()
+            plt.figure(217)
+            plt.clf()
+            """
+            What is the logic here? I want to
+            - eliminate "constant".
+            - order variables according to magnitude of effect, except if showvars specified.
+            - let "showvars" specify order?? No. Order is always determined by magnitude.
+            - include the grouped variables and not their contents
+            """
+
+            # 2015June: adding "Total" to the following, since that is where the total estimated differnece is now reported.
+            plotvars=[vv for vv in model['diffpredictions_se'][subsamp].keys() if not vv in [model['depvar'],'constant','Total']]#[vv for vv in rhsvars if vv not in varsMovedToGroup]+)#list(set(model['estcoefs'].keys())-(set(['_cons',])))
+
+            #tooSmallToPlot=[abs(difffracs[subsamp][vv])<.05 for vv in rhsvars])
+
+            #plotvars=[cv for cv in model['estcoefs'].keys()]
+            # if 'hideVars' in plotparams:
+            #plotvars=[cv for cv in plotvars if cv not in plotparams.get('hideVars',[])]
+            ###plotvars=[cv for cv in plotvars if cv not in ['constant']]
+            #plotvars=[cv for cv in plotvars if cv not in plotparams['hideVars']]
+            plotvars.sort(key=lambda x:abs(model['diffpredictions'][subsamp][x]))#abs(array([model['diffpredictions'][subsamp][vv] for vv in plotvars])))
+            plotvars.reverse()
+            #if 'showVars' in plotparams:
+            #    assert not 'groupVars' in plotparams # Haven't dealt wit hthis yet... If soeone is specifying groupings of variabesl in the plot, shall I ignore showvars???
+            #    plotvars=[cv for cv in model['estcoefs'].keys() if cv in plotparams['showVars'] ]
+
+            # June 2015: Can I get rid of following??
+            if 0: # this seems redundant with plotvars!! get rid of rhsvars below????
+                rhsvars.sort(key=lambda x:abs(model['diffpredictions'][subsamp][x]))#abs(array([model['diffpredictions'][subsamp][vv] for vv in rhsvars])))
+                rhsvars.reverse()
+            else:
+                rhsvars=plotvars
+
+
+            cutoffTooSmallToPlot=.01 # If you change this, change the %.2f below, too
+            tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS'][subsamp]) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
+
+            omittedComments=''
+            if tooSmallToPlot[subsamp]:
+                omittedComments=' The following variables are not shown because their contribution was estimated with 95\\%% confidence to be less than %.2f of the predicted difference: %s. '%(cutoffTooSmallToPlot,'; '.join(tooSmallToPlot[subsamp]))
+                plotvars=[cv for cv in plotvars if cv not in tooSmallToPlot[subsamp]]
+
+
+            if commonOrder and ioaxaca>0:
+                plotvars=lastPlotVars
+            else:
+                lastPlotVars=plotvars
+
+            labelLoc='eitherSideOfZero'
+            labelLoc=None#['left','right'][int(model['diffLHS'][subsamp]>0)]
+            cbph=categoryBarPlot(np.array([r'$\Delta$'+model['depvar'],r'predicted $\Delta$'+model['depvar']]+plotvars),
+        np.array([model['diffLHS'][subsamp],model['diffpredictions'][subsamp][model['depvar']]]  +  [model['diffpredictions'][subsamp][vv] for vv in plotvars]),labelLoc=labelLoc,sortDecreasing=False,
+        yerr=np.array( [model['diffLHS_se'][subsamp],model['diffpredictions_se'][subsamp][model['depvar']]]+[model['diffpredictions_se'][subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+model['depvar']:colours['darkgreen'],r'predicted $\Delta$'+model['depvar']:colours['green']})
+            #plt.figlegend(yerr,['SS','ww'],'lower left')
+            assert model['depvar'] in ['swl','SWL','ladder','{\\em nation:}~ladder','lifeToday'] # model['depvar'] needs to be in the two lookup tables in following two lines:
+            shortLHSname={'SWL':'SWL','swl':'SWL','lifeToday':'life today','ladder':'ladder','{\\em nation:}~ladder':'ladder'}[model['depvar']]
+            longLHSname={'SWL':'satisfaction with life (SWL)','swl':'satisfaction with life (SWL)','lifeToday':'life today','ladder':'Cantril ladder','{\\em nation:}~ladder':'Cantril ladder'}[model['depvar']]
+            # Could put here translations
+
+            xxx=plt.legend(cbph['bars'][0:3],[r'$\Delta$'+shortLHSname+' observed',r'$\Delta$'+shortLHSname+' explained','explained contribution'],{True:'lower left',False:'lower right'}[abs(plt.xlim()[0])>abs(plt.xlim()[1])])
+            xxx.get_frame().set_alpha(0.5)
+
+            #plt.setp(plt.gca(),'yticks',[])
+            # Could you epxlain the following if??
+            if 0 and plotparams.get('showTitle',False)==True:
+                plt.title(model['name']+': '+subsamp+': differences from '+basecase)
+                plt.title("Accounting for %s's life satisfaction difference from %s"%(subsamp,basecase))
+                title=''
+                caption=''
+            else:
+                title=r"Accounting for %s's life satisfaction difference from %s \ctDraftComment{(%s) col (%d)}"%(subsamp,basecase,model['name'],model['modelNum'])
+
+                caption=title
+            plt.xlabel(r'$\Delta$ %s'%shortLHSname)
+            #plt.subtitle('Error bars show two standard error widths')
+
+            plt.xlabel('mean and explained difference in '+longLHSname)
+            plt.ylim(-1,len(plotvars)+3) # Give just one bar space on top and bottom.
+            #plt.ylim(np.array(plt.ylim())+np.array([-1,1]))
+
+            if commonOrder and ioaxaca>0:
+                plt.xlim(lastPlotXlim)
+            else:
+                lastPlotXlim=plt.xlim()
+            # Save without titles:
+            # Plots need redoing?
+            needReplacePlot=fileOlderThan(paths['graphics']+model['name']+'-%d.png'%imodel,tableLogName+'.log')
+            # May 2011: logic below not well tested! Well, I don't think it does anything, and skipstata is inappropriate use.
+            fog
+
+
+
+
+ stataAddMeansByGroup(groupVar,meanVars,weightExp='[pw=weight]',groupType=str):#stataFile,subsetVar=None,subsetValues=None,incomeVars=None,giniPrefix='gini',opts=None):
+ meansByMultipleCategories(groupVars,meanVars,meansFileName,weightExp='[pw=weight]',forceUpdate=False,sourceFile=None,precode='',useStataCollapse=False):
+genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
+ compareMeansByGroup(vars,latex=None):
+                #pass # Placeholder for now; see cpblstatalatex.
+
+
+
+
+
+            if latex is None and needReplacePlot:
+                savefigall(paths['graphics']+name+'-%s'%fileSuffixes[ioaxaca])
+            elif needReplacePlot or not latex.skipStataForCompletedTables:
+
+                latex.saveAndIncludeFig(name+'-%s'%fileSuffixes[ioaxaca],caption=None,texwidth=None,title=None, # It seems title is not used!
+                          onlyPNG=False,rcparams=None,transparent=False,
+                          ifany=None,fig=None,skipIfExists=False,pauseForMissing=True)
+            if titles:
+                plt.title(titles[ioaxaca])
+            #self.saveAndIncludeFig(figname=str2pathname('%s-%02d%s-%sV%s'%(model['tableName'],model['modelNum'],model['name'],subsamp,basecase)),title=title,caption=caption+'.\n '+r' Error bars show $\pm$1 s.e.  '+plotparams.get('comments','')+vgroupComments+omittedComments,texwidth='1.0\\textwidth') #model.get('subSumPlotParams',{})
+
+            # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
+            if 'accountingPlot' not in model:
+                model['accountingPlot']={}
+            model['accountingPlot'][subsamp]={'labels':np.array(rhsvars+['predicted '+model['depvar'],model['depvar']]),
+        'y':np.array( [model['diffpredictions'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions'][subsamp][model['depvar']],model['diffLHS'][subsamp]]),
+        'yerr':np.array( [model['diffpredictions_se'][subsamp][vv] for vv in rhsvars]+[model['diffpredictions_se'][subsamp][model['depvar']],model['diffLHS_se'][subsamp]])
+        }
+
+
+
+        return(statacode*(not skipStata))
+
 
 ################################################################################################
 ################################################################################################

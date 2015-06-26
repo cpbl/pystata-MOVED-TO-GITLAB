@@ -9,6 +9,11 @@ Please help by separating out things that make sense, and cleaning up that which
 
 Also currently depends heavily on cpblUtilities and latex-stat-tables .. and cpblDefaults. These can be excised...
 
+Direction for future work:
+    The approach to separate creating Stata code from both parsing the logfiles.
+    In this approach, a set of means, oaxaca, etc, generates a log file which corresponds solely to the contents of one function.   As  a result, it should become standard practice to include the loading of data as part of each table code, so that the file loading is always in the same log as the table.
+    Ultimately, we should separate the creation of the Stata code from the parsing of the log files. For instance, the new "oaxacaThreeWays" depends on oaxacaThreeWays_generate and oaxacaThreeWays_parse. This paired function pattern should exist for regressions, means, etc too. Currently, that's not the case for regTables(), which both generates and parses OLS/etc regression tables.  Log-parsing code should be in principle independent of code generation, so that we can also parse external do-file output.
+
 """
 
 try:
@@ -2503,7 +2508,7 @@ sigma                                             |
             coefOrder=[c[0] for c in coefss]
             coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
             
-        elif sections[0].startswith('overall'):
+        elif sections[0].startswith('overall') or  sections[0].startswith('Differential'):  # 2015June: I think format has changed in recent stata.
             debugprint('Looks like Oaxaca')
             assert command in [None,'oaxaca']
             statss=sections[-1]
@@ -3608,6 +3613,230 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
     ############################################################################################
     ############################################################################################
     """
+
+    This is the function which makes a plot of the explained portion of the difference in a LHS variable between two groups, broken down by explanatory variables. It uses coefficients from a pooled model. The "explained" component is that due to differences in mean values, assuming common coefficients.
+
+    June 2015: It seems the Oaxaca output has changed format at some point. I'm using Stata 14 now, so this is an update for recent versions 
+
+    Stata oaxaca command: Using "pooled detail" options gives the breakdown we want to plot.
+Rather than do the grouping by hand here, just use the dlist() option in the oaxaca command, which affects the "detail" output.
+
+    """
+    if '\n' in logFile: # logfile text must have been passed.
+        logTxt=logFile
+    else:
+        stataLogFile_joinLines(logFile+'.log')
+        logTxt=open(logFile+'.log','rt').read() # Should already have >\n's removed by stataSystem...
+        print ' Parsing '+logFile+'.log'
+   #
+
+    qSequences=re.findall(r"""\s*.\s+CPBL BEGIN OAXACA DECOMPOSITION
+(.*?
+)\s*.\s+CPBL END OAXACA DECOMPOSITION""",logTxt,re.DOTALL)
+    assert len(qSequences)>=1
+
+    oax=[]
+    for qSequence in qSequences:
+        # Extract expected variable order (for stupid Stata truncation) from the regression call:
+        expectedOrder=[ww for ww in qSequence.strip().split('\n')[0].split('[')[0].replace('(','').replace(')','').split(' ') if ww and not ww.endswith(':')][2:]
+        oax+=[readEstimatesTable(qSequence)]
+        #oax+=[readStataEstimateResults(logTxt)]
+        checks= re.findall(r"""
+\s*oaxaca\s+(\w*)(.*?),\s*by\(([^)]*?)\)([^\n]*)
+.*?
+\s*estimates table""",'\n'+qSequence,re.DOTALL)
+        oax[-1]['oaxaca'].update({'options':checks[0][3],'depvar':checks[0][0]})
+
+        # Record values of b and x from option "bx"
+        oax[-1]['oaxaca'].update(parseOaxacaCoefficientsAndMeans(qSequence,expectVariableOrder=expectedOrder))
+
+
+    assert titles==None or len(titles)==len(oax)
+    if not fileSuffixes:
+        fileSuffixes=['%d'%nn for nn in range(len(oax))]
+
+    # Stata output has changed by version.
+    stataws={'older': {'version':'older',
+                       'overall':'overall',
+                       'difference':'difference',
+                       'explained':'explained',
+                       'endowments':'endowments',
+                       'predictedDifference':'explained',
+                       },
+             'v14': {'version':'14+',
+                     'overall':'Differential',
+                       'difference':'Difference',
+                       'explained':'Explained',
+                       'endowments':'Endowments',
+                       'predictedDifference':'Difference',
+                       }
+             }
+    stataws=stataws['v14'] # newer version, ie iff 'Explained' in oaxaca
+
+    for ioaxaca in range(len(oax)):
+        oaxaca=oax[ioaxaca]['oaxaca'] # Just one for now...
+        if stataws['explained'] in oaxaca: # For "pooled" (or omega) option in oaxaca command
+            strExplained=stataws['explained']
+        elif stataws['endowments'] in oaxaca: # For non-"pooled" (or omega) option case in oaxaca command
+            strExplained=stataws['endowments']
+        else:
+            strExplained=None#'2015Unknown_oaxaca_stata'
+
+        explained={}
+        for kk in oaxaca[strExplained]:
+            explained[substitutedNames(kk,subs=substitutions)]=deepcopy(oaxaca[strExplained][kk])
+
+        model={'tableName':'test','modelNum':-1}
+        depvar=oaxaca['depvar']
+        subsamp='group1'
+        basecase='group0'
+        diffpredictions,sediffpredictions={subsamp:{}},{subsamp:{}}
+        rhsvars=explained.keys()
+        varsMovedToGroup=[]
+        plotparams={}
+        tooSmallToPlot={subsamp:[]}
+
+        signSwitch= -2*( 'swap' in oaxaca['options']) +1
+
+        print( [[kk,oaxaca[kk].keys()] for kk in oaxaca if isinstance(oaxaca[kk],dict)])
+
+        # Get the overall explained component of the LHS variable:
+        difflhs={subsamp:signSwitch*oaxaca[stataws['overall']][stataws['difference']]['b']}
+        sedifflhs={subsamp:oaxaca[stataws['overall']][stataws['difference']]['se']}
+        
+        from cpblUtilitiesMathGraph import categoryBarPlot, savefigall, figureFontSetup
+        from pylab import array
+        diffpredictions[subsamp][depvar]=signSwitch*oaxaca[stataws['overall']][stataws['predictedDifference']]['b']
+        sediffpredictions[subsamp][depvar]=oaxaca[stataws['overall']][stataws['predictedDifference']]['se']
+        for vv in rhsvars:
+            diffpredictions[subsamp][vv]=signSwitch*explained[vv]['b']
+            sediffpredictions[subsamp][vv]=explained[vv]['se']
+
+
+            diffpredictions[subsamp][depvar]=signSwitch*oaxaca[stataws['overall']][stataws['predictedDifference']]['b']
+
+        if 1:
+            from cifarColours import colours
+
+            # NOW MAKE A PLOT OF THE FINDINGS: SUBSAMPLE DIFFERENCE ACCOUNTING
+            import pylab as plt
+            plt.ioff()
+            figureFontSetup()
+            plt.figure(217)
+            plt.clf()
+            if 1: # this seems redundant with plotvars!! get rid of rhsvars below????
+                rhsvars.sort(key=lambda x:abs(diffpredictions[subsamp][x]))#abs(array([diffpredictions[subsamp][vv] for vv in rhsvars])))
+                rhsvars.reverse()
+
+
+
+            """
+            What is the logic here? I want to
+            - eliminate "constant".
+            - order variables according to magnitude of effect, except if showvars specified.
+            - let "showvars" specify order?? No. Order is always determined by magnitude.
+            - include the grouped variables and not their contents
+            """
+
+            # 2015June: adding "Total" to the following, since that is where the total estimated differnece is now reported.
+            plotvars=[vv for vv in sediffpredictions[subsamp].keys() if not vv in varsMovedToGroup+[depvar,'constant','Total']]#[vv for vv in rhsvars if vv not in varsMovedToGroup]+)#list(set(model['estcoefs'].keys())-(set(['_cons',])))
+
+            #tooSmallToPlot=[abs(difffracs[subsamp][vv])<.05 for vv in rhsvars])
+
+            #plotvars=[cv for cv in model['estcoefs'].keys()]
+            # if 'hideVars' in plotparams:
+            plotvars=[cv for cv in plotvars if cv not in plotparams.get('hideVars',[])]
+            ###plotvars=[cv for cv in plotvars if cv not in ['constant']]
+            #plotvars=[cv for cv in plotvars if cv not in plotparams['hideVars']]
+            plotvars.sort(key=lambda x:abs(diffpredictions[subsamp][x]))#abs(array([diffpredictions[subsamp][vv] for vv in plotvars])))
+            plotvars.reverse()
+            if 'showVars' in plotparams:
+                assert not 'groupVars' in plotparams # Haven't dealt wit hthis yet... If soeone is specifying groupings of variabesl in the plot, shall I ignore showvars???
+                plotvars=[cv for cv in model['estcoefs'].keys() if cv in plotparams['showVars'] ]
+
+
+            cutoffTooSmallToPlot=.01 # If you change this, change the %.2f below, too
+            tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(diffpredictions[subsamp][vv]) + 2*abs(sediffpredictions[subsamp][vv])) / abs(difflhs[subsamp]) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
+
+            omittedComments=''
+            if tooSmallToPlot[subsamp]:
+                omittedComments=' The following variables are not shown because their contribution was estimated with 95\\%% confidence to be less than %.2f of the predicted difference: %s. '%(cutoffTooSmallToPlot,'; '.join(tooSmallToPlot[subsamp]))
+                plotvars=[cv for cv in plotvars if cv not in tooSmallToPlot[subsamp]]
+
+
+            if commonOrder and ioaxaca>0:
+                plotvars=lastPlotVars
+            else:
+                lastPlotVars=plotvars
+
+            labelLoc='eitherSideOfZero'
+            labelLoc=None#['left','right'][int(difflhs[subsamp]>0)]
+            cbph=categoryBarPlot(array([r'$\Delta$'+depvar,r'predicted $\Delta$'+depvar]+plotvars),
+        array([difflhs[subsamp],diffpredictions[subsamp][depvar]]  +  [diffpredictions[subsamp][vv] for vv in plotvars]),labelLoc=labelLoc,sortDecreasing=False,
+        yerr=array( [sedifflhs[subsamp],sediffpredictions[subsamp][depvar]]+[sediffpredictions[subsamp][vv] for vv in plotvars])   ,barColour={r'$\Delta$'+depvar:colours['darkgreen'],r'predicted $\Delta$'+depvar:colours['green']})
+            #plt.figlegend(yerr,['SS','ww'],'lower left')
+            assert depvar in ['swl','SWL','ladder','{\\em nation:}~ladder','lifeToday'] # depvar needs to be in the two lookup tables in following two lines:
+            shortLHSname={'SWL':'SWL','swl':'SWL','lifeToday':'life today','ladder':'ladder','{\\em nation:}~ladder':'ladder'}[depvar]
+            longLHSname={'SWL':'satisfaction with life (SWL)','swl':'satisfaction with life (SWL)','lifeToday':'life today','ladder':'Cantril ladder','{\\em nation:}~ladder':'Cantril ladder'}[depvar]
+            # Could put here translations
+
+            xxx=plt.legend(cbph['bars'][0:3],[r'$\Delta$'+shortLHSname+' observed',r'$\Delta$'+shortLHSname+' explained','explained contribution'],{True:'lower left',False:'lower right'}[abs(plt.xlim()[0])>abs(plt.xlim()[1])])
+            xxx.get_frame().set_alpha(0.5)
+
+            #plt.setp(plt.gca(),'yticks',[])
+            # Could you epxlain the following if??
+            if plotparams.get('showTitle',False)==True:
+                plt.title(model['name']+': '+subsamp+': differences from '+basecase)
+                plt.title("Accounting for %s's life satisfaction difference from %s"%(subsamp,basecase))
+                title=''
+                caption=''
+            else:
+                title=r"Accounting for %s's life satisfaction difference from %s \ctDraftComment{(%s) col (%d)}"%(subsamp,basecase,model['tableName'],model['modelNum'])
+
+                caption=title
+            plt.xlabel(r'$\Delta$ %s'%shortLHSname)
+            #plt.subtitle('Error bars show two standard error widths')
+
+            plt.xlabel('mean and explained difference in '+longLHSname)
+            plt.ylim(-1,len(plotvars)+3) # Give just one bar space on top and bottom.
+            #plt.ylim(array(plt.ylim())+array([-1,1]))
+
+            if commonOrder and ioaxaca>0:
+                plt.xlim(lastPlotXlim)
+            else:
+                lastPlotXlim=plt.xlim()
+            # Save without titles:
+            # Plots need redoing?
+            needReplacePlot=fileOlderThan(paths['graphics']+name+'-%s.png'%fileSuffixes[ioaxaca],logFile+'.log')
+            # May 2011: logic below not well tested! Well, I don't think it does anything, and skipstata is inappropriate use.
+            fog
+            if latex is None and needReplacePlot:
+                savefigall(paths['graphics']+name+'-%s'%fileSuffixes[ioaxaca])
+            elif needReplacePlot or not latex.skipStataForCompletedTables:
+
+                latex.saveAndIncludeFig(name+'-%s'%fileSuffixes[ioaxaca],caption=None,texwidth=None,title=None, # It seems title is not used!
+                          onlyPNG=False,rcparams=None,transparent=False,
+                          ifany=None,fig=None,skipIfExists=False,pauseForMissing=True)
+            if titles:
+                plt.title(titles[ioaxaca])
+            #self.saveAndIncludeFig(figname=str2pathname('%s-%02d%s-%sV%s'%(model['tableName'],model['modelNum'],model['name'],subsamp,basecase)),title=title,caption=caption+'.\n '+r' Error bars show $\pm$1 s.e.  '+plotparams.get('comments','')+vgroupComments+omittedComments,texwidth='1.0\\textwidth') #model.get('subSumPlotParams',{})
+
+            # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
+            if 'accountingPlot' not in model:
+                model['accountingPlot']={}
+            model['accountingPlot'][subsamp]={'labels':array(rhsvars+['predicted '+depvar,depvar]),
+        'y':array( [diffpredictions[subsamp][vv] for vv in rhsvars]+[diffpredictions[subsamp][depvar],difflhs[subsamp]]),
+        'yerr':array( [sediffpredictions[subsamp][vv] for vv in rhsvars]+[sediffpredictions[subsamp][depvar],sedifflhs[subsamp]])
+        }
+
+
+
+################################################################################################
+################################################################################################
+def parseOaxacaDecomposition_statav13(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=False,substitutions=None,titles=None,commonOrder=True,fileSuffixes=None,latex=None):
+    ############################################################################################
+    ############################################################################################
+    """
     commonOrder=True means make the order of components the same as the first plot, if there are multiple plots.
 
     titles and fileSuffixes give lists of titles and filename suffixes for as many decompositions as are in the file.
@@ -3653,7 +3882,10 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
             strExplained='explained'
         elif 'endowments' in oaxaca:
             strExplained='endowments'
+        else:
+            strExplained=None#'2015Unknown_oaxaca_stata'
         explained={}
+
         for kk in oaxaca[strExplained]:
             explained[substitutedNames(kk,subs=substitutions)]=deepcopy(oaxaca[strExplained][kk])
 
@@ -3786,7 +4018,7 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
                 plt.title(titles[ioaxaca])
             #self.saveAndIncludeFig(figname=str2pathname('%s-%02d%s-%sV%s'%(model['tableName'],model['modelNum'],model['name'],subsamp,basecase)),title=title,caption=caption+'.\n '+r' Error bars show $\pm$1 s.e.  '+plotparams.get('comments','')+vgroupComments+omittedComments,texwidth='1.0\\textwidth') #model.get('subSumPlotParams',{})
 
-            # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
+            # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns model as well as TeX code, this can go back to caller. (pass pointer?)
             if 'accountingPlot' not in model:
                 model['accountingPlot']={}
             model['accountingPlot'][subsamp]={'labels':array(rhsvars+['predicted '+depvar,depvar]),
@@ -3798,16 +4030,199 @@ def parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=None,skipPlots=Fa
 def compareMeansByGroup(vars,latex=None):
     pass # Placeholder for now; see cpblstatalatex.
 
-def oaxacaThreeWays(model,groupConditions,groupNames,name=None,preamble='',referenceModel=None,referenceModelName=None,savedModel=None,oaxacaOptions=None,rerun=True,substitutions=None,commonOrder=True,latex=None):
+
+def oaxacaThreeWays_generate(model,
+            groupConditions,
+            groupNames,
+            referenceModel=None,
+            referenceModelName=None,
+            oaxacaOptions=None,
+            dlist=None,                             ):
+    # Used/called by latex.oaxacaThreeWays(
+    statacode="""
+    capture drop oaxGroup
+    """
+    if not oaxacaOptions:
+         oaxacaOptions=' '
+    outs="""
+    capture drop oaxGroup
+    """
+    #assert len(groupConditions)== len(groupNames)
+    assert len(groupNames)==2
+    if len(groupConditions)==1:
+        outs+="""
+        * Groups: """+str(groupNames)+"""
+        gen oaxGroup = ~("""+groupConditions[0]+""")
+        """
+    else:
+        assert len(groupConditions)==2
+        outs+="""
+        * Groups: """+str(groupNames)+"""
+        gen oaxGroup = 1 if """+groupConditions[0]+"""
+        replace oaxGroup = 2 if """+groupConditions[1]+"""
+        """
+
+    dlist='' if dlist is None else '(%s)'%dlist
+    # 2015June: added "detail" below, which in Stata14 gives the breakdown of explained components by RHS variable. Isn't this what I always intended, ie what was given before by default?
+    outs+="""
+    """+'\n'.join(["""
+* CPBL BEGIN OAXACA DECOMPOSITION
+
+oaxaca """+model+""", by(oaxGroup) xb %s %s                       detail%s
+
+estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
+* CPBL END OAXACA DECOMPOSITION
+"""%(options,oaxacaOptions,dlist) for options in ['pooled','','swap']])+"""
+
+
+"""
+    if referenceModel:
+        assert referenceModelName
+        outs+="""
+* Reference model for next oaxaca: """+referenceModelName+"""
+capture estimates drop oaxEstStore
+reg """+referenceModel+"""
+estimates store oaxEstStore
+* CPBL BEGIN OAXACA DECOMPOSITION
+oaxaca """+model+""", by(oaxGroup) xb reference(oaxEstStore) """+oaxacaOptions+"""
+estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
+* CPBL END OAXACA DECOMPOSITION
+"""
+
+    return(outs)
+
+def oaxacaThreeWays_parse(logFile,latex=None,substitutions=None):#substitutions):#,skipPlots=False,
+    """
+To do:
+  - Need to reimplement the options that used to be in this call. Ideally, these should be encoded into the log file rathre than passed around.
+#          oaxx=parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=name,skipPlots=False,substitutions=substitutions,titles=[groupNames[0]+' vs '+groupNames[1]+' using %s estimates'%ss for ss in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],fileSuffixes=['using'+nn.replace(' ','') for nn in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],commonOrder=commonOrder,latex=latex)
+
+
+    # Used/called by latex.oaxacaThreeWays()
+    Parse Stata output for code made by oaxacaThreeWays_generate(), almost certainly via latex.oaxacaThreeWays()
+    """
+    # Some not-yet-implemented options which need implementing into the log file...
+#    plotTitle='%(rhsv)s'    ,,titles=[groupNames[0]+' vs '+groupNames[1]+' using %s estimates'%ss for ss in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],fileSuffixes=['using'+nn.replace(' ','') for nn in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],commonOrder=commonOrder,
+
+    
+    if '\n' in logFile: # logfile text must have been passed.
+        logTxt=logFile
+    else:
+        stataLogFile_joinLines(logFile+'.log')
+        logTxt=open(logFile+'.log','rt').read() # Should already have >\n's removed by stataSystem...
+        print ' Parsing oaxacaThreeways file '+logFile+'.log'
+   #
+
+    qSequences=re.findall(r"""\s*.\s+CPBL BEGIN OAXACA DECOMPOSITION
+(.*?
+)\s*.\s+CPBL END OAXACA DECOMPOSITION""",logTxt,re.DOTALL)
+    assert len(qSequences)>=1
+
+    oax=[]
+    for qSequence in qSequences:
+        # Extract expected variable order (for stupid Stata truncation) from the regression call:
+        expectedOrder=[ww for ww in qSequence.strip().split('\n')[0].split('[')[0].replace('(','').replace(')','').split(' ') if ww and not ww.endswith(':')][2:]
+        oax+=[readEstimatesTable(qSequence)]
+        #oax+=[readStataEstimateResults(logTxt)]
+        checks= re.findall(r"""
+\s*oaxaca\s+(\w*)(.*?),\s*by\(([^)]*?)\)([^\n]*)
+.*?
+\s*estimates table""",'\n'+qSequence,re.DOTALL)
+        oax[-1]['oaxaca'].update({'options':checks[0][3],'depvar':checks[0][0]})
+
+        # Record values of b and x from option "bx"
+        oax[-1]['oaxaca'].update(parseOaxacaCoefficientsAndMeans(qSequence,expectVariableOrder=expectedOrder))
+
+
+    #assert titles==None or len(titles)==len(oax)
+    #if not fileSuffixes:
+    #   fileSuffixes=['%d'%nn for nn in range(len(oax))]
+
+    # Stata output has changed by version.
+    stataws={'older': {'version':'older',
+                       'overall':'overall',
+                       'difference':'difference',
+                       'explained':'explained',
+                       'endowments':'endowments',
+                       'predictedDifference':'explained',
+                       },
+             'v14': {'version':'14+',
+                     'overall':'Differential',
+                       'difference':'Difference',
+                       'explained':'Explained',
+                       'endowments':'Endowments',
+                       'predictedDifference':'Difference',
+                       }
+             }
+    stataws=stataws['v14'] # newer version, ie iff 'Explained' in oaxaca
+
+    models=[]
+
+    for ioaxaca in range(len(oax)):
+        oaxaca=oax[ioaxaca]['oaxaca'] # Just one for now...
+        if stataws['explained'] in oaxaca: # For "pooled" (or omega) option in oaxaca command
+            strExplained=stataws['explained']
+        elif stataws['endowments'] in oaxaca: # For non-"pooled" (or omega) option case in oaxaca command
+            strExplained=stataws['endowments']
+        else:
+            strExplained=None#'2015Unknown_oaxaca_stata'
+
+        explained={}
+        for kk in oaxaca[strExplained]:
+            explained[substitutedNames(kk,subs=substitutions)]=deepcopy(oaxaca[strExplained][kk])
+            ###explained[kk]=deepcopy(oaxaca[strExplained][kk])
+
+        model={'name':'test','modelNum':-1}
+        depvar=oaxaca['depvar']
+        subsamp='group1'
+        basecase='group0'
+        diffpredictions,sediffpredictions={subsamp:{}},{subsamp:{}}
+        rhsvars=explained.keys()
+        varsMovedToGroup=[]
+        plotparams={}
+        tooSmallToPlot={subsamp:[]}
+
+        signSwitch= -2*( 'swap' in oaxaca['options']) +1
+
+        if 0: print( [[kk,oaxaca[kk].keys()] for kk in oaxaca if isinstance(oaxaca[kk],dict)])
+
+        # Get the overall explained component of the LHS variable:
+        difflhs={subsamp:signSwitch*oaxaca[stataws['overall']][stataws['difference']]['b']}
+        sedifflhs={subsamp:oaxaca[stataws['overall']][stataws['difference']]['se']}
+        
+        from cpblUtilitiesMathGraph import categoryBarPlot, savefigall, figureFontSetup
+        from pylab import array
+        diffpredictions[subsamp][depvar]=signSwitch*oaxaca[stataws['overall']][stataws['predictedDifference']]['b']
+        sediffpredictions[subsamp][depvar]=oaxaca[stataws['overall']][stataws['predictedDifference']]['se']
+        for vv in rhsvars:
+            diffpredictions[subsamp][vv]=signSwitch*explained[vv]['b']
+            sediffpredictions[subsamp][vv]=explained[vv]['se']
+
+
+            diffpredictions[subsamp][depvar]=signSwitch*oaxaca[stataws['overall']][stataws['predictedDifference']]['b']
+
+
+        model.update({'depvar':depvar, 'subsamp':subsamp,'basecase':basecase,
+                  'diffLHS':difflhs, 'diffLHS_se':sedifflhs,'diffpredictions':diffpredictions,'diffpredictions_se':sediffpredictions, 'rawdetails':oax[ioaxaca]})
+        models+=[model]
+    return(models)
+
+    
+def oaxacaThreeWays_pre2015(model,groupConditions,groupNames,name=None,preamble='',referenceModel=None,referenceModelName=None,savedModel=None,oaxacaOptions=None,dlist=None,rerun=True,substitutions=None,commonOrder=True,latex=None):
     """
     This makes the call and parses the results for oaxaca decomposition.
     groupConditions can be a single condition c, in which case (not c) is the other group. Or it can be a list of two conditions, in which case the first is the base case.
 
     What about a fourth way, which is to use a global regression larger than the two groups?? If savedModel is specified, then the saved coefficients from that will be used. (not done yet).  If referenceModel is specified, then the model will be run, coefficients saved and used as a reference, in the fourth case.
 
-May 2011: added latex=None, takes a latexthingy object
+    May 2011: added latex=None, takes a latexregressions object
 
     May 2011: Now I'm after comparing means for two groups in a table (hm, and ultimately testing whether they're different. Is Oaxaca an easy way to do this? Well, no. For simplicity (?) / independence, I'm just going to do it by calling many many means. and tests?
+
+    June 2015: It seems in StataV14 we no longer get the mean SWL reported by groups. So I need to do that separately.
+    The new approach here is going to be to separate creating Stata code from both parsing the log and making plots (just like for other regressions). So any time the log file parser comes across a Oaxaca, it should make a plot of decomposition.
+    In this approach, as for regression tables, a log file corresponds solely to the contents of this function.   As  a result, it should become standard practice to include the loading of data as part of each table code, so that the file loading is always in the same log as the table.
+    Ultimately, we should separate the creation of the Stata code from the parsing of the log files. So this "oaxacaThreeWays" should depend on oaxacaThreeWays_generate and oaxacaThreeWays_parse. This paired function pattern should exist for regressions, means, etc too.
     """
     if not oaxacaOptions:
          oaxacaOptions=' '
@@ -3830,15 +4245,17 @@ May 2011: added latex=None, takes a latexthingy object
         replace oaxGroup = 2 if """+groupConditions[1]+"""
         """
 
+    dlist='' if dlist is None else '(%s)'%dlist
+    # 2015June: added "detail" below, which in Stata14 gives the breakdown of explained components by RHS variable. Isn't this what I always intended, ie what was given before by default?
     outs+="""
     """+'\n'.join(["""
 * CPBL BEGIN OAXACA DECOMPOSITION
 
-oaxaca """+model+""", by(oaxGroup) xb %s %s
+oaxaca """+model+""", by(oaxGroup) xb %s %s                       detail%s
 
 estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
 * CPBL END OAXACA DECOMPOSITION
-"""%(options,oaxacaOptions) for options in ['pooled','','swap']])+"""
+"""%(options,oaxacaOptions,dlist) for options in ['pooled','','swap']])+"""
 
 
 """
@@ -3855,19 +4272,23 @@ estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a N  N_1 N_2)
 * CPBL END OAXACA DECOMPOSITION
 """
 
+
+    if latex is None or not latex.skipStataForCompletedTables:
+        stataSystem(outs)
+        
     if os.path.exists(logFile+'.log'):
       oaxx=parseOaxacaDecomposition(logFile,plotTitle='%(rhsv)s',name=name,skipPlots=False,substitutions=substitutions,titles=[groupNames[0]+' vs '+groupNames[1]+' using %s estimates'%ss for ss in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],fileSuffixes=['using'+nn.replace(' ','') for nn in ['pooled',groupNames[0],groupNames[1]]+(not referenceModel ==None)*[referenceModelName]],commonOrder=commonOrder,latex=latex)
       # Now here do a table of all three for comparison. Also do table for b' and x'
 
 
 
-    print """
+    # If Stata has been run, parse the results. Then make a plot.
+    parseOaxacaDecomposition(logFile,plotTitle='tmppp',name='Decomposition of mean difference')#,plotTitle='%(rhsv)s',name=None,skipPlots=False,substitutions=None,titles=None,commonOrder=True,fileSuffixes=None,latex=None)
 
 
-    CAUTION! IT LOOKS LIKE OAXACA NOT DONE. NEED TO MAKE TABLE STILL?
 
-    """
 
+    fooooooooooo
     if not os.path.exists(logFile+'.log') or (latex is None and rerun) or (latex is not None and latex.skipStataForCompletedTables==False):
       #stataSystem(outs,filename=logFile)
       return(outs)
