@@ -3,6 +3,14 @@ from codecs import open  # I need to do this just to get encoding= option in ope
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
 
+"""
+To do:
+ revise generate_postEstimate_sums_by_condition(rollingX,ifs) to give DataFrame return value
+ revise semiRolling to build dataframes only.
+"""
+
+
+    
 ###########################################################################################
 ###
 class latexRegressionFile():  #  # # # # #    MAJOR CLASS    # # # # #  #
@@ -954,7 +962,7 @@ manualDrops = ??
 
 
 
-    def readRegressionFile(self,tableFileName,useOUTREG2=False):
+    def _OBSELETE_DELETEME_readRegressionFile(self,tableFileName,useOUTREG2=False):
         assert 0 # This is obselete as of August 2009. Keep it around for a year. It could be renamed readOutreg2
         """
         Read regression results table made by Stata's outreg2 or Stata's est2tex...
@@ -1127,6 +1135,9 @@ I've added various other flag/settings specified starting with *.
                 extraFields['stataStoredName']=sname
             elif aline.startswith('*autoExcludeVars:'): # Syntax to allow a non-missing variable to be missing for all in the sample.
                 extraFields['autoExcludeVars']=aline.split(':')[1]
+            # To do: Following feature started to be implented July 2015. Erase this when it's done.
+            elif aline.startswith('*groupName:'): # Syntax to allow, in non-transposed mode, another title row labeling individual or groups (if they're adjacent) of columns. The "*name:" parameter is still shown, in another row below.
+                extraFields['modelGroupName']=aline.split(':')[1]
             elif aline.startswith('*meanGroupName:'): # Syntax to allow grouping of estimates for calculating group mean coefficients
                 extraFields['meanGroupName']=aline.split(':')[1]
             elif aline.startswith('*flag:'): # Syntax to add a flag to next model
@@ -3273,6 +3284,10 @@ copy "%s" "%s", replace
         return()
 
     def saveAndIncludeStataFig(self,figname,caption=None,texwidth=None):
+        """
+        You probably want to include the following in your stata plot command:
+        graphregion(color(white)) bgcolor(white)
+        """
         pp,ff,ee=[os.path.split(figname)[0] ] +    list(os.path.splitext(os.path.split(figname)[1])) 
         if pp in ['']: pp=paths['graphics']
 
@@ -3370,7 +3385,7 @@ June 2012: Added / Passing rv option through to savefigall
 
 
 
-    def compareMeansInTwoGroups(self,showVars,ifgroups,ifnames,tableName=None,caption=None,usetest=None,skipStata=False,weight=' [pw=weight] ',substitutions=None):
+    def compareMeansInTwoGroups(self,showVars,ifgroups,ifnames,tableName=None,caption=None,usetest=None,skipStata=False,weight=' [pw=weight] ',substitutions=None,datafile=None):
         """
         May 2011. I have written almost all of this into addDescriptiveStatistics() as the mode=compareMeans mode, but I'm moving it to its own function to complete it.
 
@@ -3383,6 +3398,8 @@ June 2012: Added / Passing rv option through to savefigall
         """
         import time
         statacode=''
+        if datafile is not None:
+            statacode+=stataLoad(datafile)
 
         if substitutions is None:
             substitutions=self.substitutions
@@ -3467,10 +3484,14 @@ June 2012: Added / Passing rv option through to savefigall
         testRE='.*? Prob > ([Fchi2]*) = +([^\s]*)\s*'
         WilcoxonTestRE='.*? Prob > \|z\| = +([^\s]*)\s*'
 
+        # Following long RE is meant to get the long list of variables in the line below (with tonumeric...) for each variable/condition 
         vps=re.findall('\n-~-~-~-~-~-~-~-~\n\s*mean (\w*) if ([^\n]*)\n'+meanRE+'\s*test ([ \w]*)\n'+testRE+'\s*mean'+' (\w*) if ([^\n]*)\n'+meanRE+  '\s*test ([ \w]*)\n'+testRE+'\s*.x~x~x~x~x~x~x~x~x~\n\s*ranksum ([^\n]*)\n'+WilcoxonTestRE+'\s*\*--~--~--~--~--~',fa[0],re.DOTALL)
+        if not len(vps) == len(showVars) and len(vps)>0:
+            print "    RegExp fails to match to Number of variables, but there are some.  Probably some requested variables didn't exist? INVESTIGATE, and only request extant variables."
+            showVars=[vv for vv in showVars if vv in [vvv[0] for vvv in vps]]
+            print('   Continuing, using only %s'%str(showVars))
         if not len(vps) == len(showVars):
             print "    RegExp fails to match to Number of variables, though maybe some didn't exist? Or the format's changed / r.e. broken. Instead, assuming code has changed. Aborting. Rerun Stata..."
-            stophere
             return(statacode)
         varDicts=[]
         body=[]
@@ -3478,11 +3499,9 @@ June 2012: Added / Passing rv option through to savefigall
         for iv,oneVar in enumerate(vps):
             
             v1,if1,N1,mu1,se1,low1,high1,         v1t,fchi1,pmu1,     v2,if2,N2,mu2,se2,low2,high2,         v2t,fchi2,pmu2,    Wts,pW = tonumeric([kk for kk in oneVar])
-            assert showVars[iv]==v1
-            assert showVars[iv]==v2
-            assert showVars[iv]==v1t
-            assert showVars[iv]==v2t
-
+            if not (showVars[iv]==v1 and  showVars[iv]==v2 and  showVars[iv]==v1t and  showVars[iv]==v2t):
+                print('  Problem with variable alignment. RERUN Stata. *********** ')
+                return(statacode)
 
             xs1,ses1= latexFormatEstimateWithPvalue([mu1,se1],pval=pmu1,allowZeroSE=None,tstat=False,gray=False,convertStrings=True,threeSigDigs=None)
             xs2,ses2= latexFormatEstimateWithPvalue([mu2,se2],pval=pmu2,allowZeroSE=None,tstat=False,gray=False,convertStrings=True,threeSigDigs=None)
@@ -3491,7 +3510,7 @@ June 2012: Added / Passing rv option through to savefigall
                    ['' ,ses1,ses2,''],
                    ]
 
-        cpblTableStyC(cpblTableElements(body='\\\\ \n'.join(['&'.join(LL) for LL in body])+'\\\\ \n\\cline{1-\\ctNtabCols}\n ',cformat=None,firstPageHeader='\\hline\\hline '+'\\hline\\hline '+' & '.join(headers)+'\\\\ \n\\hline\\hline\n',otherPageHeader=None,tableTitle='Comparing means for %s and %s (%s)'%(ifnames[0],ifnames[1],tableName),caption=None,label=None,ncols=None,nrows=None,footer=None,tableName=tableName,landscape=None),filepath=paths['tex']+tablenamel+'.tex',masterLatexFile=self)
+        cpblTableStyC(cpblTableElements(body='\\\\ \n'.join(['&'.join(LL) for LL in body])+'\\\\ \n\\cline{1-\\ctNtabCols}\n ',cformat=None,firstPageHeader='\\hline '+' & '.join(headers)+'\\\\ \n\\hline\n',otherPageHeader=None,tableTitle='Comparing means for %s and %s (%s)'%(ifnames[0],ifnames[1],tableName),caption=None,label=None,ncols=None,nrows=None,footer=None,tableName=tableName,landscape=None),filepath=paths['tex']+tablenamel+'.tex',masterLatexFile=self)
 #logfname+'-compareMeans-'+str2pathname('-'.join(ifNames))
 
         
@@ -4779,11 +4798,18 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
 
     ###########################################################################################
     ###
-    def semiRollingRegression(self,statamodel=None,rollingCovariates=None, rollingX=None,ordinalRollingX=None,tablename=None,variableOrder=None,rollCovColourLookup=None,includeConstant=True,suppressFromPlot=None,nSegments=None,alsoDoFullyPiecewise=True,weight=None): 
+    def semiRollingRegression(self,statamodel=None,rollingCovariates=None, rollingX=None,ordinalRollingX=None,tablename=None,variableOrder=None,rollCovColourLookup=None,includeConstant=True,showConstant=True,suppressFromPlot=None,nSegments=None,alsoDoFullyPiecewise=True,weight=None): 
         ###
         #######################################################################################
         """
-N.B.        Return value is a dict:         return({'statatext':outStata,'models':lmodels,'figures':figs})
+    Sample usage:
+        stataout=stata.doHeader+stata.stataLoad(WP+'usavignettes')
+        outdict=latex.semiRollingRegression(statamodel='reg Answer '+' '.join(nonrollingvars),rollingCovariates=['VLNINC'], rollingX='VLNINC',ordinalRollingX=None,tablename='rollingtest',variableOrder=None,rollCovColourLookup=None,includeConstant=True,suppressFromPlot=None,nSegments=5,alsoDoFullyPiecewise=True,weight=None)
+        stataout+=outdict['statatext']
+
+        That is, I often use the same variable as the rollingCovariate and the rollingX.
+
+   N.B.        Return value is a dict:         return({'statatext':outStata,'models':lmodels,'figures':figs})
 
     statamodel: This is a Stata regression call, but with the rollingCovariates variables missing from the call.. They will be added in.
 
@@ -4799,13 +4825,13 @@ N.B.        Return value is a dict:         return({'statatext':outStata,'models
 
     rollCovColourLookup=a dict that gives a plotting color for each rollingCovariate
 
-
+    showConstant=True: set this to False to suppress the constant in the plot that's created.
 
     TO DO:  There should
 
 
     Constants.:
-    oh no... do i need constants for each quantile too?
+      . do i need constants for each quantile too?
     Constants: It's now an optional argument. One basically always needs to include "nocons" as an option to your regression call, but I'm not enforcing this (.). If you don't set includeConstant=False and provide your own, this function will generate one per segment and include its constant in the rollingCovariates.
 
     Oct 2011: Oh. I cannot use beta with this, as it will normalize across the divisions in a very weird way. Well... actually, there should be the same number of respondents, roughly, in each. But certainly using constants with nSegments>1 and beta gives garbage / nonsense...
@@ -4816,10 +4842,11 @@ May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rol
         """
         DVNN= 'dependent var, its name'
         from pylab import arange
-        from cpblUtilities import transLegend,plotWithEnvelope,str2latex,str2pathname,flattenList,dgetget,NaN
+        from cpblUtilities import transLegend,dfPlotWithEnvelope,str2latex,str2pathname,flattenList,dgetget,NaN
         import pylab as plt
         from pylab import array
         from pylab import flatten
+        import pandas as pd
 
         #assert not weight is None # Until 2015, you need to specify weight is False or give a weight, since this started out assuming a weight.
         
@@ -4836,6 +4863,9 @@ May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rol
         dummymodels=dummyLatex.str2models(statamodel)
         if suppressFromPlot is None:
             suppressFromPlot=[]
+        if showConstant is False:
+            suppressFromPlot+=['qconstant']
+                
         # Determine rollingCovariates:
         allRollingCovariates=[xx for xx in flattenList([dgetget(mm,['flags','rollingCovariates'],'').split(' ') for mm in dummymodels],unique=True) if xx] # List of all covariates in flags.
         assert rollingCovariates is None or not any(allRollingCovariates)
@@ -4898,7 +4928,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             else:
                 mmm['model']= ' '+' '.join(allRollingCovNames) + ' '+ mmm['model']
             # So the following ifs are in terms of ordinalRollingX, but the means are of rollingX:
-            mmm['code']['sumsAfter']=stataSumMulti(rollingX,ifs) #'tgrank crank'
+            mmm['code']['sumsAfter']=generate_postEstimate_sums_by_condition(rollingX,ifs) #'tgrank crank'
 
         outStata+=self.regTable(tablename,lmodels,returnModels=True,variableOrder=(variableOrder if variableOrder is not None else [])+allRollingCovNames,transposed=False,comments=r"""
         Rolling $x$ (quantile) variable: %s%s in %d segments.
@@ -4943,6 +4973,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 
             plt.figure(120+ifigure)
             plt.clf()
+            ax=plt.subplot(111)
             figs+=[plt.gcf()]
             #  And extract the coefficients determined for this SWB measure and this xrolling variable:
             for icv,cvv in enumerate([vvv for vvv in allRollingCovariates+includeConstant*['qconstant'] if vvv not in suppressFromPlot and any([vv for vv in mm['estcoefs'].keys() if vv.startswith(vvv)])]):
@@ -4962,13 +4993,19 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 
                 mm['b'+cvv]=array([  dgetget(mm,['estcoefs',vv,'b'],NaN)  for vv in cvvs])
                 mm['bstep'+cvv]=array(flattenList([[  dgetget(mm,['estcoefs',vv,'b'],NaN),dgetget(mm,['estcoefs',vv,'b'],NaN)] for vv in cvvs]))    #mm['estcoefs'][vv]['b'],mm['estcoefs'][vv]['b']
-                mm['sebstep'+cvv]=array(flattenList([[dgetget(mm,['estcoefs',vv,'se'],NaN),dgetget(mm,['estcoefs',vv,'se'],NaN)] for vv in cvvs]))
-                mm['seb'+cvv]=array([  dgetget(mm,['estcoefs',vv,'se'],NaN)  for vv in cvvs])
+                mm['se_bstep'+cvv]=array(flattenList([[dgetget(mm,['estcoefs',vv,'se'],NaN),dgetget(mm,['estcoefs',vv,'se'],NaN)] for vv in cvvs]))
+                mm['se_b'+cvv]=array([  dgetget(mm,['estcoefs',vv,'se'],NaN)  for vv in cvvs])
+                
+                df=pd.DataFrame(dict([[avn,mm[avn]] for avn in ['x'+rollingX,'b'+cvv,'se_b'+cvv]]))
+                # Above should really be merged across covariates... etc
+
+                print('Plotting %s now with envelope...?'%cvv)
+                dfPlotWithEnvelope( df,'x'+rollingX,'b'+cvv, color=rollCovColourLookup[cvv], label=cvvn,labelson='patch',ax=ax)
 
                 
-                plotWithEnvelope(mm['x'+rollingX],mm['b'+cvv],mm['b'+cvv]-sef*mm['seb'+cvv],mm['b'+cvv]+sef*mm['seb'+cvv],linestyle='-',linecolor=rollCovColourLookup[cvv],facecolor=rollCovColourLookup[cvv],lineLabel=cvvn,     laxSkipNaNsXY=True)
+#                plotWithEnvelope(mm['x'+rollingX], mm['b'+cvv],mm['b'+cvv]-sef*mm['seb'+cvv],mm['b'+cvv]+sef*mm['seb'+cvv],linestyle='-',linecolor=rollCovColourLookup[cvv],facecolor=rollCovColourLookup[cvv],lineLabel=cvvn,     laxSkipNaNsXY=True)
                 if 0:#for 
-                    plotWithEnvelope(mm['xstep'+rollingX],mm['bstep'+cvv],mm['bstep'+cvv]-sef*mm['sebstep'+cvv],mm['bstep'+cvv]+sef*mm['sebstep'+cvv],linestyle='--',linecolor=rollCovColourLookup[cvv],facecolor=rollCovColourLookup[cvv],lineLabel=cvvn)
+                    plotWithEnvelope(mm['xstep'+rollingX], mm['bstep'+cvv],mm['bstep'+cvv]-sef*mm['sebstep'+cvv],mm['bstep'+cvv]+sef*mm['sebstep'+cvv],linestyle='--',linecolor=rollCovColourLookup[cvv],facecolor=rollCovColourLookup[cvv],lineLabel=cvvn)
 
                 #x,y,yLow,yHigh,linestyle='-',linecolor=None,facecolor=None,alpha=0.5,label=None,lineLabel=None,patchLabel=None,laxSkipNaNsSE=False,laxSkipNaNsXY=False,skipZeroSE=False,ax=None,laxFail=True):
 
@@ -5037,11 +5074,11 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
     def models2df(self,models):
         # Use the function defined outside the latex class?
         return(models2df(models,latex=self))
-                
+
     def oaxacaThreeWays(self,tablename,model,
                 groupConditions,
                 groupNames,
-                        datafile=None,
+                datafile=None,
                 preamble=None,  # This nearly-must include  stataLoad(datafile)
 
                 referenceModel=None,
@@ -5052,8 +5089,10 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 rerun=True,
                 substitutions=None,
                 commonOrder=True,
-                        skipStata=False,figsize=None):
+                skipStata=False,figsize=None):
+        # For example usage of this function, see regressionsAboriginals2015; 
         import time
+        if substitutions is None: substitutions=self.substitutions
         # Choose an output do-file and log-file name
         tablenamel=self.generateLongTableName(tablename,skipStata=skipStata)
         tableLogName=defaults['paths']['stata']['tex']+tablenamel
@@ -5108,37 +5147,16 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             What is the logic here? I want to
             - eliminate "constant".
             - order variables according to magnitude of effect, except if showvars specified.
-            - let "showvars" specify order?? No. Order is always determined by magnitude.
             - include the grouped variables and not their contents
             """
 
-            # 2015June: adding "Total" to the following, since that is where the total estimated differnece is now reported.
-            plotvars=[vv for vv in model['diffpredictions_se'][subsamp].keys() if not vv in [model['depvar'],'constant','Total']]#[vv for vv in rhsvars if vv not in varsMovedToGroup]+)#list(set(model['estcoefs'].keys())-(set(['_cons',])))
-
-            #tooSmallToPlot=[abs(difffracs[subsamp][vv])<.05 for vv in rhsvars])
-
-            #plotvars=[cv for cv in model['estcoefs'].keys()]
-            # if 'hideVars' in plotparams:
-            #plotvars=[cv for cv in plotvars if cv not in plotparams.get('hideVars',[])]
-            ###plotvars=[cv for cv in plotvars if cv not in ['constant']]
-            #plotvars=[cv for cv in plotvars if cv not in plotparams['hideVars']]
+            plotvars=[vv for vv in model['diffpredictions_se'][subsamp].keys() if not vv in [model['depvar'],'constant','Total']]
             plotvars.sort(key=lambda x:abs(model['diffpredictions'][subsamp][x]))#abs(array([model['diffpredictions'][subsamp][vv] for vv in plotvars])))
             plotvars.reverse()
-            #if 'showVars' in plotparams:
-            #    assert not 'groupVars' in plotparams # Haven't dealt wit hthis yet... If soeone is specifying groupings of variabesl in the plot, shall I ignore showvars???
-            #    plotvars=[cv for cv in model['estcoefs'].keys() if cv in plotparams['showVars'] ]
 
-            # June 2015: Can I get rid of following??
-            if 0: # this seems redundant with plotvars!! get rid of rhsvars below????
-                rhsvars.sort(key=lambda x:abs(model['diffpredictions'][subsamp][x]))#abs(array([model['diffpredictions'][subsamp][vv] for vv in rhsvars])))
-                rhsvars.reverse()
-            else:
-                rhsvars=plotvars
-
+            rhsvars=plotvars
 
             cutoffTooSmallToPlot=.01 # If you change this, change the %.2f below, too
-            #tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS'][subsamp]) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
-
             tooSmallToPlot[subsamp]+=[vv for vv in rhsvars if (abs(model['diffpredictions'][subsamp][vv]) + 2*abs(model['diffpredictions_se'][subsamp][vv])) / abs(model['diffLHS']) < cutoffTooSmallToPlot and vv not in ['constant'] and vv in plotvars]
             omittedComments=''
             if tooSmallToPlot[subsamp]:
@@ -5166,7 +5184,6 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
             xxx=plt.legend(cbph['bars'][0:3],[r'$\Delta$'+shortLHSname+' observed',r'$\Delta$'+shortLHSname+' explained','explained contribution'],{True:'lower left',False:'lower right'}[abs(plt.xlim()[0])>abs(plt.xlim()[1])])
             xxx.get_frame().set_alpha(0.5)
 
-            #plt.setp(plt.gca(),'yticks',[])
             # Could you epxlain the following if??
             if 0 and plotparams.get('showTitle',False)==True:
                 plt.title(model['name']+': '+subsamp+': differences from '+basecase)
@@ -5188,24 +5205,14 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
                 plt.xlim(lastPlotXlim)
             else:
                 lastPlotXlim=plt.xlim()
-            # Save without titles:
-            # Plots need redoing?
 
+            # Save without titles:
             imageFN=paths['graphics']+os.path.split(tableLogName)[1]+'-using-%s%d'%(str2pathname(model['basecase']),imodel)
             needReplacePlot=fileOlderThan(imageFN+'.png',tableLogName+'.log')
 
-            #if latex is None and needReplacePlot:
-            #    savefigall(paths['graphics']+name+'-%s'%fileSuffixes[ioaxaca])
-            #elif needReplacePlot or not latex.skipStataForCompletedTables:
-
-            #fileSuffixes[ioaxaca]
             self.saveAndIncludeFig(imageFN,caption=None,texwidth=None,title=None, # It seems title is not used!
                           onlyPNG=False,rcparams=None,transparent=False,
                           ifany=None,fig=None,skipIfExists=not needReplacePlot and self.skipSavingExistingFigures  ,pauseForMissing=True)
-            #if titles:
-            #    plt.title(titles[ioaxaca])
-
-            #self.saveAndIncludeFig(figname=str2pathname('%s-%02d%s-%sV%s'%(model['tableName'],model['modelNum'],model['name'],subsamp,basecase)),title=title,caption=caption+'.\n '+r' Error bars show $\pm$1 s.e.  '+plotparams.get('comments','')+vgroupComments+omittedComments,texwidth='1.0\\textwidth') #model.get('subSumPlotParams',{})
 
             # And store all this so that the caller could recreate a custom version of the plot (or else allow passing of plot parameters.. or a function for plotting...? Maybe if a function is offered, call that here...? So, if regTable returns models as well as TeX code, this can go back to caller. (pass pointer?)
             if 'accountingPlot' not in model:

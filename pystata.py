@@ -19,13 +19,18 @@ Calculating means:
   It seems I've needed to do this several times and different ways ,so there are currently too many options for automating the calculation of means by groups. 
 To clarify when to use each, here they are:
 
- stataAddMeansByGroup(groupVar,meanVars,weightExp='[pw=weight]',groupType=str):#stataFile,subsetVar=None,subsetValues=None,incomeVars=None,giniPrefix='gini',opts=None):
- meansByMultipleCategories(groupVars,meanVars,meansFileName,weightExp='[pw=weight]',forceUpdate=False,sourceFile=None,precode='',useStataCollapse=False):
-genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
- compareMeansByGroup(vars,latex=None):
-                #pass # Placeholder for now; see cpblstatalatex.
-latex.compareMeansInTwoGroups(self,showVars,ifgroups,ifnames,tableName=None,caption=None,usetest=None,skipStata=False,weight=' [pw=weight] ',substitutions=None):
+  - stataAddMeansByGroup(groupVar,meanVars,weightExp='[pw=weight]',groupType=str):#stataFile,subsetVar=None,subsetValues=None,incomeVars=None,giniPrefix='gini',opts=None):
 
+  - meansByMultipleCategories(groupVars,meanVars,meansFileName,weightExp='[pw=weight]',forceUpdate=False,sourceFile=None,precode='',useStataCollapse=False):
+
+  - genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
+
+  - compareMeansByGroup(vars,latex=None):
+                #pass # Placeholder for now; see cpblstatalatex.
+
+  - latex.compareMeansInTwoGroups(self,showVars,ifgroups,ifnames,tableName=None,caption=None,usetest=None,skipStata=False,weight=' [pw=weight] ',substitutions=None):
+
+  - generate_postEstimate_sums_by_condition: rather than groups, this takes simple if conditions. It looks only within the sample from the most recent regression. It is a bit confused about whether it wants only the all-variables-available sample or each variable's own available sample.
 
 """
 
@@ -334,7 +339,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
               filename=[filename+'%02d'%idf for idf,df in enumerate(dofile)]
       from cpblUtilities import runFunctionsInParallel
       #return(runFunctionsInParallelOLD([[stataSystem,df,filename[ii],mem,nice] for ii,df in enumerate(dofile)],names=filename))
-      return(runFunctionsInParallel([[stataSystem,[df,filename[ii],mem,nice]] for ii,df in enumerate(dofile)],names=filename,expectNonzeroExit=True))
+      return(runFunctionsInParallel([[stataSystem,[dofi,filename[ii],mem,nice]] for ii,dofi in enumerate(dofile)],names=filename,expectNonzeroExit=True))
 
 
 
@@ -487,6 +492,9 @@ That is, this function can now be used as the main way to create a pandas file f
 
 N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster for next time.
  What is wrong with loadStataDataForPlotting()?
+
+TO do:
+    2015June:      - Pandas does not read Stata 14 files!!
 
     """
     
@@ -1357,11 +1365,12 @@ The logic should be:
 Done. Nice.
 NOT DONE: I also want to use simpletable rather than longtable, when clearly appropriate, and in that case to make the legend go outside the caption.
 Hm... but this doesn't yet include multi-level labels, right? tpyical application: all columns have same depvar, so horiz title over all cols, then \cline{2-n}, then a couple of groups each spanning multiple, then column numbers.
+ - 2015July: added yet another header row, modelGroupName, to go above names.
 
 
 May 2011: adding different treatment for suestTests values, which just have a p-value.
 
-June 2011: Need to update this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...  [Isn't this done? Check]
+June 2011: Done: updated this to use new cpblTableC ability to have both transposed and normal in one file! So now transposed can have value "both". And if one or other is specified, the opposite is still included in the cpbltablec file...
 
     """
 
@@ -1516,36 +1525,67 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
     if any(['|' in mm['format'] for mm in models]):
         formats='l'+''.join([mm['format'] for mm in models]) # N.b. this is rewritten below for use in multicolum headers.
 
-    def smartColumnHeader(colheads,colnums,colformats=None):
+    def smartColumnHeader(colgroups,colheads,colnums,colformats=None):
         """
         See description for main function, above.
         returns headersline1,headersline2
         """
         if not any(colheads):
+            assert  not any(colgroups) # It would be silly to have group names but no names: If you just want one row, use names. (?)
             return('\t&'.join(['']+[r'\sltcheadername{%s}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n',r'\ctFirstHeader')
         #  Now, loop through and find consecutive groups...
         if colformats is None:
                 colformats=['c' for xx in colheads]
-        hgroups=[]
-        for ih,hh in enumerate(colheads):
-           if ih>0 and hh==hgroups[-1][0]:
-                hgroups[-1][1]+=1
-                hgroups[-1][2]='c'+'|'*(colformats[ih].endswith('|'))# Multicolumn headings should all be centered.
-           else:
-                hgroups+=[[hh,1,colformats[ih]]]
-        if any([hh[1]>1 for hh in hgroups]):
-            """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
-            headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
-            # IF there are numbers, too, then show them as a second row
-            if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
-                headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
-        else:
+        def findAdjacentRepeats(colnames,cformats): # Build list of possibly-multicolumn headers for one row.
+            hgroups=[]
+            for ih,hh in enumerate(colnames):
+               if ih>0 and hh==hgroups[-1][0]:
+                    hgroups[-1][1]+=1
+                    hgroups[-1][2]='c'+'|'*(cformats[ih].endswith('|'))# Multicolumn headings should all be centered.
+               else:
+                    hgroups+=[[hh,1,cformats[ih]]]
+            return(hgroups)
+
+        # I'm calling the top header hgroup1, the lower one hgroup0.  So in the future, we could simply accept an array of names, or call them name, name1, etc.
+        hgroups1=None if not any(colgroups) else findAdjacentRepeats(colgroups,colformats)
+        hgroups0=findAdjacentRepeats(colheads,colformats)
+        rotateNames= not any(colgroups) and not any([hh[1]>1 for hh in hgroups0])
+        if rotateNames:
              headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
              # IF there are numbers, too, then show them as a second row!
              if any(['modelNum' in model or 'texModelNum' in model for model in models]):
                 headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
+             return(r'\ctSubsequentHeaders \hline ',headersLine)                
 
+        headersLine='\\cpbltoprule\n'
+        if any(colgroups):
+            headersLine+= '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups1])+'\\\\ \n'
+        headersLine+= '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups0])+'\\\\ \n'
+        # IF there are numbers, too, then show them as a second row
+        if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
+            headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
         return(r'\ctSubsequentHeaders \hline ',headersLine)
+        #            for ih,hh in enumerate(colheads):
+        #               if ih>0 and hh==hgroups[-1][0]:
+        #                    hgroups[-1][1]+=1
+        #                    hgroups[-1][2]='c'+'|'*(colformats[ih].endswith('|'))# Multicolumn headings should all be centered.
+        #               else:
+        #                    hgroups+=[[hh,1,colformats[ih]]]
+        #
+        #            if any([hh[1]>1 for hh in hgroups]):
+        #                """ Do not rotate any numbers or headings. Use multicolumn: since there are repeated headers."""
+        #                headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\multicolumn{%d}{%s}{\sltcheadername{%s}}'%(hh[1],hh[2],hh[0]) for hh in hgroups])+'\\\\ \n'
+        #                # IF there are numbers, too, then show them as a second row
+        #                if any(colnums):#['modelNum' in model or 'texModeulNum' in model for model in models]):
+        #                    headersLine+='\t&'.join(['']+[r'\sltcheadername{%s}'%nns for nns in colnums])+'\\\\ \n'
+        #            else:
+        #                 headersLine='\\cpbltoprule\n'+ '\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models])+'\\\\ \n'
+        #                 # IF there are numbers, too, then show them as a second row!
+        #                 if any(['modelNum' in model or 'texModelNum' in model for model in models]):
+        #                    headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \\hline \n'
+        #
+        #return(r'\ctSubsequentHeaders \hline ',headersLine)
+        # So we have colgroups AND colheads defined
 
 
     if 0: # March 2015: I think the following lines are all obseleted by the smartColumnHeader call:
@@ -1555,7 +1595,8 @@ June 2011: Need to update this to use new cpblTableC ability to have both transp
             headersLine+='\t&'.join(['']+[r'\begin{sideways}\sltcheadername{%s}\end{sideways}'%(model.get('texModelNum','(%d)'%(model.get('modelNum',0)))) for model in models])+'\\\\ \n'
         headersLine1=headersLine+r'\hline'+'\\hline\n'#r'\cline{1-\ctNtabCols}'+'\n'
         headersLine2=headersLine+r'\hline'+'\n'
-    headersLine1,headersLine2=smartColumnHeader([substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models],
+    headersLine1,headersLine2=smartColumnHeader([substitutedNames(model.get('modelGroupName',''),substitutions) for model in models],
+                                                [substitutedNames(model.get('texModelName',model.get('name','')),substitutions) for model in models],
                                                 [model.get('texModelNum','(%d)'%(model.get('modelNum',0))) for model in models],
                                                 colformats=[mm['format'] for mm in models])
     varsAsRowsElements= deepcopy(cpblTableElements(body=body,cformat=formats,firstPageHeader=headersLine1,otherPageHeader=headersLine2,tableTitle=tableFormat.get('title',None),caption=tableFormat.get('caption',None),label=tableLabel, ncols=ntexcols,nrows=ntexrows,footer=colourLegend()+' '+tableFormat.get('comments',None),tableName=tableFormat.get('title',None),landscape=landscape))
@@ -1684,6 +1725,7 @@ def composeTSVregressionTable(models,tableFormat=None,greycols=None,suppressSE=F
 
 Hm... why are variable names already somewhat transformed??...  well, i guess i might need to find a way to fix that so that the non-LaTeX substitutions are used here... or not bother.
 
+    To Do: incorporate / implement /recognize the modelGroupName parameter of model? It's supposed to be super-header (another header above the names)
     """
 
     modelNames=[mm['name'] for mm in models]
@@ -1752,9 +1794,13 @@ def latexFormatEstimateWithPvalue(x,pval=None,allowZeroSE=None,tstat=False,gray=
         greyString=r'\aggc'
     if singlet:
         return(significanceString+chooseSFormat(est,convertStrings=convertStrings,threeSigDigs=threeSigDigs)+'}'*(not not significanceString))
-
-    return([significanceString+chooseSFormat(est,convertStrings=convertStrings,threeSigDigs=threeSigDigs)+'}'*(not not significanceString),
+    # By default, I don't think we want the standard errors/etc to contain the colour/significance formatting.
+    if 0:
+        return([significanceString+chooseSFormat(est,convertStrings=convertStrings,threeSigDigs=threeSigDigs)+'}'*(not not significanceString),
            significanceString+chooseSFormat(ses,convertStrings=convertStrings,threeSigDigs=threeSigDigs,conditionalWrapper=[r'\coefp{','}'+'}'*(not not significanceString),])])
+    else:
+        return([significanceString+chooseSFormat(est,convertStrings=convertStrings,threeSigDigs=threeSigDigs)+'}'*(not not significanceString),
+           chooseSFormat(ses,convertStrings=convertStrings,threeSigDigs=threeSigDigs,conditionalWrapper=[r'\coefp{','}',])])
 
 
 ###########################################################################################
@@ -2681,7 +2727,7 @@ def readStataEstimateResults(logtxt):
 
         # READ ANY SUB-SAMPLE SUMS:
         if 'BEGIN SUM LIST MULTI' in logtxt:
-            outModel.update({'subSums':readStataSumMulti(logtxt) })
+            outModel.update({'subSums':read_postEstimate_sums_by_condition(logtxt) })
 
         return(outModel)
 
@@ -2880,6 +2926,163 @@ May 2011: Adding suest tests. Or maybe tests in general???
 
 
 
+def stataSumMulti(a,b=None):
+    print('********* STATASUMMULTI HAS BEEN RENAMED generate_postEstimate_sums_by_condition() ********')
+    return(generate_postEstimate_sums_by_condition(a,ifs=b))
+################################################################################################
+################################################################################################
+def generate_postEstimate_sums_by_condition(vars, ifs=None):
+    ############################################################################################
+    ############################################################################################
+    """
+    this creates code to be read by read_postEstimate_sums_by_condition. This used to be called stataSumMulti
+    oh-oh. the means must be done separately, since if multiple variables are given together, the smalleest common N will be used!  I could make a flag for doing them together...? agh. This is now ugly, and collapse would be better.?
+
+2015July: the issue seems to be that this has gone down an awkward path: because it seems I became unclear as to whether I wanted to get stats on the set of rows for which all variables exist, or to get stats on each variable independently (within the sample used in  the last regression command (sample identified by cssaSample))
+
+    """
+    if ifs is None:
+        ifs=[' 1 ']
+    assert isinstance(ifs,list)
+    #if isinstance(vars,list):
+    #    vars=' '.join(vars)
+    if isinstance(vars,basestring):
+        vars=[vv for vv in vars.split(' ') if vv]
+
+    return('\n'.join(['\n'.join(["""
+                *BEGIN MEAN LIST MULTI
+ mean """+var+""" [pw=weight] if cssaSample & ("""+anif+"""),
+                *END MEAN LIST MULTI
+                """ for var in vars])+"""
+                *BEGIN SUM LIST MULTI
+ sum """+' '.join(vars)+""" [w=weight] if cssaSample & ("""+anif+"""), separator(0) """+(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
+                *END SUM LIST MULTI
+""" for anif in ifs]))
+
+
+
+################################################################################################
+################################################################################################
+def read_postEstimate_sums_by_condition(txt):
+    ############################################################################################
+    ############################################################################################
+    """
+    When you can get by passing several variables at once to get sum info for a subset of a sample (e.g. using e(sample) etc.
+    Text passed in here is currently a log excerpt which has already had replace('\n> ','') done.
+    2010 Jan update: This now looks for both "sum" and "mean" commands, since both (or at least the latter??) is needed. Well.. not yet.
+
+    Oct 2011: the retired v1 version may be revived, if I'm changing the original focus. But I'm completely rewriting this to accept means being split up by variable but sums not. makes use of dgetget and dsetset
+"""
+
+    from pylab import sqrt
+
+    print ' Following probably needs optional nowrap, since I added that May 2010. ie should be able to read either version, with or without nowrap (v11).'
+    #""" +(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
+    sumCommands=re.findall(""".\s+.BEGIN SUM LIST MULTI
+.\s+sum ([^\n]*?) \[w=weight\] if ([^,]*),([^\n]*)
+(.*?)
+-----------.*?
+(.*?)
+.\s+.END SUM LIST MULTI""",txt,re.DOTALL)
+    meanCommands=re.findall(""".\s+.BEGIN MEAN LIST MULTI
+.\s+mean (.*?) \[pw=weight\] if ([^,]*)([^\n]*)
+
+Mean estimation  +Number of obs +=([^\n]*)
+
+---*
+([^\n]*)
+---[+-]*
+(.*?)
+---*
+
+.\s+.END MEAN LIST MULTI""",txt,re.DOTALL)
+    #print '45678',sumCommands
+    sums={}
+
+    assert sumCommands
+    assert meanCommands
+    assert (not sumCommands and not meanCommands) or ( sumCommands and  meanCommands) #Could this be disabled for some old log files?...
+
+
+    # Now, possibly OVERWRITE some elements with the correct values from
+
+    # STill need to compare N's from sum and mean .... hmmmmm ******************* !!!!!!!!!!!!!!!!!!!!!
+
+    """
+    mean health [pweight=weight]
+
+Mean estimation                     Number of obs    =   24911
+
+--------------------------------------------------------------
+             |       Mean   Std. Err.     [95% Conf. Interval]
+-------------+------------------------------------------------
+      health |   .6849366   .0018781      .6812553    .6886178
+--------------------------------------------------------------
+
+"""
+
+
+
+    from cpblUtilities import dsetset, dgetget
+    for sc in meanCommands: # There could be more than one...
+        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
+        assert '*' not in sc[0] # No wildcards allowed
+        vvars=[ss for ss in sc[0].split(' ') if ss]
+        rows=[ss for ss in sc[5].split('\n') if ss]
+        condition=sc[1]
+        assert len(rows)==len(vvars)
+        N=tonumeric(sc[3])
+        assert N
+        amean={}
+        #dsetset(sums,[condition],amean)
+
+        cols=['mean','seMean','ciL','ciH']
+        for irow in range(len(rows)):
+            onerow=tonumeric([ss for ss in rows[irow].split('|')[1].split(' ') if ss])
+            for icol,col in enumerate(cols):
+                assert dgetget(sums,[condition,vvars[irow],col],None) is None
+                dsetset(sums,[condition,vvars[irow],col], onerow[icol])
+                        #tonumeric(dict(zip(cols,
+            assert dgetget(sums,[condition,vvars[irow],'N'],None) is None
+            dsetset(sums,[condition,vvars[irow],'N'],   N)
+
+
+    # Now also get the stddev, the min, and the max from the "sum" command, and add these statistics in to the same dict... Nothing from the "mean" command should be overwritten, and the "N" should be identical for each.  AGH No: 2011 Oct: N will not be the same, since if there are multiple variables given in one sum called, the lowest common N will be used.
+
+
+    for sc in sumCommands: # There could be more than one...
+        # Find variable names from the calling command (so they must be called as full names... hmm and no wildcards!)
+        vvars=[ss for ss in sc[0].split(' ') if ss]
+        #print vvars
+        rows=[ss for ss in sc[4].split('\n') if ss]
+        #print rows
+        condition=sc[1]
+        assert len(rows)==len(vvars)
+
+        cols=['checkN','junkWeight','junkMean','stddev','min','max']
+        #if not meanCommands:
+        #    cols=['N','weight','mean','stddev','min','max']
+        #    print 'CAUTION!!!!!!!!!!!!!!!! this is a very old .. rerun stata'
+        for irow in range(len(rows)):
+            #asum[vvars[irow]].update(tonumeric(dict(zip(cols,[ss for ss in rows[irow].split('|')[1].split(' ') if ss]))))
+            onerow=tonumeric([ss for ss in rows[irow].split('|')[1].split(' ') if ss])
+            for icol,col in enumerate(cols):
+                assert dgetget(sums,[condition,vvars[irow],col],None) is None
+                dsetset(sums,[condition,vvars[irow],col], onerow[icol])
+
+            asum=sums[condition]
+            assert asum[vvars[irow]]['N']==asum[vvars[irow]]['checkN'] # Every variable should have the same count, and it should be the same as that from the mean command.
+
+            if not meanCommands:
+                asum[vvars[irow]]['junkseMean']=asum[vvars[irow]]['stddev']/sqrt(asum[vvars[irow]]['N'])
+                print ' CAUTION! Using incorrectly weighted stddev for calculation of mean s.e. because mean list multi does not exist... (rerun Stata?) '
+            if asum[vvars[irow]]['N']==1:
+                asum[vvars[irow]]['junkseMean']=0.0 # We don't know further properties of the single value, so assume no s.e.
+
+    for condition in sums:
+      for avar in sums[condition]:
+         pass
+    return(sums)
 
 
 
@@ -5513,6 +5716,7 @@ def models2df(models,latex=None):
     [  I think this functionneed not be a member of the class, strictly speaking, but a separate utility function, if it acts on models, not latexRF objects.]
 
     I could use latex object's substitutions to build in a label for each variable?
+To do: implement meanGroupName property here?
     """
     grouped=[]
     for mm in models:

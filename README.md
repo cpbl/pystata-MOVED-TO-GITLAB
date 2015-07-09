@@ -5,22 +5,22 @@ Tools for controlling Stata from Python. Reads log files, generates dynamically 
 
 
 
-There are three repostories
+There are three repositories
 
 pystata
 cpbl-tables
 cpblUtilities
 
-now populated on my github page (cpbl) which, along with a file 
+now populated on my github account (cpbl) which, along with a file 
 cpblDefaults.py (a version of which is in pystata) make a minimal set of 
 stuff to run the pystata-demo.py program in pystata repository.
 
-As you will see, making this code open is a big step because it's a decade 
-of personalized kludges, with some very useful tools interspersed. :)
+As you will see, making this code open is a bit bold because it's a decade 
+of personalized kludges (messy), with some useful tools interspersed. :)
 
 Here's the idea of one component of pystata, the latexRegressionClass:
 
-I write regression commands like in a do file, but with some extra 
+I write regression commands like in a Stata do-file, but with some extra 
 annotation. E.g. lines like the following could preceed a regression call
 
 *name:Full model
@@ -48,7 +48,7 @@ substituting Stata variable names for LaTeX markup, specification of
 ordering of variables, and so on, which can be refined without waiting for 
 the estimates to be rerun.
 
-The LaTeX tables are stored individuall, each in a custom format .tex file 
+The LaTeX tables are stored individually, each in a custom format .tex file 
 which actually includes, as comments for posterity, the entire Stata log 
 file lines for the relevant estimates.
 
@@ -59,7 +59,6 @@ landscape, etc, simply by changing the call function in your main
 document. By adding "transpose" to the name, you can even invoke a 
 transposed version of the table.
 
-
 That is the gist of what the pystata-demo.py is supposed to show, and of 
 course there are many other things in each of the packages.
 
@@ -67,3 +66,4 @@ I'm sure you'll have lots of fiddling to even get stuff set up at first; I
 hope it's manageable and worthwhile.
 
 The hope is to sort out the idiosyncratic from the useful/general, and the good from the old/bad.
+
