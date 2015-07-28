@@ -13,9 +13,12 @@ To do:
 """
 
 try:
-    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname,seSum,seMean, dgetget, doSystem,shelfSave,shelfLoad
+    from cpblUtilities import * #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
+    #from cpblUtilitiesMathGraph import  seSum,mean_of_means
 except ImportError:
     print("pystataCodebooks: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+    import sys
+    print("     Here's the current path: "+str(sys.path))
 
 from copy import deepcopy
 #from pystata import stataSystem,stataLoad
@@ -851,7 +854,7 @@ Oh, no! I ca not just disclose the raw log file!
 
     ################################################################
     ################################################################
-    def createValueLabels(self,lookupDict,varname=None,labelname=None):
+    def _deprecated2015_let_us_use_assignLabelsInStata_createValueLabels(self,lookupDict,varname=None,labelname=None):
     ################################################################
     ################################################################
         """
@@ -863,7 +866,7 @@ Oh, no! I ca not just disclose the raw log file!
         I could also implement this as a built in option for tsv2dta, for a specified set of pairs.
 2014: See    assignLabelsInStata(self,autofindBooleans=True,missing=None,onlyVars=None) for something related
 
-how is this different from  assignLabelsInStata?
+how is this different from  assignLabelsInStata?  2015: It looks like it doesn't do the actual value labels
         """
 
         if varname and not labelname:
@@ -1751,7 +1754,7 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
 
     ################################################################
     ################################################################
-    def assignLabelsInStata(self,autofindBooleans=True,missing=None,onlyVars=None,valuesOnly=False):
+    def _deprecated_use_the_one_in_surveypandas_assignLabelsInStata(self,autofindBooleans=True,missing=None,onlyVars=None,valuesOnly=False):
     ################################################################
     ################################################################
         """ 2014 June: Overwrite all variable labels and value labels based on the codebook.
@@ -1765,7 +1768,7 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
         missing : set of values like "don't know" which should be considered missing
         valuesOnly: This will create labels for values, but it won't relabel the variables themselves
 
-ohoh. is this sthe same as createValueLAbels?  Retire one of them!?
+ohoh. is this sthe same as createValueLAbels?  Retire one of them!? The other doesn't do the value labels.
         """
         outs=''
         import re
@@ -1775,19 +1778,20 @@ ohoh. is this sthe same as createValueLAbels?  Retire one of them!?
             if onlyVars: # Skip any definitions if not in desired list
                 if thisVar not in onlyVars and re.match(onlyVars[0],thisVar) is None:
                     continue
-            if vcb['labels']:
-                #assert not any(['"' in alabel for aval,alabel in vcb['labels'].items()])
-                yes=[aa   for aa,bb in vcb['labels'].items() if bb.lower()=='yes']
-                no=[aa   for aa,bb in vcb['labels'].items() if bb.lower()=='no']
-                #if set(sorted([vv.lower() for vv in vcb['labels'].values()]))==set(['yes','no']):
-                if len(yes)==1 and len(no)==1 and len(vcb['labels'])==2:
+            valueLs=vcb.get('labels',vcb.get('values',{}))
+            if valueLs:
+                #assert not any(['"' in alabel for aval,alabel in valueLs.items()])
+                yes=[aa   for aa,bb in valueLs.items() if bb.lower()=='yes']
+                no=[aa   for aa,bb in valueLs.items() if bb.lower()=='no']
+                #if set(sorted([vv.lower() for vv in valueLs.values()]))==set(['yes','no']):
+                if len(yes)==1 and len(no)==1 and len(valueLs)==2:
                     outs+='\ncapture noisily replace %s = %s == %d\n'%(thisVar,thisVar,yes[0])
                     self[thisVar]['labels']={1:'yes',0:'no'}
                     vcb=self[thisVar]
-                #assert not any(["don't know" in aval for aval in vcb['labels'].values()])
+                #assert not any(["don't know" in aval for aval in valueLs.values()])
                 valueLabelName=thisVar+'_LABEL' if 'labelsname' not in vcb else vcb['labelsname']
-                outs+='\n label define '+valueLabelName+' '+' '.join(['%d "%s"'%(aval,alabel) for aval,alabel in vcb['labels'].items()])+'\n'
-                #assert 'other than ' not in '\n label define %s_LABEL'%thisVar+' '+' '.join(['%d "%s"'%(aval,alabel) for aval,alabel in vcb['labels'].items()])+'\n'
+                outs+='\n label define '+valueLabelName+' '+' '.join(['%d "%s"'%(aval,alabel) for aval,alabel in valueLs.items()])+'\n'
+                #assert 'other than ' not in '\n label define %s_LABEL'%thisVar+' '+' '.join(['%d "%s"'%(aval,alabel) for aval,alabel in valueLs.items()])+'\n'
                 outs+='\n capture noisily label values %s %s\n'%(thisVar,valueLabelName)
 
             #assert not '"' in vcb['desc']

@@ -1136,7 +1136,7 @@ I've added various other flag/settings specified starting with *.
             elif aline.startswith('*autoExcludeVars:'): # Syntax to allow a non-missing variable to be missing for all in the sample.
                 extraFields['autoExcludeVars']=aline.split(':')[1]
             # To do: Following feature started to be implented July 2015. Erase this when it's done.
-            elif aline.startswith('*groupName:'): # Syntax to allow, in non-transposed mode, another title row labeling individual or groups (if they're adjacent) of columns. The "*name:" parameter is still shown, in another row below.
+            elif aline.lower().startswith('*groupname:'): # Syntax to allow, in non-transposed mode, another title row labeling individual or groups (if they're adjacent) of columns. The "*name:" parameter is still shown, in another row below.
                 extraFields['modelGroupName']=aline.split(':')[1]
             elif aline.startswith('*meanGroupName:'): # Syntax to allow grouping of estimates for calculating group mean coefficients
                 extraFields['meanGroupName']=aline.split(':')[1]
@@ -1570,7 +1570,7 @@ Bugs:
 
         assert attributes==None  # Deprecating this.
 
-        DO_NOT_DEEPCOPY=True # Warning!!!!!!1 April 2010: I am changing things so that it's up to the caller to do a deepcopy before passing models to regTable.  This is a good idea if some of the elements of the models might point to common objects, and these ojbects may be modified per model. But I need to be able to pass things like showModels and hideModels as pointers to elements of the original models list, so doing deepcopy messes things up.   Hey, maybe I could test for redundancy by checking the memory length of oriinal and deepcopy of it? It different, there were some common pointers... [?Not done yet]
+        DO_NOT_DEEPCOPY=True # Warning!!! April 2010: I am changing things so that it's up to the caller to do a deepcopy before passing models to regTable.  This is a good idea if some of the elements of the models might point to common objects, and these ojbects may be modified per model. But I need to be able to pass things like showModels and hideModels as pointers to elements of the original models list, so doing deepcopy messes things up.   Hey, maybe I could test for redundancy by checking the memory length of oriinal and deepcopy of it? It different, there were some common pointers... [?Not done yet]
         if DO_NOT_DEEPCOPY:
             print ''+0*"""   Warning: April 2010: I am eliminating deepcopying ... it's up to the caller now to do this in advance. Check your update() calls in making the models list for regTable."""
 
@@ -1755,7 +1755,6 @@ Bugs:
         ###plainSubstitutions=substitutions
         if substitutions ==None:
             substitutions=self.substitutions#standardSubstitutions
-
         
         # One must never use mutable objects (like lists) as default values in a function definition.
         # (SEe http://effbot.org/pyfaq/why-are-default-values-shared-between-objects.htm and
@@ -4023,7 +4022,7 @@ What is "launch"? It seems not used.
                 self.addDescriptiveStatistics(dataFile=self.mainDataFile,logname='end',showVars=showStatsFor,ifcondition=statsCondition)
             else:
                 #not DTA and not compileOnly and not self.mainDataFile:
-                print ' ***** WARNING!! closeAndCompile: Why have you not specified a codebook or DTA to generate a codebook, so as to get means of the variables used?'
+                print ' * SUGGESTION: closeAndCompile: Why have you not specified a codebook or DTA to generate a codebook, so as to get means of the variables used?'
         if self.lfileTeXbody=='':# obselete: or   (self.lfileTeX==self.lfileTeX_original): # part following or is old /junk
             print 'There is no LaTeX code accumulated to compile'
             return(self.fpathname+'.tex')

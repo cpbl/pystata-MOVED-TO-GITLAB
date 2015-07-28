@@ -36,7 +36,7 @@ To clarify when to use each, here they are:
 
 try:
     from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
-    from cpblUtilitiesMathGraph import tonumeric, fNaN, seSum,seMean
+    from cpblUtilitiesMathGraph import tonumeric, fNaN, seSum #,mean_of_means
     from cpblUtilitiesUnicode import str2latex
 except ImportError:
     import sys
@@ -125,6 +125,7 @@ standardSubstitutions=[ # Make LaTeX output look prettier. Third column is for s
         ['lnHHincome','ln(HH~inc)'],
         ['lnavHHincome','ln(HH~inc)'],
         ['lnadjHHincome',r'ln(HH~inc$_{\rm adj}$)'],
+        ['lnadjHHinc',r'ln(HH~inc$_{\rm adj}$)'],
         ['lnRHHincome','ln(HH~inc$_{R}$)'],
         ['lnRIndivIncome','ln(own~inc$_{R}$)'],
         ['lnRavHHincome','ln(HH~inc$_{R}$)'],
@@ -5804,6 +5805,10 @@ def asinh_truncate(fromvar,tovar,truncate=True):
     """%{'fv':fromvar,'tv':tovar})
 log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
+
+
+
+    
 try:
     from pystataLatexRegressions import latexRegressionFile
 except ImportError:
@@ -5816,7 +5821,8 @@ if __name__ == '__main__':
     #pass
     # parseSimultaneousQuantileRegression()
 
-
+    load_text_data_using_SAS_syntax(sasfile='/home/cpbl/rdc/inputData/GSS27/Syntax_Syntaxe/GSS27SI_PUMF.sas',datafile='/home/cpbl/rdc/inputData/GSS27/Data/C27PUMF.txt')
+    foo
     #parseQuantileRegression('/home/cpbl/gallup/workingData/qGWP-slim-WesternEuropeandNorthAmerica-quantile',name='test-')
 
     if 0:
