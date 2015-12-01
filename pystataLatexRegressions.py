@@ -1082,10 +1082,10 @@ I've added various other flag/settings specified starting with *.
 
             words=[LL for LL in aline.split(' ') if LL]
             method=words[0]
-            if method in ['ivregress','ivreg']:
+            if method in ['ivregress','ivreg']: # These take a second word, typically "2sls". ivreg2 does NOT.
                 method=' '.join(words[0:2])
                 words=[method]+words[2:]
-            if method in ['svy:reg','svy:regress','reg','areg','regress','ologit','oprobit','logit','probit','xtreg','ivregress 2sls','ivreg 2sls']:
+            if method in ['svy:reg','svy:regress','reg','areg','regress','ologit','glogit','oprobit','logit','probit','xtreg','ivregress 2sls','ivreg 2sls', 'ivreg2','glm']:
                 depvar=words[1]
                 therest=' '.join(words[2:])
                 if '[' in aline:
@@ -1305,7 +1305,7 @@ I've added various other flag/settings specified starting with *.
     
     ###########################################################################################
     ###
-    def regTable(self,tablename,models,method=None,depvar=None,regoptions=None,variableOrder=None,showonlyvars=None,hidevars=None,forceShowVars=None,extralines=None,comments='',substitutions=None,options='',attributes=None,landscape=False,transposed=None,combineRows=None,suppressSE=False, produceOnly=None,extraTexFileSuffix=None,doPcorr=False,stopForErrors=True,crcoefsVars=None,skipStata=False,skipLaTeX=False,hidePSumTest=False,defaultModel=None,hideModelNumbers=False,assignSaveCoefficientsPrefix=None,hideModels=None,showModels=None,hideModelNames=False,renumberModels=True,showFailedRegressions=False,multirowLabels=False,betas=False,followupFcn=None,followupArgs=None,showCompDiff=None,returnModels=False,postPlotFcn=None,postPlotArgs=None,autoCreateVars=True,captureNoObservations=None,skipReadingResults=False): # Do a set of regressions; output results to .tex and .txt files 
+    def regTable(self,tablename,models,method=None,depvar=None,regoptions=None,variableOrder=None, showonlyvars=None,hidevars=None,forceShowVars=None,extralines=None,comments='',substitutions=None,options='', attributes=None,landscape=False,transposed=None,combineRows=None,suppressSE=False, produceOnly=None,extraTexFileSuffix=None,doPcorr=False,stopForErrors=True,crcoefsVars=None,skipStata=False, skipLaTeX=False,hidePSumTest=False,defaultModel=None,hideModelNumbers=False,assignSaveCoefficientsPrefix=None, hideModels=None,showModels=None,hideModelNames=False,renumberModels=True,showFailedRegressions=False, multirowLabels=False,betas=False,followupFcn=None,followupArgs=None,showCompDiff=None,returnModels=False, postPlotFcn=None,postPlotArgs=None,autoCreateVars=True,captureNoObservations=None,skipReadingResults=False): # Do a set of regressions; output results to .tex and .txt files 
         # retired options: useOUTREG2=False,
         ###
         #######################################################################################
@@ -1898,7 +1898,7 @@ Bugs:
             assert betas in [None,False,True]
             doBetaMode=False
             if 'beta' in modelregoptions or betas==True:
-                assert model['method'] in ['svy:reg','svy:regress','reg','regress',] # Can I Adding xtreg??
+                assert model['method'] in ['svy:reg','svy:regress','reg','regress','areg','xtreg'] # Can I Adding xtreg??
                 doBetaMode=True
                 model['textralines'][r'$\beta$ coefs']=r'\YesMark'
 
@@ -2414,8 +2414,8 @@ copy "%s" "%s", replace
                 r2=mm['eststats']['r2']
             else:
                 r2=mm['eststats'].get('r2_p','noR2')
-            if r2 in badR2 and 'ivreg' not in mm['method']:  # Huh? What about r2-p?  N.b.: I'm not detecting failed ivregress yet (2015)
-                print ' Suppressing model %d (name="%s") from LaTeX table because the regression failed'%(mm['modelNum'],mm['name'])
+            if r2 in badR2 and mm['method'] not in ['glm'] and 'ivreg' not in mm['method']:  # Huh? What about r2-p?  N.b.: I'm not detecting failed ivregress yet (2015)
+                print ' Suppressing model %d (name="%s") from LaTeX table because the regression failed (OR TYPE UNKNOWN to pystata)'%(mm['modelNum'],mm['name'])
                 mm['eststats']['r2']=fNaN
                 mm['eststats']['r2_a']=fNaN
                 mm['eststats']['N']=0
@@ -2640,7 +2640,7 @@ copy "%s" "%s", replace
                 sumStatsRows=[el for el in sumStatsRows if el[0].strip() not in noshowKeys]
 
         if betas: # Constant term is zero for standardized beta coefficients. So if they're all beta, don't show constant.
-            hidevars+=['_cons']
+            hidevars+=' _cons'
 
         # kludge sept 2009: [no, not kludge. this is a formatting decision which should be here]
         skipCounts=0

@@ -1752,6 +1752,13 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
                 self[vv]['desc']=str2latex(self[vv]['desc'])
 
 
+    def assignLabelsInStata(self,autofindBooleans=True,missing=None,onlyVars=None,valuesOnly=False):
+        from surveypandas import surveycodebook
+        _cb=surveycodebook(self)
+        return(
+            _cb.assignLabelsInStata(autofindBooleans=autofindBooleans,missing=missing,onlyVars=onlyVars,valuesOnly=valuesOnly)
+            )
+
     ################################################################
     ################################################################
     def _deprecated_use_the_one_in_surveypandas_assignLabelsInStata(self,autofindBooleans=True,missing=None,onlyVars=None,valuesOnly=False):

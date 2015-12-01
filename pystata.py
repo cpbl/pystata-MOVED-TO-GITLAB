@@ -418,7 +418,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
 
         if RDC:
             systemcom='cd %s && %s stata -v7000 -b do %s.do '%(dodir,niceString, dofile) #-m%d  mem
-        else:
+        else: 
             stataexec=['/usr/bin/stata14','/usr/bin/stata','/usr/local/stata12/stata-mp']
             stataexec=[ss for ss in stataexec if os.path.exists(ss)][0]
             if not stataexec:
@@ -495,7 +495,7 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
  What is wrong with loadStataDataForPlotting()?
 
 TO do:
-    2015June:      - Pandas does not read Stata 14 files!!
+    2015June:      - Pandas does not read Stata 14 files yet!!
 
     """
     
@@ -517,12 +517,21 @@ TO do:
         'Not sure what to do here. Find dta or dta.gz...'
     import pandas as pd
     pdoutfile= pp+ff+'.pandas' if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff+'.pandas'
-    if fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
+    if 1 or fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
         print('    ' +fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using original Stata file...')
-
         if fn.endswith('.dta.gz') and fileOlderThan(ppff+'.dta',fn):
             os.system('gunzip -c %s > %s.dta'%(fn,ppff))
         print('        read_stata '+pp+ff+ee)
+
+
+        if float(pd.__version__[2:]) < 17.0:
+           # Create stata 12 version of data :( since Pandas cannot read stata14
+           print('      Making stata 12 version of '+ff+ee+' ... ')
+           stataSystem("""
+           use """+pp+ff+""",clear
+           saveold """+paths['scratch']+'__tmpv12_'+ff+ee+""", replace version(12)
+           """)
+           pp=paths['scratch']+'__tmpv12_'
         df=pd.read_stata( pp+ff+ee,convert_categoricals=False)
         df.to_pickle(pdoutfile)
     else:
@@ -634,7 +643,7 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
            df=df[:-7]
        assert(os.path.exists(df+'.pandas'))
        if fileOlderThan(df+'.dta.gz',df+'.pandas'):
-           pddf=pd.load(df+'.pandas')
+           pddf=pd.read_pickle(df+'.pandas')
            df2dta(pddf,df)
        return
    else:
@@ -643,7 +652,7 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
            filepath=filepath[:-3]
        if filepath.endswith('.pandas'): # Otherwise, just assume it's short for a filename with .pandas extension
            filepath=filepath[:-7]
-   
+
 
    if 1: # 2014 July: I'm skipping df.to_stata: I don't know how to force things to string with it. Also forcing update to true, below.
        df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index)
@@ -2633,7 +2642,7 @@ sigma                                             |
 
             if len(sections)==2:
                 assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
-                assert command in [None,'OLS','ols','reg','regress','qreg','ivregress 2sls']
+                assert command in [None,'OLS','ols','reg','regress','qreg','ivregress 2sls','ivreg2']
                 #print 'OLS etc'
                 varsS,statss=sections[0],sections[1]
             elif command in ['xtreg']:
@@ -4498,7 +4507,7 @@ data = {label: row for label, row in zip(labels, raw_data)}
 	returnVal=dataDF
     else:
             print 'Loading '+npF+'...',
-            returnVal=pd.load(npF)#np.load(npF)  # DataFrame.
+            returnVal=pd.read_pickle(npF)#np.load(npF)  # DataFrame.
             print ' [Done] '
     return(returnVal)
 
@@ -5570,7 +5579,7 @@ estat bootstrap, all
     """%{'bm':model,'st':statistic,'N':N,'bopt':boptions})
 
 
-def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceUpdate=False,weight='weight'):
+def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,outfilenameSuffix='',precode='',forceUpdate=False,weight='weight'):
     """
     Produce a Pandas dataframe from the relatively nice-looking output of Stata's polynomial regression to generate non-parametric fits. 
     Output vectors x,y,seL,seU are returned and also saved in shelf file (or pandas file: old code will need to be updated)
@@ -5592,7 +5601,7 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceUpdate=F
         yvars=[yvars]
     if stataFile.endswith('.dta.gz'): stataFile=stataFile[:-7]
     if outfilename is None:
-        outfilename=paths['scratch']+'stataLpoly-'+'-'.join([   os.path.split(stataFile)[1],xvar,]+yvars+[str(abs(hash(precode)) % (10 ** 8))])
+        outfilename=paths['scratch']+'stataLpoly-'+'-'.join([   os.path.split(stataFile)[1],xvar,]+yvars+[str(abs(hash(precode)) % (10 ** 8))])+ outfilenameSuffix
 
     if outfilename.endswith('.pandas'): outfilename=outfilename[:-7]
        
@@ -5638,7 +5647,7 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,precode='',forceUpdate=F
         lpoly.save(outfilename+'.pandas')
 
     else:
-       lpoly=pd.load(outfilename+'.pandas')
+       lpoly=pd.read_pickle(outfilename+'.pandas')
     #assert len(lpoly)
     return(lpoly)
 
