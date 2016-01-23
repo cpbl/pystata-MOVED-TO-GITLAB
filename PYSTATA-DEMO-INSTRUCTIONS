@@ -9,6 +9,8 @@ git clone http://github.com/cpbl/cpbl-tables
 # Add the following line to your ~/.bashrc , or otherwise add the new modules to your PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:~/bin/cpbl-tables:~/bin/pystata:~/bin/cpblUtilities
 
+In the pystata module, you may need to edit pystata.py to update the values of 
+stataexec so that it knows where to find your stata executable.
 
 # Launch stata, and install the following two packages:
 
@@ -24,6 +26,7 @@ mkdir ~/texmf
 mkdir ~/texmf/tex
 cp cpbl-tables/*.sty ~/texmf/tex
 texhash
+
 
 Now navigate to the pystata module. Run the demo (a few times, eg at least four: to execute stata, analyse results, compile latex, recompile latex)
 
