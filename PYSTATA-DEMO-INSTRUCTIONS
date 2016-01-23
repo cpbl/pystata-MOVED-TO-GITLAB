@@ -1,0 +1,35 @@
+
+# Get the packages:
+
+git clone http://github.com/cpbl/cpblUtilities
+git clone http://github.com/cpbl/pystata
+git clone http://github.com/cpbl/cpbl-tables
+
+
+# Add the following line to your ~/.bashrc , or otherwise add the new modules to your PYTHONPATH
+export PYTHONPATH=$PYTHONPATH:~/bin/cpbl-tables:~/bin/pystata:~/bin/cpblUtilities
+
+
+# Launch stata, and install the following two packages:
+
+net describe zscore, from(http://www.stata.com/users/sdriver)
+net install zscore
+net describe gzsave, from(http://fmwww.bc.edu/RePEc/bocode/g)
+net install gzsave
+
+# Navigate to the cpbl-tables repository, and put the .sty files into your local TEX path. Then update the TEX file database (texhash)
+# E.g., on GNU/Linux:
+
+mkdir ~/texmf
+mkdir ~/texmf/tex
+cp cpbl-tables/*.sty ~/texmf/tex
+texhash
+
+Now navigate to the pystata module. Run the demo (a few times, eg at least four: to execute stata, analyse results, compile latex, recompile latex)
+
+
+python ./pystata-demo.py
+python ./pystata-demo.py
+python ./pystata-demo.py
+
+Now use your pdf viewer to look at:  texdocs/pystata-demo-2014-A.pdf

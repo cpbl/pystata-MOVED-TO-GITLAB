@@ -5644,7 +5644,7 @@ def stataLpoly2df(stataFile,xvar,yvars,outfilename=None,outfilenameSuffix='',pre
             lpoly=pd.read_csv(outfilename+'.tsv',sep='\t')
         else:
             lpoly=pd.DataFrame()
-        lpoly.save(outfilename+'.pandas')
+        lpoly.to_pickle(outfilename+'.pandas')
 
     else:
        lpoly=pd.read_pickle(outfilename+'.pandas')
@@ -5687,6 +5687,9 @@ graph export mygraph.eps, replace
 and for pdf:
 
 graphexport pdf mygraph, dropeps
+
+N.B. This is used by latex.saveAndIncludeStataFig(self,figname,caption=None,texwidth=None):
+
     """
     pp,ff,ee=[os.path.split(fn)[0] ] +    list(os.path.splitext(os.path.split(fn)[1])) 
     if pp in ['']: pp=paths['graphics']
