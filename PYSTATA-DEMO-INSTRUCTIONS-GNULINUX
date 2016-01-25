@@ -5,6 +5,7 @@ git clone http://github.com/cpbl/cpblUtilities
 git clone http://github.com/cpbl/pystata
 git clone http://github.com/cpbl/cpbl-tables
 
+Also install, through your operating system's python package manager, or in your local path, the python package "pandas". There may be some other standard packages that are needed too; let me know.
 
 # Add the following line to your ~/.bashrc , or otherwise add the new modules to your PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:~/bin/cpbl-tables:~/bin/pystata:~/bin/cpblUtilities
