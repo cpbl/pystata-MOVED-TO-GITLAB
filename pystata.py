@@ -2580,7 +2580,7 @@ def readEstimatesTable(logtxt,command=None):
         Estimates table is currently (version 11) the only way to get results out without truncated variable names. In Stata 11, there is no way to do this for matrices.
         Prior to Jan 2010 I had this working for OLS and quantile regression. I am now generalising it to deal with results from oaxaca command too (maybe).
 
-        This was first designed for OLS. Right now it still ignores the cut-points for ologit etc results! They end up in statss
+        This was first designed for OLS. Right now it still ignores the cut-points for ologit etc results. They end up in statss
 
         Maybe I should have a "di e(cmd)" in there so that it knows what command it's dealing with...
         Or allow the command (mode) to be passed....?
@@ -2702,9 +2702,10 @@ def readStataEstimateResults(logtxt):
         """
         This used to be a part of the following function, read a log file. But it also works for quantile regression, which is parsed separately.
 
-        This was designed for OLS. Right now it ignores the cut-points for ologit etc results! They end up in statss
+        This was first designed for OLS. Right now it ignores the cut-points for ologit etc results. They end up in statss
 
-        May 2011: Adding suest tests???
+        May 2011: Adding suest tests
+        2016 Jan: add ivreg2 tests
         """
         from pylab import isnan
 ##         
@@ -2719,6 +2720,23 @@ def readStataEstimateResults(logtxt):
 
         if not '*BEGIN SUEST TESTS TWOMODELS' in logtxt:
             outModel=readEstimatesTable(logtxt)
+
+        # READ SOME STANDARD (AUTOMATED) IVREG2 POSTESTIMATE TESTS:
+        if 'Weak identification test (Cragg-Donald Wald F statistic):' in logtxt:
+            CDWFstat=re.findall(r'Weak identification test \(Cragg-Donald Wald F statistic\):\s*(.*?)\n',logtxt)
+            assert len(CDWFstat)==1
+            outModel['eststats']['CDWFstat']=tonumeric(CDWFstat[0])
+            
+        if 'Hansen J statistic (overidentification test of all instruments):' in logtxt:
+            HJstats=re.findall(r'Hansen J statistic \(overidentification test of all instruments\):\s*(.*?)\n[^=\n]*=\s*(.*?)\n',logtxt)
+            assert len(HJstats)==1
+            outModel['eststats']['OverID p']=tonumeric(HJstats[0][1])
+
+        if 'Underidentification test (Kleibergen-Paap rk LM statistic):' in logtxt:
+            UTtest=re.findall(r'Underidentification test \(Kleibergen-Paap rk LM statistic\):\s*(.*?)\n[^=\n]*=\s*(.*?)\n',logtxt)
+            assert len(UTtest)==1
+            outModel['eststats']['UnderID p']=tonumeric(UTtest[0][1])
+                    
 
         # THIS COULD BE A SUEST TEST SET, NOT AN ESTIMATE...
         if '*BEGIN SUEST TESTS TWOMODELS' in logtxt:
