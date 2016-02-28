@@ -953,7 +953,7 @@ def substitutedNames(names, subs=None,newCol=1):
     return(names)
 
 try:
-    from pystata.codebooks import stataCodebookClass
+    from codebooks import stataCodebookClass
 except ImportError:
     print("pystata: Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
 
@@ -1074,7 +1074,7 @@ def toBoolVar(newname,oldname,surveyName=''):
     return(outs)
 
 try:
-    from cpblUtilities import cpblTableStyC
+    from cpbl_tables import cpblTableStyC
 except ImportError:
     print("pystata: Unable to find (or unable to import) cpblTables module")
 
@@ -5828,7 +5828,7 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
     
 try:
-    from pystata.latexRegressions import latexRegressionFile
+    from latexRegressions import latexRegressionFile
 except ImportError:
     print("pystata: Unable to find (or unable to import) pystata.latexRegressions module")
 
