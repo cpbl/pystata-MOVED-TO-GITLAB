@@ -12,7 +12,7 @@ print WP+'logs/'
 # You need to have cpblUtilities installed in your python path
 # You need to have cpbl-tables installed, both the python files and the LaTeX .sty files, in your python and texmf paths.
 
-latex=pst.latexRegressionFile('pystata-demo',modelVersion='2014',regressionVersion='A',
+latex=pst.latexRegressionFile('pystata.demo',modelVersion='2014',regressionVersion='A',
                               substitutions=[[ 'aq5a','conservatives handle crime']]+pst.standardSubstitutions)
 latex.variableOrder=('aq1 aq5a aq6a aq7a ').split(' ')+pst.defaultVariableOrder
 latex.skipStataForCompletedTables=False# If we've already run it, assume it hasn't changed. (figures too!!)

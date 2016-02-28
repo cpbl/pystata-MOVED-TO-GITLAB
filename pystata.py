@@ -36,7 +36,7 @@ To clarify when to use each, here they are:
 
 try:
     from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
-    from cpblUtilitiesMathGraph import tonumeric, fNaN, seSum #,mean_of_means
+    from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
     from cpblUtilitiesUnicode import str2latex
 except ImportError:
     import sys
@@ -570,7 +570,7 @@ index : identifier of index column
     """
 dta2df=dta2dataframe
 
-def dataframe2dta(df,fn,forceToString=None):
+def dataframe2dta(df,fn,forceToString=None, extraStata=None):
     """
     Feb 2013: This is a crude beginning to an analogue for writing a dataset when we may want to force Stata to see some numeric fields as strings.
     Yes, pandas does this already, but not on Apollo, and I don't always love its behaviour.
@@ -598,7 +598,7 @@ def dataframe2dta(df,fn,forceToString=None):
 	    df.reset_index().append(pd.Series(dict([(fts,'dummy') for fts in forceToString])),ignore_index=True).to_csv(fn+'.tsv',sep='\t',header=True,index=False)
     else:
 	    df.to_csv(fn+'.tsv',sep='\t',header=True)
-    tsv2dta(fn)
+    tsv2dta(fn, extraStata=extraStata)
     print('  Saved a CPBL df->TSV->dta.gz version as'+fn+'.dta.gz')
 
     # Ultimately, we should transition to pandas's version. So that it's there for comparison, make a .dta (not .dta.gz) version using Pandas: 
@@ -953,9 +953,9 @@ def substitutedNames(names, subs=None,newCol=1):
     return(names)
 
 try:
-    from pystataCodebooks import stataCodebookClass
+    from pystata.codebooks import stataCodebookClass
 except ImportError:
-    print("pystata: Unable to find (or unable to import) pystataCodebooks module, part of pystata package")
+    print("pystata: Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1531,8 +1531,9 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
     for vv in flagsVars:
         body+= '\t& '.join([substitutedNames(vv,substitutions)]+byTextraline[vv])+'\\\\ \n'
     for estat in statsVars:
-        lowCutoff,threeSigDigs=[(None,False),(1.0e-3,True)][estat in r2names]
+        lowCutoff,threeSigDigs=        (1.0e-3,True) if estat in r2names else                (1.0e-5,False) if estat in ['widstat','jp','idp']        else (None,False)
         body+= '\t& '.join([substitutedNames(estat,substitutions)]+[chooseSFormat(cc,lowCutoff=lowCutoff,threeSigDigs=threeSigDigs) for cc in byStat[estat]])+'\\\\ \n'
+        #assert not 'idp' == estat
 
     ntexrows,ntexcols=   1+len(coefVars+statsVars+flagsVars),1+(1+int(suppressSE))*len(models) # ?????NOT CHECKED
     formats='l*{%d}{r}'%(ntexcols-1) # or: 'l'+'c'*nvars
@@ -1856,7 +1857,7 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     outpair=deepcopy(pair)
     coefs=pair[0]
     ses=pair[1]
-
+    
     # If it's not regression coefficients, we may want to specify the p-values (and thus stars/colours) directly, rather than calculating t values here (!!). Indeed, aren't p-values usually available, in which case they should be used anyway? hmm.
     if pValues is None:
        pValues=[None for xx in coefs]
@@ -1866,7 +1867,7 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     significanceString,greyString=[[] for i in range(len(pair[0]))],   [[] for i in range(len(pair[0]))]
     for i in range(len(pair[0])):
         significanceString[i], greyString[i]='',''
-
+    
     for icol in range(len(pair[0])):
         yesGrey=icol in greycells or greycells==True
         if isinstance(coefs[icol],basestring) or isinstance(coefs[icol],unicode) or isnan(coefs[icol]):
@@ -1920,7 +1921,6 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
             outpair[1][icol]='?'
             print ' CAUTION!! VERY STRANGE CASE OF nan FOR s.e. WHILE FLOAT FOR COEF '
             assert 0
-
     return(outpair)
 
 
@@ -3240,7 +3240,7 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
 def readStataVariablesCovarianceMatrix(txt):
     """
     August 2009. Now relies on a more general matrix-reading functoin.
-    See pystataLatexRegressions.py for function(s) producing this..
+    See pystata.latexRegressions.py for function(s) producing this..
     """
     ev=re.findall("""(matrix list sampleIndepCorr,nohalf.*?END: matrix list)""",txt,re.DOTALL)
     assert len(ev)<2
@@ -3674,7 +3674,7 @@ q(\w*)\s+\|.*?
     import pylab as plt
     import matplotlib as mpl
 
-    from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
+    from cpblUtilities.mathgraph import plotWithEnvelope, savefigall
 
     plt.ioff() # Do not show plots
 
@@ -3796,7 +3796,7 @@ Or... i may be able to get a list of the non-excluded variables, at least, from 
     import pylab as plt
     import matplotlib as mpl
 
-    from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
+    from cpblUtilities.mathgraph import plotWithEnvelope, savefigall
 
     plt.ioff() # Do not show plots
 
@@ -3855,7 +3855,7 @@ Plot the results of quantile regressions from possibly more than one model (regi
         import pylab as plt
         import matplotlib as mpl
 
-        from cpblUtilitiesMathGraph import plotWithEnvelope, savefigall
+        from cpblUtilities.mathgraph import plotWithEnvelope, savefigall
 
         plt.ioff() # Do not show plots
 
@@ -4012,7 +4012,7 @@ Rather than do the grouping by hand here, just use the dlist() option in the oax
 
         difflhs={subsamp:signSwitch*oaxaca['overall']['difference']['b']}
         sedifflhs={subsamp:oaxaca['overall']['difference']['se']}
-        from cpblUtilitiesMathGraph import categoryBarPlot, savefigall, figureFontSetup
+        from cpblUtilities.mathgraph import categoryBarPlot, savefigall, figureFontSetup
         from pylab import array
         diffpredictions[subsamp][depvar]=signSwitch*oaxaca['overall'][strExplained]['b']
         sediffpredictions[subsamp][depvar]=oaxaca['overall'][strExplained]['se']
@@ -4325,11 +4325,11 @@ To do:
         # Get the overall explained component of the LHS variable:
         #difflhs={subsamp:signSwitch*oaxaca[stataws['overall']][stataws['difference']]['b']}
         #sedifflhs={subsamp:oaxaca[stataws['overall']][stataws['difference']]['se']}
-        from cpblUtilitiesMathGraph import seSum
+        from cpblUtilities.mathgraph import seSum
         difflhs,sedifflhs=seSum([means[0]['mean'], -means[1]['mean']],    [means[0]['sem'],means[1]['sem']])
 
         
-        from cpblUtilitiesMathGraph import categoryBarPlot, savefigall, figureFontSetup
+        from cpblUtilities.mathgraph import categoryBarPlot, savefigall, figureFontSetup
         from pylab import array
         #diffpredictions[subsamp][depvar]=signSwitch*oaxaca[stataws['overall']][stataws['predictedDifference']]['b']
         #sediffpredictions[subsamp][depvar]=oaxaca[stataws['overall']][stataws['predictedDifference']]['se']
@@ -5295,9 +5295,9 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
     from scipy import stats
     import numpy as np
     from cpblUtilities import plotWithEnvelope,transLegend,savefigall,sortDictsIntoQuantiles,finiteValues
-    from cpblUtilitiesMathGraph import shelfSave,shelfLoad
+    from cpblUtilities.mathgraph import shelfSave,shelfLoad
     # Because numpy and scipy don't have basic weight option in mean, sem !!!
-    from cpblUtilitiesMathGraph import wtmean,wtsem,wtvar
+    from cpblUtilities.mathgraph import wtmean,wtsem,wtvar
     from inequality import ineq,cpblGini
 
 
@@ -5828,9 +5828,9 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
     
 try:
-    from pystataLatexRegressions import latexRegressionFile
+    from pystata.latexRegressions import latexRegressionFile
 except ImportError:
-    print("pystata: Unable to find (or unable to import) pystataLatexRegressions module")
+    print("pystata: Unable to find (or unable to import) pystata.latexRegressions module")
 
 
 

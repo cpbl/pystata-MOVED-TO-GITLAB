@@ -14,9 +14,9 @@ To do:
 
 try:
     from cpblUtilities import * #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
-    #from cpblUtilitiesMathGraph import  seSum,mean_of_means
+    #from cpblUtilities.mathgraph import  seSum,mean_of_means
 except ImportError:
-    print("pystataCodebooks: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+    print("pystata.codebooks: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
     import sys
     print("     Here's the current path: "+str(sys.path))
 

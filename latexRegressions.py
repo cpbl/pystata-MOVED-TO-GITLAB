@@ -1681,6 +1681,9 @@ Bugs:
 
         # June 2011: should I drop compdiffs here too??
 
+        if not models:
+            print('  regTable found empty models. Aborting...')
+            return('')
         assert models
         assert fullmodels
         models=fullmodels
@@ -4665,7 +4668,7 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
 if __name__ == '__main__':
 ################################################################################################
 ################################################################################################
-    print ' DEMO MODE!!!!!!!!! for pystataLatexRegressions ... '
+    print ' DEMO MODE!!!!!!!!! for pystata.latexRegressions ... '
     sVersion,rVersion,dVersion='CPBLtesting','XXXX','testing'
     
     from recodeGallup import gDataVersion,pathList,gVersion
