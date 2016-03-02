@@ -11,31 +11,19 @@ To do:
                 # May 2013: check for funny chars?
                 
 """
+from config import *
+assert defaults is not None
 
 try:
     from cpblUtilities import * #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
     #from cpblUtilities.mathgraph import  seSum,mean_of_means
 except ImportError:
-    print("pystata.codebooks: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
     import sys
     print("     Here's the current path: "+str(sys.path))
 
 from copy import deepcopy
 #from pystata import stataSystem,stataLoad
-try:
-    from cpblDefaults import  paths, WP, IP
-    from cpblDefaults import  RDC
-    from cpblDefaults import defaults
-except ImportError:
-    print("pystata: Unable to find (or import?) CPBL's defaults settings ")
-    paths={'working':'./',
-           'input':'./',
-           'tex':'./',
-           'scratch':'./',   }
-    WP=paths['working']
-    IP=paths['input']
-    RDC,PUMF=False,False
-    defaults={'paths':paths}
 
 from codecs import open # arrrrgh. i hate unicode in python<3. dec 2011
 

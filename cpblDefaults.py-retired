@@ -6,6 +6,7 @@ This is a git / open / public version of cpblDefaults.py, rather than cpbl's ver
 
 So, you may need to define extra elements of the dict defaults, here, to make some of my other modules work.
 
+N.B.: Once this is replaced by local settings files, merge ~/bin/cpblDefaults.py and pystata's version.
 """
 
 from copy import deepcopy

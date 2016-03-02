@@ -32,36 +32,15 @@ To clarify when to use each, here they are:
 
   - generate_postEstimate_sums_by_condition: rather than groups, this takes simple if conditions. It looks only within the sample from the most recent regression. It is a bit confused about whether it wants only the all-variables-available sample or each variable's own available sample.
 
+Configuration:
+ A config.ini file should be used to set up folders to be used by pystata. The configuration procedure is as follows:
+  (1) pystata.configure() can be called to explicity set config values.
+  (2) Otherwise, pystata will look for a config.ini file in the operating system's local path at run time. Typically, this would be a file in the package of some caller module and would be in .gitignore so that it can be locally customized
+  (3) Otherwise, pystata will look for a config.ini file in its own (the pystata repository) folder.  
 """
 
-try:
-    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
-    from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
-    from cpblUtilitiesUnicode import str2latex
-except ImportError:
-    import sys
-    print("pystata: Unable to find or import? CPBL's utilities package. Test: importing it directly.")
-
-from copy import deepcopy
-
-try:
-    from cpblDefaults import  paths, WP, IP
-    from cpblDefaults import  RDC
-    from cpblDefaults import defaults
-except ImportError:
-    print("pystata: Unable to find (or import?) CPBL's defaults settings ")
-    paths={'working':'./',
-           'input':'./',
-           'tex':'./',
-           'scratch':'./',   }
-    WP=paths['working']
-    IP=paths['input']
-    RDC=False
-    defaults={'paths':paths}
-
-import os
-import re
-
+from config import *
+assert defaults is not None
 try:
     codebookFilename=   defaults['native']['paths']['working']+'tmpCodebook'
     codebookTSVfilename=defaults['native']['paths']['working']+'tmpCodebook.tsv'
@@ -69,6 +48,17 @@ try:
     mcodebook={} # This is a master codebook variable used to collect descriptions of variables that I actually use. Contrast rawCodebooks masterCodebook, below.
 except KeyError:
     print("  CPBL's defaults not defined")
+
+try:
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
+    from cpblUtilities import tonumeric, fNaN, seSum #,mean_of_means
+    from cpblUtilitiesUnicode import str2latex
+except ImportError:
+    import sys
+    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+
+from copy import deepcopy
+
 global rawCodebooks
 # Load up lists of *all* variables for surveys, if this info is available: (No, I need to reprogram thi to do it based just on the codebook class I've made)
 ##import extractCodebooks
@@ -955,7 +945,7 @@ def substitutedNames(names, subs=None,newCol=1):
 try:
     from codebooks import stataCodebookClass
 except ImportError:
-    print("pystata: Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
+    print(__file__+": Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1076,7 +1066,7 @@ def toBoolVar(newname,oldname,surveyName=''):
 try:
     from cpbl_tables import cpblTableStyC
 except ImportError:
-    print("pystata: Unable to find (or unable to import) cpblTables module")
+    print(__file__+": Unable to find (or unable to import) cpblTables module")
 
 
 
@@ -5830,7 +5820,7 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 try:
     from latexRegressions import latexRegressionFile
 except ImportError:
-    print("pystata: Unable to find (or unable to import) pystata.latexRegressions module")
+    print(__file__+": Unable to find (or unable to import) pystata.latexRegressions module")
 
 
 

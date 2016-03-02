@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from cpblDefaults import defaults, paths, WP
+#from cpblDefaults import defaults, paths, WP
 import pystata as pst
 
 print(" The following folders must exist: ")
