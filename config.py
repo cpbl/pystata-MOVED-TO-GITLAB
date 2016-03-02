@@ -73,7 +73,8 @@ if os.path.exists(localConfigFile):
 # If it doesn't exist, create one. This is really just a way to record a defaults; but it also provides a template.
 else:
     print('Information: Cannot find your custom config.cfg. You may want to look in the '+__file__+' repo for a template to customize folders.')
-    repoFile=os.path.dirname(__file__ if __file__ is not None else '.')+'/config.cfg'
+    repoPath=os.path.dirname(__file__ if __file__ is not None else '.')
+    repoFile=(repoPath if repoPath else '.')+'/config.cfg'
     if not os.path.exists(repoFile):
         createDefaultConfigFile(repoFile)
     configDict=readConfigFile(repoFile)
