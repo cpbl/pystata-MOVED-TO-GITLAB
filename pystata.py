@@ -38,8 +38,10 @@ Configuration:
   (2) Otherwise, pystata will look for a config.ini file in the operating system's local path at run time. Typically, this would be a file in the package of some caller module and would be in .gitignore so that it can be locally customized
   (3) Otherwise, pystata will look for a config.ini file in its own (the pystata repository) folder.  
 """
-
-from config import *
+import os
+import re
+from .pystata_config import defaults,paths
+WP=paths['working']
 assert defaults is not None
 try:
     codebookFilename=   defaults['native']['paths']['working']+'tmpCodebook'
@@ -51,8 +53,8 @@ except KeyError:
 
 try:
     from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
-    from cpblUtilities import tonumeric, fNaN, seSum #,mean_of_means
-    from cpblUtilitiesUnicode import str2latex
+    from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
+    from cpblUtilities.cpblunicode import str2latex
 except ImportError:
     import sys
     print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
@@ -409,7 +411,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
         # Following seems to work! aug2010
 	tmpDirCom='export TMPDIR='+WP #/home/cpbl/gallup/workingData' # or else be sure 20GB free on /tmp !
 
-        if RDC:
+        if defaults.get('RDC',False):
             systemcom='cd %s && %s stata -v7000 -b do %s.do '%(dodir,niceString, dofile) #-m%d  mem
         else: 
             stataexec=['/usr/bin/stata14','/usr/bin/stata','/usr/local/stata12/stata-mp']
@@ -5817,10 +5819,10 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
 
     
-try:
-    from latexRegressions import latexRegressionFile
-except ImportError:
-    print(__file__+": Unable to find (or unable to import) pystata.latexRegressions module")
+#try:
+#    from .latexRegressions import latexRegressionFile
+#except ImportError:
+#    print(__file__+": Unable to find (or unable to import) pystata.latexRegressions module")
 
 
 

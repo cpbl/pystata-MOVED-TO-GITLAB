@@ -1,7 +1,14 @@
-from pystata import *
+#from pystata import *
+import re
+from .pystata_config import defaults,paths
+WP=paths['working']
+from .pystata import standardSubstitutions,texheader,defaultVariableOrder # Or import it as stata??
+from .pystata import *
 from codecs import open  # I need to do this just to get encoding= option in open() ?.
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
+from copy import deepcopy
+from cpblUtilities import debugprint, uniqueInOrder
 
 """
 To do:
@@ -166,7 +173,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         fout.close()
         # 2010 Jan: Also create a .csv file *from* the .tex.
         ###from cpblUtilities import cpblTableToCSV
-        from cpblTablesTex import tableToTSV
+        from cpbl_tables import tableToTSV
         fout=open(tableFilePath+'-tex.csv','wt')
         fout.write(        tableToTSV(includedTex) )
         fout.close()
@@ -3938,7 +3945,7 @@ scalars:
             codebookT.summaryStatisticsTable_singleSurvey(texFilename=tableLogNameNoSuffix+'-%d.tex'%iIf,latex=self,showVars=showVars,comments=comments,substitutions=substitutions)
             # 2010 Jun: Also create a .csv file *from* the .tex.
 ###            from cpblUtilities import cpblTableToCSV
-            from cpblTablesTeX import tableToTSV
+            from cpbl_tables import tableToTSV
             fout=open(tableLogNameNoSuffix+'-%d.csv'%iIf,'wt')
             tmpCSV=tableToTSV(tableLogNameNoSuffix+'-%d.tex'%iIf)
             fout.write(  tmpCSV)
@@ -4170,7 +4177,7 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
             fout.close()
             # 2010 Jan: Also create a .csv file *from* the .tex.
             ###from cpblUtilities import cpblTableToCSV
-            from cpblTablesTeX import tableToTSV
+            from cpbl_tables import tableToTSV
             fout=open(tableFilePath+'-tex.csv','wt')
             fout.write(     tableToTSV(includeTeX) )
             fout.close()

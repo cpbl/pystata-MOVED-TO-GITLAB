@@ -12,37 +12,44 @@ import re
 
 def configure(newdefaults=None):
     assert isinstance(newdefaults,dict)
-    global defaults,paths,WP,IP,RDC
-    defaults=newdefaults
+    global defaults,paths
+    defaults=newdefaults.copy()
     paths=defaults['paths']
     defaults['native']={'paths':paths.copy()} # A relic from running posix os under MS (cygwin)
-    WP=paths['working']
-    IP=paths['input']
-    RDC=defaults.get('RDC',False)
+    #WP=paths['working']
+    #IP=paths['input']
+    #RDC=defaults.get('RDC',False)
     return(defaults)
 
 
 def createDefaultConfigFile(outpath='./config.cfg'):
     """
     Write a config file which provides the path info that this module requires.  (Or should it ADD the info that this module requires?)
-    N.B. Even this default one requires the "pwd" be defined as a default. This is the local operating system directory at run-time.
+     
+    In  fact, instead of a function, this could be a template file that is included in the git repository but allowed to be modified, by including in .gitignore
     """
+    import os
     import ConfigParser
     config = ConfigParser.RawConfigParser()
+    defaultRoot="%(pwd)s"
+    defaultRoot=os.path.dirname(__file__)    
     # When adding sections or items, add them in the reverse order of
     # how you want them to be displayed in the actual file.
-    # In addition, please note that using RawConfigParser's and the raw
-    # mode of ConfigParser's respective set functions, you can assign
-    # non-string values to keys internally, but will receive an error
-    # when attempting to write to a file or when you get it in non-raw
-    # mode. SafeConfigParser does not allow such assignments to take place.
     config.add_section('paths')
-    config.set('paths', 'working', '%(pwd)s/')
-    config.set('paths', 'input', '%(pwd)s/')
-    config.set('paths', 'tex', '%(pwd)s/')
-    config.set('paths', 'scratch', '%(pwd)s/')
+    config.set('paths', 'working', defaultRoot+'/workingData/')
+    config.set('paths', 'download', defaultRoot+'/input/download/')
+    config.set('paths', 'input', defaultRoot+'/input/')
+    #config.set('paths', 'output/data', defaultRoot+'/')
+    config.set('paths', 'graphics', defaultRoot+'/output/graphics/')
+    config.set('paths', 'outputData', defaultRoot+'/output/data/')
+    config.set('paths', 'output', defaultRoot+'/output/')
+    config.set('paths', 'tex', defaultRoot+'/output/tex/')
+    config.set('paths', 'scratch', defaultRoot+'/scratch/')
+    config.set('paths', 'bin', defaultRoot+'/')
+
     config.add_section('defaults') # For as-yet unsectioned settings
     config.set('defaults', 'RDC', 'False')
+    config.set('defaults', 'mode', 'none')
 
     # Writing our configuration file to 'example.cfg'
     with open(outpath, 'wt') as configfile:
@@ -50,17 +57,25 @@ def createDefaultConfigFile(outpath='./config.cfg'):
 
 def readConfigFile(inpath):
     import ConfigParser
+    print(__file__+': Parsing '+inpath)
     # New instance with 'bar' and 'baz' defaulting to 'Life' and 'hard' each
     config = ConfigParser.SafeConfigParser({'pwd': os.getcwd(),'cwd': os.getcwd()})
     config.read(inpath)
     defaultsDict=dict(
-        paths=dict(
-            working=config.get('paths', 'working'),
-            input=config.get('paths', 'input'),
-            tex=config.get('paths', 'tex'),
-            scratch=config.get('paths', 'scratch'),
-            ),
+        paths=dict([
+            [ppp, config.get('paths', ppp)] for ppp in [
+                'working',
+                'input',
+                'output',
+                'tex',
+                'scratch',
+                'bin',
+                'download',
+                'graphics',
+                'outputData',
+             ] ]             ),
         RDC=config.getboolean('defaults', 'RDC'),
+        mode=config.get('defaults', 'mode'),
         )
     return(defaultsDict)
     
@@ -72,10 +87,14 @@ if os.path.exists(localConfigFile):
 # Is there a config file in cpblUtilities directory?  
 # If it doesn't exist, create one. This is really just a way to record a defaults; but it also provides a template.
 else:
-    print('Information: Cannot find your custom config.cfg. You may want to look in the '+__file__+' repo for a template to customize folders.')
+    print('Information: Cannot find your custom '+localConfigFile+'. You may want to look in the '+__file__+' repo for a template to customize folders.')
     repoPath=os.path.dirname(__file__ if __file__ is not None else '.')
     repoFile=(repoPath if repoPath else '.')+'/config.cfg'
     if not os.path.exists(repoFile):
         createDefaultConfigFile(repoFile)
     configDict=readConfigFile(repoFile)
 configure(configDict)
+
+
+# Also fill in some other things, through testing?
+defaults['stataVersion']='linux14' # Deprecated; need to remove
