@@ -2638,7 +2638,7 @@ sigma                                             |
 
             if len(sections)==2:
                 assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
-                assert command in [None,'OLS','ols','reg','regress','qreg','ivregress 2sls','ivreg2']
+                assert command in [None,'OLS','ols','rreg', 'reg','regress','qreg','ivregress 2sls','ivreg2']
                 #print 'OLS etc'
                 varsS,statss=sections[0],sections[1]
             elif command in ['xtreg']:

@@ -522,7 +522,7 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
             model['code']['cellDummiesBefore']=stataBeforeOut
             model['code']['cellDummiesAfter']=stataAfterOut
             if clusterCells:
-                if 'regoptions' not in model:
+                if 'regoptions' not in model and method not in ['rreg']:
                     model['regoptions']=', robust' # Need to have comma, at least here...
                 if 'cluster(' in model['regoptions']:
                     print "Warning!! I am not putting the cell variable in as cluster because you already have a cluster variable! ",model['regoptions']
@@ -1081,7 +1081,6 @@ I've added various other flag/settings specified starting with *.
         if not defaultModel:
             defaultModel={}
         for aline in lines: #TOdo2015: Integrate use of parseStataComments(txt) here:
-
             if aline in ['|','*|']:# Syntax to put a divider line between two models.
                 #assert models
                 self.addSeparator(models)
@@ -1092,7 +1091,7 @@ I've added various other flag/settings specified starting with *.
             if method in ['ivregress','ivreg']: # These take a second word, typically "2sls". ivreg2 does NOT.
                 method=' '.join(words[0:2])
                 words=[method]+words[2:]
-            if method in ['svy:reg','svy:regress','reg','areg','regress','ologit','glogit','oprobit','logit','probit','xtreg','ivregress 2sls','ivreg 2sls', 'ivreg2','glm']:
+            if method in ['svy:reg','svy:regress','reg','areg','regress','rreg','ologit','glogit','oprobit','logit','probit','xtreg','ivregress 2sls','ivreg 2sls', 'ivreg2','glm']:
                 depvar=words[1]
                 therest=' '.join(words[2:])
                 if '[' in aline:
@@ -1104,7 +1103,7 @@ I've added various other flag/settings specified starting with *.
                     model,regoptions=therest.split(',')
                 if ',' not in regoptions:
                     regoptions=', '+regoptions
-                if 'robust' not in regoptions and 'vce(' not in regoptions and not method.startswith('svy:') and not '[iw=' in regoptions: # Stata says can't do robust if iw?
+                if 'robust' not in regoptions and 'vce(' not in regoptions and not method.startswith('svy:') and not '[iw=' in regoptions and method not in ['rreg']: # Stata says can't do robust if iw?
                     regoptions+=' robust ' # Safety... I do not think it ever hurts? 
 
                 toaddmodel=deepcopy(defaultModel)
@@ -1305,7 +1304,8 @@ I've added various other flag/settings specified starting with *.
             newm=deepcopy(models[imm])
             assert isinstance(newm,dict)
             assert 'beta' not in newm['regoptions']
-            if newm['method'] in ['svy:reg','svy:regress','reg','regress',]:
+            if newm['method'] in ['svy:reg','svy:regress','reg','regress','rreg']:
+                # For method==rreg, this "beta" will need to be removed later.
                 newm['regoptions']+=' beta'
                 models.insert(imm+1,newm)
         return(models)
@@ -1901,18 +1901,16 @@ Bugs:
 
             
 
-	    modelregoptions=model.get('regoptions',',robust') # CAREFUL!! For "beta" case, what is used below is not he same as what the model[regoptions] contains
-
-            #RHSvars=regressors.split(' [')[0].split(' if ')[0]
+	    modelregoptions=model.get('regoptions',',robust'*(method not in ['rreg']))
 
             assert betas in [None,False,True]
             doBetaMode=False
             if 'beta' in modelregoptions or betas==True:
-                assert model['method'] in ['svy:reg','svy:regress','reg','regress','areg','xtreg'] # Can I Adding xtreg??
+                assert model['method'] in ['svy:reg','svy:regress','reg','regress','rreg','areg','xtreg'] # Can I Adding xtreg??
                 doBetaMode=True
                 model['textralines'][r'$\beta$ coefs']=r'\YesMark'
 
-                if 'cluster' in modelregoptions and 'beta' in modelregoptions:
+                if ('cluster' in modelregoptions and 'beta' in modelregoptions) or model['method'] in ['rreg']:
                     #print 'Replacing all "beta"s in :'+modelregoptions
                     modelregoptions=modelregoptions.replace('beta','')
 
