@@ -16,9 +16,6 @@ def configure(newdefaults=None):
     defaults=newdefaults.copy()
     paths=defaults['paths']
     defaults['native']={'paths':paths.copy()} # A relic from running posix os under MS (cygwin)
-    #WP=paths['working']
-    #IP=paths['input']
-    #RDC=defaults.get('RDC',False)
     return(defaults)
 
 
@@ -37,13 +34,13 @@ def createDefaultConfigFile(outpath='./config.cfg'):
     # how you want them to be displayed in the actual file.
     config.add_section('paths')
     config.set('paths', 'working', defaultRoot+'/workingData/')
-    config.set('paths', 'download', defaultRoot+'/input/download/')
+    #config.set('paths', 'download', defaultRoot+'/input/download/')
     config.set('paths', 'input', defaultRoot+'/input/')
     #config.set('paths', 'output/data', defaultRoot+'/')
     config.set('paths', 'graphics', defaultRoot+'/output/graphics/')
     config.set('paths', 'outputData', defaultRoot+'/output/data/')
     config.set('paths', 'output', defaultRoot+'/output/')
-    config.set('paths', 'tex', defaultRoot+'/output/tex/')
+    config.set('paths', 'tex', defaultRoot+'/texdocs/')
     config.set('paths', 'scratch', defaultRoot+'/scratch/')
     config.set('paths', 'bin', defaultRoot+'/')
 
@@ -83,7 +80,7 @@ def readConfigFile(inpath):
 localConfigFile=os.getcwd()+'/config.cfg'
 if os.path.exists(localConfigFile):
     configDict=readConfigFile(localConfigFile)
-# Is there a config file in cpblUtilities directory?  
+# Is there a config file in pystata directory?  
 # If it doesn't exist, create one. This is really just a way to record a defaults; but it also provides a template.
 else:
     print('Information: Cannot find your custom '+localConfigFile+'. You may want to look in the '+__file__+' repo for a template to customize folders.')
@@ -92,8 +89,9 @@ else:
     if not os.path.exists(repoFile):
         createDefaultConfigFile(repoFile)
     configDict=readConfigFile(repoFile)
-configure(configDict)
+defaults=configure(configDict)
 
 
 # Also fill in some other things, through testing?
 defaults['stataVersion']='linux14' # Deprecated; need to remove
+

@@ -11,16 +11,18 @@ To do:
                 # May 2013: check for funny chars?
                 
 """
-from config import *
+from .pystata_config import defaults,paths
 assert defaults is not None
 
-try:
-    from cpblUtilities import * #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
-    #from cpblUtilities.mathgraph import  seSum,mean_of_means
-except ImportError:
-    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
-    import sys
-    print("     Here's the current path: "+str(sys.path))
+#try:
+from cpblUtilities import tsvToDict,doSystem,chooseSFormat, debugprint #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
+from cpblUtilities.cpblunicode import str2latex
+
+#    #from cpblUtilities.mathgraph import  seSum,mean_of_means
+#except ImportError:
+#    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+#    import sys
+#    print("     Here's the current path: "+str(sys.path))
 
 from copy import deepcopy
 #from pystata import stataSystem,stataLoad
@@ -105,7 +107,7 @@ Fields in a stataCodebookClass object:
             assert fromDTA==None and codebook==None and fromTSV==None and fromPDF==None
 
             self.load(survey,version=version) # May not work, ie the file may not exist.. But load() is supposed to be the smart thing, now, which just does whatever necessary to make it.
-            #self.load(str2pathname(WP+'codebook-'+survey)) # May not work, ie the file may not exist.. But load() is supposed to be the smart thing, now, which just does whatever necessary to make it.
+            #self.load(str2pathname(paths['working']+'codebook-'+survey)) # May not work, ie the file may not exist.. But load() is supposed to be the smart thing, now, which just does whatever necessary to make it.
             if toLower:
                 self.allNamesToLowercase() # Hmm... this may have already been done in most cases, april 2010
             return
@@ -268,7 +270,7 @@ Fields in a stataCodebookClass object:
         def pdfcodebooktxt2tsv(txtfile,tsvfile,survey):
             assert txtfile.endswith('.txt')
             if not tsvfile:
-                tsvfile=WP+os.path.split(txtfile).replace('.txt','.tsv')
+                tsvfile=paths['working']+os.path.split(txtfile).replace('.txt','.tsv')
             if 1:#fileOlderThan(tsvfn,txtfile):
                 print (' Having to recreate the TSV from TXT (which comes from PDF) for %s!...'%txtfile)
                 #assert 'CCHS' in txtfile # Yeah.. thi si not general yet..? well, test with others.
@@ -344,21 +346,23 @@ Fields in a stataCodebookClass object:
 
         if datafilepath in defaults['availableSurveys']:
             survey=datafilepath
-            if os.path.exists(IP+survey+'/'+survey+'-codebook.pdf'):
-                print 'Having to recreate the txt file from PDF! for '+IP+survey+'/'+survey+'-codebook.pdf to '+WP+survey+'-pdfcodebook.txt'
+            if os.path.exists(paths['input']+survey+'/'+survey+'-codebook.pdf'):
+                print 'Having to recreate the txt file from PDF! for '+paths['input']+survey+'/'+survey+'-codebook.pdf to '+paths['working']+survey+'-pdfcodebook.txt'
                 doSystem("""
-              pdftotext -layout %s %s"""%(IP+survey+'/'+survey+'-codebook.pdf',WP+survey+'-pdfcodebook.txt'))
-                datafilepath=WP+survey+'-pdfcodebook.tsv'
-                pdfcodebooktxt2tsv(WP+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
-            elif os.path.exists(IP+survey+'/'+survey+'-pdfcodebook.tsv'):
-                datafilepath=IP+survey+'/'+survey+'-pdfcodebook.tsv'
-            elif os.path.exists(WP+survey+'/'+survey+'-pdfcodebook.tsv'):
-                datafilepath=WP+survey+'/'+survey+'-pdfcodebook.tsv'
-            elif os.path.exists(IP+survey+'/'+survey+'-pdfcodebook.txt'):
-                datafilepath=WP+survey+'/'+survey+'-pdfcodebook.tsv'
-                pdfcodebooktxt2tsv(IP+survey+'/'+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
+              pdftotext -layout %s %s"""%(paths['input']+survey+'/'+survey+'-codebook.pdf',paths['working']+survey+'-pdfcodebook.txt'))
+                datafilepath=paths['working']+survey+'-pdfcodebook.tsv'
+                pdfcodebooktxt2tsv(paths['working']+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
+            elif os.path.exists(paths['input']+survey+'/'+survey+'-pdfcodebook.tsv'):
+                datafilepath=paths['input']+survey+'/'+survey+'-pdfcodebook.tsv'
+            elif os.path.exists(paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'):
+                datafilepath=paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'
+            elif os.path.exists(paths['input']+survey+'/'+survey+'-pdfcodebook.txt'):
+                datafilepath=paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'
+                pdfcodebooktxt2tsv(paths['input']+survey+'/'+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
             else:
-                print "Failed to find PDF codebook for "+survey+", or its .txt child or its .tsv child!"
+                print("You should rename the PDF codebook to surveyname+'-codebook.pdf'")
+                print( "Failed to find PDF codebook for "+survey+", or its .txt child or its .tsv child!")
+                stophere
                 return
                 #datafilepath=defaults['inputPath']+datafilepath+'_codebook.txt'
 
@@ -410,15 +414,19 @@ Fields in a stataCodebookClass object:
         sourceDir,sourceName=os.path.split(datafilepath)
         assert '.' not in sourceName         # because stupid Stata screws up filenames for choosing log name/location!
         if defaults['mode'] not in ['gallup','klips']:
-            from cpblMake import cpblRequire
-            cpblRequire(datafilepath)
+            try: 
+                from rdc_make import cpblRequireRDC as cpblRequire
+                cpblRequire(datafilepath)
+            except AssertionError: #placeholder; it'll be something elsee
+                foiu
         if not os.path.exists(datafilepath+'.dta.gz'):
             print('   ********* There is no data file '+datafilepath+' from which to make a codebook... so no DTA codebook for you!!!!! (If this is not solved by running through any Stata execution, something is wrong!)')#cwarning
+            fooo
             return
 
 
         ###fxdnm=datafilepath#sourceDir+'/'+sourceName#.replace('.','_')
-        CdoFileName=datafilepath+'_StataCodebook'+'.do' ## WP+sourceName
+        CdoFileName=datafilepath+'_StataCodebook'+'.do' ## paths['working']+sourceName
         ClogFileName=datafilepath+'_StataCodebook'+'.log'
 
         if recreate==False:
@@ -461,7 +469,7 @@ codebook `var'
             else:
                 print " Failed to update "+ClogFileName
 
-        LdoFileName=datafilepath+'_StataLabelbook'+'.do' ## WP+sourceName
+        LdoFileName=datafilepath+'_StataLabelbook'+'.do' ## paths['working']+sourceName
         LlogFileName=datafilepath+'_StataLabelbook'+'.log'
         # Logic below: if recreate is None, then check to see if log file is outdated or not. If recreate is True or False, then that overrides.
         forceL=recreate
@@ -612,7 +620,7 @@ Aug 2009: Making more general sum-reading function, readStataSum...(). IT could 
                 ff=ff[0:-4]
             else:
                 statafile+='.dta.gz' # So that I can check its timestamp below
-            logfname=WP+'summaryStatisticsFromStata_%s.log'%(ff.replace('.','_'))#%os.path.splitext(ff)[0]
+            logfname=paths['working']+'summaryStatisticsFromStata_%s.log'%(ff.replace('.','_'))#%os.path.splitext(ff)[0]
 
         # Actually, we must have weights; do not allow unweighted results.
         assert weightsif.strip()
@@ -967,7 +975,7 @@ how is this different from  assignLabelsInStata?  2015: It looks like it doesn't
         import os
         cbfDir,cbfName=os.path.split(codebookFile)
 
-        fnn=WP+cbfName+'_varlist.tsv'
+        fnn=paths['working']+cbfName+'_varlist.tsv'
         fout=open(fnn,'wt')
         for vv in listOfNames:#cbook:
             fout.write('\t%s\t%s\n'%(vv,cbook[vv]['desc']))
@@ -1066,7 +1074,7 @@ Calls made in this format with the new name will be redirected here.
             newname=shortenStataName(newname)
             outs+="gen %s=%s\n"%(newname,missing)
             # Update the codebook:
-            self.__changeName(oldname,newname)
+            self._changeName(oldname,newname)
 
         outs+="replace %s=(%s-%f)/(%f-%f)  if %s>=%f & %s<=%f\n"%(newname,oldname,low,high,low,oldname,min(low,high),oldname,max(low,high))
 
@@ -1129,7 +1137,7 @@ newmax:        2014 Sep: Now can "normalize" to 0--10, ie something other than 0
             newname=shortenStataName(newname)
             outs+="gen %s=%s\n"%(newname,missing)
             # Update the codebook:
-            self.__changeName(oldname,newname)
+            self._changeName(oldname,newname)
 
         outs+="""
         tab %(oldname)s, missing
@@ -1270,7 +1278,7 @@ newmax:        2014 Sep: Now can "normalize" to 0--10, ie something other than 0
 
         # Update the codebook:  (update the values NOT YET IMPLEMENETED)
         if not newname==oldname:
-            self.__changeName(oldname,newname)
+            self._changeName(oldname,newname)
 
         # Should delete the old variable name here,unless specified (NOT YET IMPLEMENTED).
 
@@ -1284,7 +1292,7 @@ newmax:        2014 Sep: Now can "normalize" to 0--10, ie something other than 0
         if self: # Codebook exists
             assert newname not in self
             self[newname]={'rawname':'(derivednewVar)'}
-            ##self.__changeName(vfrom,vto,deleteOld=True,oldnamefield=None)
+            ##self._changeName(vfrom,vto,deleteOld=True,oldnamefield=None)
             self.__orderedVarNames+=[newname]
 ##             assert vfrom in self
 ##             assert vto not in self
@@ -1316,7 +1324,7 @@ newmax:        2014 Sep: Now can "normalize" to 0--10, ie something other than 0
                 assert vfrom in self
                 return("\n* N.B.: not renaming %s --> %s since they're identical\n"%(vfrom,vto))
             else:
-                self.__changeName(vfrom,vto,deleteOld=True,oldnamefield=None,overwriteCB=overwriteCB)
+                self._changeName(vfrom,vto,deleteOld=True,oldnamefield=None,overwriteCB=overwriteCB)
 
 ##
 ##             assert vto not in self
@@ -1405,7 +1413,7 @@ This is just used to make a note of a new variable that was defined in raw Stata
 
     ################################################################
     ################################################################
-    def __changeName(self,vfrom,vto,deleteOld=True,oldnamefield=None,overwriteCB=False):
+    def _changeName(self,vfrom,vto,deleteOld=True,oldnamefield=None,overwriteCB=False):
     ################################################################
     ################################################################
         """
@@ -1498,7 +1506,7 @@ This is just used to make a note of a new variable that was defined in raw Stata
 
         print '\n Attempting to save in codebook shelf file %s.pythonshelf (saving mode %s)'%(saveName,str(version))
         if not os.path.split(saveName)[0]:
-            saveName=WP+saveName
+            saveName=paths['working']+saveName
 
         if 0 and not os.path.exists(saveName+'.pythonshelf'):
             newFile=True
@@ -1547,11 +1555,11 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
         # If saveNameOrSurvey looks like a survey name, ASSUME THAT IS WHAT IS MEANT!
         if 'knownSurveys' in defaults and saveNameOrSurvey in defaults['knownSurveys']:
             survey=saveNameOrSurvey
-            saveName=WP+'codebook-'+saveNameOrSurvey
+            saveName=paths['working']+'codebook-'+saveNameOrSurvey
         else:
             # testStophere
             if not os.path.split(saveNameOrSurvey)[0]:
-                saveName=WP+saveNameOrSurvey
+                saveName=paths['working']+saveNameOrSurvey
             else:
                 saveName=saveNameOrSurvey
 

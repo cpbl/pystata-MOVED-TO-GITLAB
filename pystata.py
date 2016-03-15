@@ -41,6 +41,7 @@ Configuration:
 import os
 import re
 from .pystata_config import defaults,paths
+assert 'paths' in defaults
 WP=paths['working']
 assert defaults is not None
 try:
@@ -52,12 +53,14 @@ except KeyError:
     print("  CPBL's defaults not defined")
 
 try:
-    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan,  dgetgetOLD, doSystem,shelfSave,shelfLoad, cpblTableElements, renameDictKey,cwarning, str2pathname,dgetget
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan
+    from cpblUtilities import doSystem,shelfSave,shelfLoad,  renameDictKey,cwarning, str2pathname,dgetget
     from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
     from cpblUtilities.cpblunicode import str2latex
 except ImportError:
     import sys
     print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
+from cpbl_tables import        cpblTableElements
 
 from copy import deepcopy
 
@@ -4501,7 +4504,7 @@ raw_data = np.genfromtxt('data.txt', delimiter=',')[:,1:]
 data = {label: row for label, row in zip(labels, raw_data)}
 """
 
-	dataDF.save(npF)#np.save(npF,indata)
+	dataDF.to_pickle(npF)#np.save(npF,indata)
 	returnVal=dataDF
     else:
             print 'Loading '+npF+'...',
