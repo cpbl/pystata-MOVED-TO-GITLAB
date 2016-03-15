@@ -1465,9 +1465,9 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         pre-format these so that we can do 3 sig digs for r2:
         """
         if estat in r2names:
-            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN),lowCutoff=1.0e-3,threeSigDigs=True))#,convertStrings=True
+            return(chooseSFormat(dgetget(model,'eststats',estat,fNaN),lowCutoff=1.0e-3,threeSigDigs=True))#,convertStrings=True
         else:
-            return(chooseSFormat(dgetgetOLD(model,'eststats',estat,fNaN)))#lowCutoff=1.0e-3,convertStrings=True,threeSigDigs=True)
+            return(chooseSFormat(dgetget(model,'eststats',estat,fNaN)))#lowCutoff=1.0e-3,convertStrings=True,threeSigDigs=True)
 
 
 
@@ -1508,9 +1508,9 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         ##         displayEst='p' # For OLS etc
         ##         displayErr='nothing!'
         ##         estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-        ##     			  r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
-        ##         errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-        ##         pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+        ##     			  r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetget(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetget(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
+        ##         errValues=['','']+[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+        ##         pValues=['','']+[dgetget(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
 
         ##         tworows=formatPairedRow([estValues,errValues],
         ##                                 greycells='tableshading' in model and model['tableshading'] in ['grey'],
@@ -1518,7 +1518,7 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
 
         tworows=formatPairedRow(  [[r'\sltrheadername{%s}'%substitutedNames(vv,substitutions)]+byVar[vv]['coefs'],
                                 ['']+byVar[vv]['ses']] ,pValues=pValues)
-        #    ['']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
+        #    ['']+[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
             #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
         body+= '\t& '.join([cc for cc in tworows[0]])+'\\\\ \n'+r'\showSEs{'+\
                         '\t& '.join([cc for cc in tworows[1]]) +' \\\\ }{}\n'
@@ -1643,9 +1643,9 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
                 displayEst='p' # For OLS etc
                 displayErr='nothing!'
                 estValues=[r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
-                errValues=['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
-                pValues=['','']+[dgetgetOLD(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetget(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetget(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars]
+                errValues=['','']+[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+                pValues=['','']+[dgetget(model,'estcoefs',vv,'p',fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
 
                 tworows=formatPairedRow([estValues,errValues],
                                         greycells='tableshading' in model and model['tableshading'] in ['grey'],
@@ -1657,15 +1657,15 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
 
                 tworows=formatPairedRow([
                     [r'\sltheadernum{'+model.get('texModelNum','(%d)'%(model.get('modelNum',0)))+'}',
-                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars],
-            ['','']+[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
+                                      r'\sltrheadername{'+ model['tmpTableRowName']+'}']+[dgetget(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars]+[dgetget(model,'textralines',vv,fNaN) for vv in flagsVars]+[formatEstStat(model,vv) for vv in statsVars],
+            ['','']+[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]
                     ],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
 
             #multiRow=r'\multirow{2}{*}{\hspace{0}'
             #multiRowEnd='}'
 
 
-            #print [[multiRow,r'\sltheadernum{',model.get('texModelNum','(%d)'%(model.get('modelNum',0))),'}',multiRowEnd,multiRow, model.get('texModelName',str(model.get('name',''))),multiRowEnd],[dgetgetOLD(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars],[dgetgetOLD(model,'textralines',vv,fNaN) for vv in flagsVars],[formatEstStat(model,vv) for vv in statsVars],  ['',''],[dgetgetOLD(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars],['' for vv in flagsVars],['' for vv in statsVars]]
+            #print [[multiRow,r'\sltheadernum{',model.get('texModelNum','(%d)'%(model.get('modelNum',0))),'}',multiRowEnd,multiRow, model.get('texModelName',str(model.get('name',''))),multiRowEnd],[dgetget(model,'estcoefs',vv,displayEst,fNaN) for vv in coefVars],[dgetget(model,'textralines',vv,fNaN) for vv in flagsVars],[formatEstStat(model,vv) for vv in statsVars],  ['',''],[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars],['' for vv in flagsVars],['' for vv in statsVars]]
             # BIG BUG IS HERE/BELOW. UNFIXED OCT 2009.
 
             #tworows=tworows[0:(2-int(suppressSE))]  # Include standard errors?
@@ -2280,13 +2280,13 @@ def modelResultsByVar(modelResults,tableFilename=None):
         if vv in byStat:
            for mmm in modelResults:
                # First, we should fail if there are conflicts for any particular model.
-               assert not dgetgetOLD(mmm,'textralines',vv,'') or not dgetgetOLD(mmm,'eststats',vv,'') or dgetgetOLD(mmm,'textralines',vv,'') == dgetgetOLD(mmm,'eststats',vv,'')
+               assert not dgetget(mmm,'textralines',vv,'') or not dgetget(mmm,'eststats',vv,'') or dgetget(mmm,'textralines',vv,'') == dgetget(mmm,'eststats',vv,'')
                # Otherwise, let's move values over to stats:
-               if dgetgetOLD(mmm,'textralines',vv,''):
-                  mmm['eststats'][vv]=dgetgetOLD(mmm,'textralines',vv,'')
+               if dgetget(mmm,'textralines',vv,''):
+                  mmm['eststats'][vv]=dgetget(mmm,'textralines',vv,'')
 		  mmm['textralines'][vv]=''
 		  print '    textralines: Moved '+vv+' to stats '
-	   assert not any([dgetgetOLD(mmm,'textralines',vv,'')  for mmm in modelResults])
+	   assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
 	   # Now, remove this item from the textralines that will be displayed!
 	   allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
 	   # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
@@ -2311,7 +2311,7 @@ def modelResultsByVar(modelResults,tableFilename=None):
     # First, get a list of attribute pairs specified for each model; ie parse the various ways they can be listed (done, above)
     byTextraline={}
     for vv in allTextralinesM:
-        byTextraline[vv]=[dgetgetOLD(mmm,'textralines',vv,'') for mmm in modelResults]
+        byTextraline[vv]=[dgetget(mmm,'textralines',vv,'') for mmm in modelResults]
 
 
     # Should this be here? Sept 2009. It's other places too, right now..

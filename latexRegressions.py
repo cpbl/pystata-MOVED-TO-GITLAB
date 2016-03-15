@@ -440,7 +440,7 @@ OCt 2008: Eliminated "depvar" and "regoptions" in favour of defaultModel, which 
             stataBeforeOut,stataAfterOut='',''
             # Find surveys, if there is one. Ignore "all~n" entries for "survey" attribute.
             if isinstance(model.get('flags',''),dict):
-                surv=dgetgetOLD(model,'flags','survey','')
+                surv=dgetget(model,'flags','survey','')
             else:
                 surv=[aaa[1] for aaa in model.get('flags',[]) if aaa and isinstance(aaa,list) and aaa[0]=='survey']
             surveys,dsurveys=[],' 1 ' # ie "true" in an if condition
@@ -1813,7 +1813,7 @@ Bugs:
 
 
         import time
-        from cpblUtilities import dgetgetOLD
+        from cpblUtilities import dgetget
 
 
         # Reset output for this table by erasing the .txt file:
@@ -2123,17 +2123,17 @@ error _rc
             if not model.get('special','') == 'suestTests':
                 # An optional argument is this stata code to run before the regression!
 
-                outs+='\n'+dgetgetOLD(model,'code','loadData','')
-                outs+='\n'+dgetgetOLD(model,'code','cellDummiesBefore','')
-                outs+='\n'+dgetgetOLD(model,'code','autoCreateVarsBefore','')
-                outs+='\n'+dgetgetOLD(model,'code','autoExcludeVarsBefore','')
-                outs+='\n'+dgetgetOLD(model,'code','before','')
-                outs+='\n'+dgetgetOLD(model,'code','existenceConditionBefore','')+'\n' 
+                outs+='\n'+dgetget(model,'code','loadData','')
+                outs+='\n'+dgetget(model,'code','cellDummiesBefore','')
+                outs+='\n'+dgetget(model,'code','autoCreateVarsBefore','')
+                outs+='\n'+dgetget(model,'code','autoExcludeVarsBefore','')
+                outs+='\n'+dgetget(model,'code','before','')
+                outs+='\n'+dgetget(model,'code','existenceConditionBefore','')+'\n' 
 
                 #If stopForErrors=False has been chosen, then do the regression so that if it fails (no observations), it will be replaced by a dummy regression. This is similar to my method for cell controls, but simpler.
                 outs+=regressionLine +'\n'
-                outs+='\n'+dgetgetOLD(model,'code','existenceConditionAfter','')+'\n' # This provides a dummy regression if some existence condition is not met. For example, it's used in national-level regressions in regressionsDunn2010.py. Note, it can also get created automatically/internally by regTable if captureNoObservations is used. 
-                outs+='\n'+dgetgetOLD(model,'code','cellDummiesAfter','')+'\n' 
+                outs+='\n'+dgetget(model,'code','existenceConditionAfter','')+'\n' # This provides a dummy regression if some existence condition is not met. For example, it's used in national-level regressions in regressionsDunn2010.py. Note, it can also get created automatically/internally by regTable if captureNoObservations is used. 
+                outs+='\n'+dgetget(model,'code','cellDummiesAfter','')+'\n' 
 
             if 'subSumPlotParams' in model:
                 model['subSumPlotParams']['comments']=                model['subSumPlotParams'].get('comments','')+r'\ctDraftComment{'+str2latex(regressionLine)+'} '
@@ -2172,9 +2172,9 @@ error _rc
 
                 # An optional argument is this stata code to run after the regression. I really have no idea which should come first, the externally-specified "after" or the sumsAfter. Really, I should use more specific elements than general "after" so that I can order them sensibly.
                 outs+='\n'+model['code']['after']+'\n'
-                outs+='\n'+dgetgetOLD(model,'code','testsAfter','')+'\n'
-                outs+='\n'+dgetgetOLD(model,'code','autoExcludeVarsAfter','')
-                if dgetgetOLD(model,'code','sumsAfter',''):
+                outs+='\n'+dgetget(model,'code','testsAfter','')+'\n'
+                outs+='\n'+dgetget(model,'code','autoExcludeVarsAfter','')
+                if dgetget(model,'code','sumsAfter',''):
                     outs+='\n'+model['code']['sumsAfter']+'\n'
 
 
