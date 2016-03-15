@@ -15,7 +15,7 @@ from .pystata_config import defaults,paths
 assert defaults is not None
 
 #try:
-from cpblUtilities import tsvToDict,doSystem,chooseSFormat, debugprint #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
+from cpblUtilities import tsvToDict,doSystem,chooseSFormat, debugprint,dgetget #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
 from cpblUtilities.cpblunicode import str2latex
 
 #    #from cpblUtilities.mathgraph import  seSum,mean_of_means
@@ -277,6 +277,24 @@ Fields in a stataCodebookClass object:
                 source=''.join(file(txtfile,'rt').readlines())
                 # May 2013: check for funny chars?
 
+                GSS17fields=[['\nVariable Name:','varname'],
+                              ['Position:','position'],
+                              ['Length:','length'],
+                              ['\n\n','desc'],
+                              ['\n\n','pdfFreq'],
+                              ['\nCoverage:','coverage'],
+                              ['\n\n','end'],
+                              ]
+                GSS27fields=[['\n *Variable Name','varname'],
+                              ['Length','length'],
+                              ['Position','position'],
+                              ['\n *Question Name','questionname'],
+                              ['\n *Concept','concept'],
+                              ['\n *Question Text','question'],
+                              ['\n *Universe','universe'],
+                              ['\n *Note','note'],
+                              ]
+                    
                 if 'CCHS' in txtfile:
                     reFields=[['\nVariable Name','varname'],
                               ['Length','length'],
@@ -295,19 +313,13 @@ Fields in a stataCodebookClass object:
                         for vv in allVarsListOfDicts:
                             vv['varname']=vv['varname'].lower()
 
-                if 'GSS22' in txtfile or 'GSS17' in txtfile:
+                if 'GSS22' in txtfile or 'GSS17' in txtfile or 'GSS27' in txtfile:
                     # Ca not get the question text for GSS22 hmmm.
-                    reFields=[['\nVariable Name:','varname'],
-                              ['Position:','position'],
-                              ['Length:','length'],
-                              ['\n\n','desc'],
-                              ['\n\n','pdfFreq'],
-                              ['\nCoverage:','coverage'],
-                              ['\n\n','end'],
-                              ]
+                    reFields= GSS17fields if 'GSS22' in txtfile or 'GSS17' in txtfile else GSS27fields
                     reString=''.join([r'%s(.*?)'%(ff[0]) for ff in reFields])
                     allVars=re.findall(reString,source,re.DOTALL)
                     assert allVars
+                    print('     Succeeded: found/parsed variable metadata from PDF codebook for '+txtfile)
                     allVarsListOfDicts=[dict([[aff[1].strip(),av[iiv].strip()] for iiv,aff in enumerate(reFields)])     for av in allVars]
                     for vv in allVarsListOfDicts:
                         # From PDF should do lower case..
@@ -1661,8 +1673,8 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
             else:
                 self.save(saveName,version=version)
         elif survey and  version=='recoded':
-            if defaults['mode'] not in ['gallup']:
-                from cpblMake import cpblRequire
+            if defaults['mode'] not in ['gallup'] and defaults['mode'] in ['canada','RDC']:
+                from rdc_make import cpblRequire
                 cpblRequire('recoded-'+survey)
             # So now try thie following again, since file may/should exist now...
             shelffile = shelve.open(saveName+'.pythonshelf')

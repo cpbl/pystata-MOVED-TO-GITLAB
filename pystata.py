@@ -4661,6 +4661,7 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
           """)
 
     # Create a latexfile instance for all output. (or one per function if we're doing them in parallel!)
+    from .latexRegressions import latexRegressionFile
     latexfile=latexRegressionFile( 'tablesPreview',modelVersion=sVersion,regressionVersion=rVersion,substitutions=substitutions,texNameSuffix=texNameSuffix)
     updateLF(latexfile)
     lastLF='0'
