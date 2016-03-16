@@ -1,0 +1,53 @@
+
+# Get the packages:
+
+git clone http://github.com/cpbl/cpblUtilities
+git clone http://github.com/cpbl/pystata
+git clone http://github.com/cpbl/cpbl_tables
+
+and put them somewhere that is on your PYTHONPATH. For instance, maybe you have put the three folders in /home/user/bin/ 
+
+# To put that folder on your PYTHONPATH, you could add the following line to your ~/.bashrc 
+export PYTHONPATH=$PYTHONPATH:~/bin/
+
+Also install, through your operating system's python package manager, or in your local path, the python package "pandas". There may be some other standard packages that are needed too; let me know.
+
+In the pystata module, you may need to edit pystata_core.py to update the values of 
+stataexec so that it knows where to find your stata executable.
+
+# Launch stata, and install the following two packages:
+
+net describe zscore, from(http://www.stata.com/users/sdriver)
+net install zscore
+net describe gzsave, from(http://fmwww.bc.edu/RePEc/bocode/g)
+net install gzsave
+
+# Navigate to the cpbl_tables repository, and put the .sty files found there into your local TEX path. Then update the TEX file database (texhash)
+# E.g., on GNU/Linux:
+
+mkdir ~/texmf
+mkdir ~/texmf/tex
+cp cpbl_tables/*.sty ~/texmf/tex
+texhash
+
+
+Now choose some working folder that is not in /bin.
+Copy the following files from pystata/demo to this new folder: pystata-demo.py and sample_data_BES.dta.gz
+For instance:
+
+cp ~/bin/pystata/demo/pystata-demo.py ~/bin/pystata/demo/*dta.gz ./
+
+Also copy the config-template.cfg from pystata to config.cfg in the folder (Chosen above), and edit it to specify some paths (they should exist) for outputs. The paths should be absolute; ie they should start with '/'.
+For instance:
+
+cp ~/bin/pystata/config-template.cfg ./config.cfg
+gedit config.cfg
+
+# Then run the demo script, three times.
+
+
+python ./pystata-demo.py
+python ./pystata-demo.py
+python ./pystata-demo.py
+
+Now use your pdf viewer to look at:  texdocs/pystata-demo-2014-A.pdf

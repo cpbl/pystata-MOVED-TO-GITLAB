@@ -1,18 +1,28 @@
 #!/usr/bin/python
 
-#from cpblDefaults import defaults, paths, WP
-import pystata as pst
-
-print(" The following folders must exist: ")
-print paths['tex']
-print WP
-print WP+'logs/'
-
-# Run this python file at least two-three times, to generate PDF with results.
+# You need to have pystata installed in your python path
 # You need to have cpblUtilities installed in your python path
 # You need to have cpbl-tables installed, both the python files and the LaTeX .sty files, in your python and texmf paths.
+#
+# Then copy this demo.py  and sample_data_BES.dta.gz OUTSIDE of the pystata folders to some working folder of your choosing.
+# Copy the config-template.cfg from pystata to the same working folder, and edit it to specify existing paths for outputs.
+#
+# Then run this script, three times.
 
-latex=pst.latexRegressionFile('pystata.demo',modelVersion='2014',regressionVersion='A',
+import pystata as pst
+import pystata.latexRegressions as ltx
+
+
+print(""" This demo  will write in the following paths:
+Working: """+pst.paths['working']+"""
+LaTeX:   """+pst.paths['tex']+"""
+""")
+WP=pst.paths['working']
+
+
+# Run this python file at least two-three times, to generate PDF with results.
+
+latex=ltx.latexRegressionFile('pystata.demo',modelVersion='2014',regressionVersion='A',
                               substitutions=[[ 'aq5a','conservatives handle crime']]+pst.standardSubstitutions)
 latex.variableOrder=('aq1 aq5a aq6a aq7a ').split(' ')+pst.defaultVariableOrder
 latex.skipStataForCompletedTables=False# If we've already run it, assume it hasn't changed. (figures too!!)
@@ -35,8 +45,9 @@ latex.regTable('simple demo',dmodels,showModels=[mm for mm in dmodels if mm['nam
 
 latex.closeAndCompile()
 pst.stataSystem(stataout,filename=WP+'demos')
-print '\n\n The following is the list of model dicts: \n'
-print dmodels
+if 0:
+    print '\n\n The following is the list of model dicts: \n'
+    print dmodels
 
 # If the above results in a PDF with coloured regression tables, then you've the basics working together.
 # There are many more features to be demo'd, which could be added in here

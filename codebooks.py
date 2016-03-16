@@ -254,11 +254,10 @@ Fields in a stataCodebookClass object:
         self.__orderedVarNames=[LL[1] for LL in open(datafilepath+'.tsv','rt').readlines()[1:]]
         return
 
-
-
+    
     ################################################################
     ################################################################
-    def fromPDFCodebook(self,datafilepath,toLower=None):
+    def fromPDFCodebook(self,datafilepath, toLower=None):
     ################################################################
     ################################################################
         """ PDF derivatives go in workingPath (while DTA source derivatives can go in IP to save time).
@@ -266,95 +265,8 @@ Fields in a stataCodebookClass object:
         April 2010: Made gss22 PUMF work. maybe gss17.  but there's still TONNES to clean up in this messy class. Is not all this info available in a spreadsheet somewhere from stats can? Ridiculous lengths I am going to for little good (well, motivated by crappy DTAs from various places)
 
         2012Nov: added toLower
+
         """
-        def pdfcodebooktxt2tsv(txtfile,tsvfile,survey):
-            assert txtfile.endswith('.txt')
-            if not tsvfile:
-                tsvfile=paths['working']+os.path.split(txtfile).replace('.txt','.tsv')
-            if 1:#fileOlderThan(tsvfn,txtfile):
-                print (' Having to recreate the TSV from TXT (which comes from PDF) for %s!...'%txtfile)
-                #assert 'CCHS' in txtfile # Yeah.. thi si not general yet..? well, test with others.
-                source=''.join(file(txtfile,'rt').readlines())
-                # May 2013: check for funny chars?
-
-                GSS17fields=[['\nVariable Name:','varname'],
-                              ['Position:','position'],
-                              ['Length:','length'],
-                              ['\n\n','desc'],
-                              ['\n\n','pdfFreq'],
-                              ['\nCoverage:','coverage'],
-                              ['\n\n','end'],
-                              ]
-                GSS27fields=[['\n *Variable Name','varname'],
-                              ['Length','length'],
-                              ['Position','position'],
-                              ['\n *Question Name','questionname'],
-                              ['\n *Concept','concept'],
-                              ['\n *Question Text','question'],
-                              ['\n *Universe','universe'],
-                              ['\n *Note','note'],
-                              ]
-                    
-                if 'CCHS' in txtfile:
-                    reFields=[['\nVariable Name','varname'],
-                              ['Length','length'],
-                              ['Position','position'],
-                              ['\nQuestion Name','questionname'],
-                              ['\nConcept','concept'],
-                              ['\nQuestion','question'],
-                              ['\nUniverse','universe'],
-                              ['\nNote','note'],
-                              ]
-                    reString=''.join([r'%s(.*?)'%(ff[0]) for ff in reFields])
-                    allVars=re.findall(reString,source,re.DOTALL)
-                    assert allVars
-                    allVarsListOfDicts=[dict([[reFields[iiv][1].strip(),av[iiv].strip()] for iiv in range(len(reFields))])     for av in allVars]
-                    if toLower:    # From PDF should do lower case..
-                        for vv in allVarsListOfDicts:
-                            vv['varname']=vv['varname'].lower()
-
-                if 'GSS22' in txtfile or 'GSS17' in txtfile or 'GSS27' in txtfile:
-                    # Ca not get the question text for GSS22 hmmm.
-                    reFields= GSS17fields if 'GSS22' in txtfile or 'GSS17' in txtfile else GSS27fields
-                    reString=''.join([r'%s(.*?)'%(ff[0]) for ff in reFields])
-                    allVars=re.findall(reString,source,re.DOTALL)
-                    assert allVars
-                    print('     Succeeded: found/parsed variable metadata from PDF codebook for '+txtfile)
-                    allVarsListOfDicts=[dict([[aff[1].strip(),av[iiv].strip()] for iiv,aff in enumerate(reFields)])     for av in allVars]
-                    for vv in allVarsListOfDicts:
-                        # From PDF should do lower case..
-                        vv['varname']=vv['varname'].lower()
-                        vv['fromPDF']=True
-
-                if 'GSS17' in txtfile:
-                    print '!!!!!!!!!!! CANNOT READ GSS17 PDF YET'
-                    return
-                    reFields=[['\nVariable Name','varname'],
-                              ['Length','length'],
-                              ['Position','position'],
-                              ['\nQuestion Name','questionname'],
-                              ['\nConcept','concept'],
-                              ['\nQuestion','question'],
-                              ['\nUniverse','universe'],
-                              ['\nNote','note'],
-                              ]
-                    print """This_HAS_NEVER_BEEN_PROGRAMMED_
-                    SO_FAR_JUST_USING_FROMDTA
-                    woeiruwoeiu"""
-
-
-                varOrder=[avd['varname'] for  avd in allVarsListOfDicts]
-                allVarsDict=dict([[avd['varname'],avd]  for  avd in allVarsListOfDicts])
-                assert len(varOrder)>100
-                for vv in allVarsDict:
-                    allVarsDict[vv]['rawname']=allVarsDict[vv]['varname']
-                fout=open(tsvfile,'wt')
-                fout.write('\t'.join([ff[1].strip() for ff in reFields])+'\n')
-                for var in allVarsListOfDicts:
-                    fout.write('\t'.join([str(var[ff[1].strip()].replace('\n',' ').strip()) for ff in reFields])+'\n')
-
-                fout.close()
-                return
 
         if datafilepath in defaults['availableSurveys']:
             survey=datafilepath
@@ -363,14 +275,14 @@ Fields in a stataCodebookClass object:
                 doSystem("""
               pdftotext -layout %s %s"""%(paths['input']+survey+'/'+survey+'-codebook.pdf',paths['working']+survey+'-pdfcodebook.txt'))
                 datafilepath=paths['working']+survey+'-pdfcodebook.tsv'
-                pdfcodebooktxt2tsv(paths['working']+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
+                _pdfcodebooktxt2tsv(paths['working']+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
             elif os.path.exists(paths['input']+survey+'/'+survey+'-pdfcodebook.tsv'):
                 datafilepath=paths['input']+survey+'/'+survey+'-pdfcodebook.tsv'
             elif os.path.exists(paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'):
                 datafilepath=paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'
             elif os.path.exists(paths['input']+survey+'/'+survey+'-pdfcodebook.txt'):
                 datafilepath=paths['working']+survey+'/'+survey+'-pdfcodebook.tsv'
-                pdfcodebooktxt2tsv(paths['input']+survey+'/'+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
+                _pdfcodebooktxt2tsv(paths['input']+survey+'/'+survey+'-pdfcodebook.txt',datafilepath,survey=survey)
             else:
                 print("You should rename the PDF codebook to surveyname+'-codebook.pdf'")
                 print( "Failed to find PDF codebook for "+survey+", or its .txt child or its .tsv child!")
@@ -1899,3 +1811,102 @@ examples of usage?
 
 
 
+################################################################
+################################################################
+def _pdfcodebooktxt2tsv(txtfile,tsvfile,survey=None):
+    """
+    Given a .txt file made from a pdf file, read and parse the txt, using knowledge about the format of the PDF documentation for that survey.
+    """
+    ################################################################
+    ################################################################
+    assert txtfile.endswith('.txt')
+    if not tsvfile:
+        tsvfile=paths['working']+os.path.split(txtfile).replace('.txt','.tsv')
+    allVarsListOfDicts=None
+
+    print (' Having to recreate the TSV from TXT (which comes from PDF) for %s!...'%txtfile)
+    #assert 'CCHS' in txtfile # Yeah.. thi si not general yet..? well, test with others.
+    source=''.join(file(txtfile,'rt').readlines())
+    # May 2013: check for funny chars?
+    pdfFields={}
+    pdfFields['GSS17']=[['\nVariable Name:','varname'],
+                  ['Position:','position'],
+                  ['Length:','length'],
+                  ['\n\n','desc'],
+                  ['\n\n','pdfFreq'],
+                  ['\nCoverage:','coverage'],
+                  ['\n\n','end'],
+                  ]
+    pdfFields['GSS27']=[['\n *Variable Name','varname'],
+                  ['Length','length'],
+                  ['Position','position'],
+                  ['\n *Question Name','questionname'],
+                  ['\n *Concept','concept'],
+                  ['\n *Question Text','question'],
+                  ['\n *Universe','universe'],
+                  ['\n *Note','note'],
+                  ]
+
+    if 'CCHS' in txtfile:
+        reFields=[['\nVariable Name','varname'],
+                  ['Length','length'],
+                  ['Position','position'],
+                  ['\nQuestion Name','questionname'],
+                  ['\nConcept','concept'],
+                  ['\nQuestion','question'],
+                  ['\nUniverse','universe'],
+                  ['\nNote','note'],
+                  ]
+        reString=''.join([r'%s(.*?)'%(ff[0]) for ff in reFields])
+        allVars=re.findall(reString,source,re.DOTALL)
+        assert allVars
+        allVarsListOfDicts=[dict([[reFields[iiv][1].strip(),av[iiv].strip()] for iiv in range(len(reFields))])     for av in allVars]
+        if toLower:    # From PDF should do lower case..
+            for vv in allVarsListOfDicts:
+                vv['varname']=vv['varname'].lower()
+    if survey in ['GSS17','GSS22','GSS27']:
+        #if 'GSS22' in txtfile or 'GSS17' in txtfile or 'GSS27' in txtfile  or 'GSS26' in txtfile:
+        # Ca not get the question text for GSS22 hmmm.
+        reFields= PDFfields[survey]#{'GSS27':GSS17fields if 'GSS22' in txtfile or 'GSS17' in txtfile else GSS27fields
+        reString=''.join([r'%s(.*?)'%(ff[0]) for ff in reFields])
+        allVars=re.findall(reString,source,re.DOTALL)
+        assert allVars
+        print('     Succeeded: found/parsed variable metadata from PDF codebook for '+txtfile)
+        allVarsListOfDicts=[dict([[aff[1].strip(),av[iiv].strip()] for iiv,aff in enumerate(reFields)])     for av in allVars]
+        for vv in allVarsListOfDicts:
+            # From PDF should do lower case..
+            vv['varname']=vv['varname'].lower()
+            vv['fromPDF']=True
+
+    if 'GSS17' in txtfile:
+        print '!!!!!!!!!!! CANNOT READ GSS17 PDF YET'
+        return
+        reFields=[['\nVariable Name','varname'],
+                  ['Length','length'],
+                  ['Position','position'],
+                  ['\nQuestion Name','questionname'],
+                  ['\nConcept','concept'],
+                  ['\nQuestion','question'],
+                  ['\nUniverse','universe'],
+                  ['\nNote','note'],
+                  ]
+        print """This_HAS_NEVER_BEEN_PROGRAMMED_
+        SO_FAR_JUST_USING_FROMDTA
+        woeiruwoeiu"""
+
+    if allVarsListOfDicts is None:
+        print("   Failed to parse PDF txt output for %s..."%survey)
+    assert allVarsListOfDicts
+
+    varOrder=[avd['varname'] for  avd in allVarsListOfDicts]
+    allVarsDict=dict([[avd['varname'],avd]  for  avd in allVarsListOfDicts])
+    assert len(varOrder)>100
+    for vv in allVarsDict:
+        allVarsDict[vv]['rawname']=allVarsDict[vv]['varname']
+    fout=open(tsvfile,'wt')
+    fout.write('\t'.join([ff[1].strip() for ff in reFields])+'\n')
+    for var in allVarsListOfDicts:
+        fout.write('\t'.join([str(var[ff[1].strip()].replace('\n',' ').strip()) for ff in reFields])+'\n')
+
+    fout.close()
+    return
