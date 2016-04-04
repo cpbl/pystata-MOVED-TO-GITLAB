@@ -50,17 +50,22 @@ try:
     codebookTeXfilename=defaults['native']['paths']['working']+'tmpCodebook.tex'
     mcodebook={} # This is a master codebook variable used to collect descriptions of variables that I actually use. Contrast rawCodebooks masterCodebook, below.
 except KeyError:
-    print("  CPBL's defaults not defined")
+    print("  Default file paths not defined for pystata")
 
 try:
     from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan
     from cpblUtilities import doSystem,shelfSave,shelfLoad,  renameDictKey,cwarning, str2pathname,dgetget
     from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
     from cpblUtilities.cpblunicode import str2latex
+    from cpblUtilities.parallel import runFunctionsInParallel
 except ImportError:
     import sys
-    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")
-from cpbl_tables import        cpblTableElements
+    print(__file__+": Unable to find or import? CPBL's utilities package. Try importing it yourself to debug this.")
+
+try:
+    from cpbl_tables import cpblTableStyC, cpblTableElements
+except ImportError:
+    print(__file__+": Unable to find (or unable to import) cpblTables module. Try importing it yourself to debug this.")
 
 from copy import deepcopy
 
@@ -322,9 +327,6 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
 
 2013 Nov: "mem" is obselete, as modern Stata doesn't use it. As of now, it is ignored/deprecated.
     """
-    from cpblUtilities import doSystem
-    import os
-    import re
 
     if not dofile:
         print '   Skipping stataSystem: nothing to run '
@@ -336,7 +338,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
               filename=filename[0]
           if (not isinstance(filename,list)):
               filename=[filename+'%02d'%idf for idf,df in enumerate(dofile)]
-      from cpblUtilities import runFunctionsInParallel
+
       #return(runFunctionsInParallelOLD([[stataSystem,df,filename[ii],mem,nice] for ii,df in enumerate(dofile)],names=filename))
       return(runFunctionsInParallel([[stataSystem,[dofi,filename[ii],mem,nice]] for ii,dofi in enumerate(dofile)],names=filename,expectNonzeroExit=True))
 
@@ -431,7 +433,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
         doSystem(systemcom)
     stataLogFile_joinLines(logfile) # Get rid of the stupid "\n> "s by changing the file on disk
 
-    print 'Displaying end of log file: tail %s '%logfile
+    print 'Displaying end of log file: tail -n 20 %s '%logfile
     doSystem('tail %s'%logfile)
     #print 'Checking for Notes in output...: '
     doSystem('grep "\(Note\)\|\(Warning\)" %s |grep -v "Note:  Your site can add messages "|grep -v "Notes:"'%(logfile))
@@ -762,7 +764,7 @@ def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=N
     # Following line before keyRow option existed...
     #cVars=open(filepath+tsv,'rt').readline().strip().split(csplit)
     if defaults['mode'] in ['gallup','rdc']:
-        from cpblMake import cpblRequire
+        from rdc_make import cpblRequire
         cpblRequire(filepath+tsv)
     ffl=open(filepath+tsv,'rt')
     firstFewLines=''
@@ -917,7 +919,6 @@ def substitutedNames(names, subs=None,newCol=1):
     2012 June: shouldn't the latex class hae a version of this!?
     2013 March: Integers now converted to strings. [Motivation: when using i.category in Stata, variables can be numbers]
     """
-    from copy import deepcopy
     names=deepcopy(names)
     if subs==None:
         subs=standardSubstitutions
@@ -948,7 +949,7 @@ def substitutedNames(names, subs=None,newCol=1):
     return(names)
 
 try:
-    from codebooks import stataCodebookClass
+    from .codebooks import stataCodebookClass
 except ImportError:
     print(__file__+": Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
 
@@ -1068,11 +1069,6 @@ def toBoolVar(newname,oldname,surveyName=''):
     #codebookEntry(newname,sn,prompt)
     return(outs)
 
-try:
-    from cpbl_tables import cpblTableStyC
-except ImportError:
-    print(__file__+": Unable to find (or unable to import) cpblTables module")
-
 
 
 
@@ -1145,7 +1141,6 @@ def older_composeSpreadsheetRegressionTable(modelNames,modelNums,coefrows,extrar
     assert tableFormat['columns'] in ['models','variables'] and    tableFormat['SEposition'] in ['below','beside'] and    tableFormat['SEtype'] in ['tstat'] and    tableFormat['decorate'] in ['tstat','none','coef']
 
 
-    from copy import deepcopy
     modelNames=deepcopy(modelNames)
     modelNums=deepcopy(modelNums)
     coefrows=deepcopy(coefrows)
@@ -2038,9 +2033,6 @@ def _oldmode_plotPairedRow(ax,pairedRows,x=None,xerr=None,coef=None,imodels=None
 
     AUG 2009: NEEDS TO BE REWRITTEN SO IT DOESN'T USE PAIRED ROWS! BUT INSTEAD USES BYVAR, ETC
     """
-    import pylab
-    from cpblUtilities import tonumeric
-
 
     # Kludge for backwards-compatibility: LATER!! CAN CHANGE PAIREDROWS TO MODELS LATER EVERYWHERE
     if isinstance(pairedRows,list):
@@ -2244,7 +2236,6 @@ def modelResultsByVar(modelResults,tableFilename=None):
     May 2011:
 
     """
-    from cpblUtilities import tonumeric
     nullValues2=['.','','0',tonumeric('')]
 
 
@@ -2761,8 +2752,6 @@ N.B. It is important that this function returns None or a string containing     
 May 2011: Adding suest tests. Or maybe tests in general???
 
     """
-
-    from cpblUtilities import tonumeric
 
     if not os.path.exists(logFilename):
         return(None)
@@ -3320,7 +3309,6 @@ shell ensureUnzippedDTA
 DO NOT USE THIS IN PYTHON CODE DIRECTLY, SINCE YOU WANT IT TO HAPPEN AT STATA-RUNTIME!
 
 """
-    from cpblUtilities import doSystem
 
     if outfn==None:
         outfn=fn
@@ -5341,7 +5329,6 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
           print('CAUTION: I found and ditched some (%d/%d) individuals without weight %s for group "%s" in generateRankingData'%(plen-len(dddT[kk]),plen,weightVar,kk))
           assert (plen-len(dddT[kk])) / plen < .6
     if 0:
-        from dictTrees import dictTree
         kk=ddd.keys()
         #for byKey in byGroup
         print 'Sorting by key...'
