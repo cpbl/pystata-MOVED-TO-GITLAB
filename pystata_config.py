@@ -76,19 +76,25 @@ def readConfigFile(inpath):
     return(defaultsDict)
     
 
-# Is there a config file in the local directory?
 localConfigFile=os.getcwd()+'/config.cfg'
+repoPath=os.path.abspath(os.path.dirname(__file__ if __file__ is not None else '.'))
+
+
+#path = os.path.abspath(__file__)
+#dir_path = os.path.dirname(path)
+
+
+repoFile=(repoPath if repoPath else '.')+'/config.cfg'
+repoTemplateFile=(repoPath if repoPath else '.')+'/config-template.cfg'
+# Is there a config file in the local directory?
 if os.path.exists(localConfigFile):
     configDict=readConfigFile(localConfigFile)
-# Is there a config file in pystata directory?  
-# If it doesn't exist, create one. This is really just a way to record a defaults; but it also provides a template.
-else:
-    print('Information: Cannot find your custom '+localConfigFile+'. You may want to look in the '+__file__+' repo for a template to customize folders.')
-    repoPath=os.path.dirname(__file__ if __file__ is not None else '.')
-    repoFile=(repoPath if repoPath else '.')+'/config.cfg'
-    if not os.path.exists(repoFile):
-        createDefaultConfigFile(repoFile)
+# Is there a config file in the local directory?    
+elif os.path.exists(repoFile):
     configDict=readConfigFile(repoFile)
+else:
+    raise Exception("Cannot find config.cfg file in local path ("+localConfigFile+") nor in OSM repo ("+repoFile+").  Copy "+repoTemplateFile+" to config.cfg and edit it for your environment"  )
+
 defaults=configure(configDict)
 
 
