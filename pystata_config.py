@@ -1,103 +1,85 @@
-"""
-Configuration:
- A config.ini file should be used to set up folders to be used by pystata. The configuration procedure is as follows:
-  (1) pystata.configure() can be called to explicity set config values.
-  (2) Otherwise, pystata will look for a config.ini file in the operating system's local path at run time. Typically, this would be a file in the package of some caller module and would be in .gitignore so that it can be locally customized
-  (3) Otherwise, pystata will look for a config.ini file in its own (the pystata repository) folder.  
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import os, re, sys, copy
+from cpblUtilities.configtools import readConfigFile, read_hierarchy_of_config_files
 
 """
-import os
-import re
+This module provides dicts paths and defaults, which contain any parameters needed by multiple other modules.
+These parameters are generally unchanging over time, but may vary from one installation/environment to another.
 
 
-def configure(newdefaults=None):
-    assert isinstance(newdefaults,dict)
-    global defaults,paths
-    defaults=newdefaults.copy()
-    paths=defaults['paths']
-    defaults['native']={'paths':paths.copy()} # A relic from running posix os under MS (cygwin)
-    return(defaults)
+ - Specify structure of file.
+ - Load cascaded values from config files.
+ - Then rearrange as we need to put them into the dict arrays paths and defaults.
+"""
+config_file_structure={
+    'paths': [
+        'working',
+        'input',
+        'graphics',
+        'outputdata',
+        'output',
+        'tex',
+        'scratch',
+        'bin',
+        ],
+    'defaults': [
+        ('rdc',bool),
+        'mode',
+        ],
+    'server': [
+        ('parallel',bool),
+        ('manycoreCPU',bool),
+        ('islinux',bool),
+        'stataVersion', # e.g. 'linux12'
+    ],
+    }
 
 
-def createDefaultConfigFile(outpath='./config.cfg'):
+# The file config-template.cfg contains an example of a file which should be renamed config.cfg
+
+def main():
     """
-    Write a config file which provides the path info that this module requires.  (Or should it ADD the info that this module requires?)
-     
-    In  fact, instead of a function, this could be a template file that is included in the git repository but allowed to be modified, by including in .gitignore
     """
-    import os
-    import ConfigParser
-    config = ConfigParser.RawConfigParser()
-    defaultRoot="%(pwd)s"
-    defaultRoot=os.path.dirname(__file__)    
-    # When adding sections or items, add them in the reverse order of
-    # how you want them to be displayed in the actual file.
-    config.add_section('paths')
-    config.set('paths', 'working', defaultRoot+'/workingData/')
-    #config.set('paths', 'download', defaultRoot+'/input/download/')
-    config.set('paths', 'input', defaultRoot+'/input/')
-    #config.set('paths', 'output/data', defaultRoot+'/')
-    config.set('paths', 'graphics', defaultRoot+'/output/graphics/')
-    config.set('paths', 'outputData', defaultRoot+'/output/data/')
-    config.set('paths', 'output', defaultRoot+'/output/')
-    config.set('paths', 'tex', defaultRoot+'/texdocs/')
-    config.set('paths', 'scratch', defaultRoot+'/scratch/')
-    config.set('paths', 'bin', defaultRoot+'/')
-
-    config.add_section('defaults') # For as-yet unsectioned settings
-    config.set('defaults', 'RDC', 'False')
-    config.set('defaults', 'mode', 'none')
-
-    # Writing our configuration file to 'example.cfg'
-    with open(outpath, 'wt') as configfile:
-        config.write(configfile)
-
-def readConfigFile(inpath):
-    import ConfigParser
-    print('   CONFIG settings: '+__file__+': Parsing '+inpath)
-    # New instance with 'bar' and 'baz' defaulting to 'Life' and 'hard' each
-    config = ConfigParser.SafeConfigParser({'pwd': os.getcwd(),'cwd': os.getcwd(), 'mode':'none'})
-    listfound=config.read(inpath)
-    defaultsDict=dict(
-        paths=dict([
-            [ppp, config.get('paths', ppp)] for ppp in [
-                'working',
-                'input',
-                'output',
-                'tex',
-                'scratch',
-                'bin',
-                'graphics',
-                'outputData',
-             ] ]             ),
-        RDC=config.getboolean('defaults', 'RDC'),
-        mode=config.get('defaults', 'mode'),
-        )
-    return(defaultsDict)
+    VERBOSE=True
+    localConfigFile=os.getcwd()+'/config.cfg'
+    localConfigTemplateFile=os.getcwd()+'/config-template.cfg'
+    repoPath=os.path.abspath(os.path.dirname(__file__ if __file__ is not None else '.'))
     
+    # Change directory to the repo bin folder, ie location of this module. That way, we always have the osm config.cfg file as local, which means other utlilities using config.cfg will find the right one.
+    path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(path)
+    #if 'bin/pystata' not in os.getcwd():
+    #    os.chdir(dir_path)
 
-localConfigFile=os.getcwd()+'/config.cfg'
-repoPath=os.path.abspath(os.path.dirname(__file__ if __file__ is not None else '.'))
-
-
-#path = os.path.abspath(__file__)
-#dir_path = os.path.dirname(path)
-
-
-repoFile=(repoPath if repoPath else '.')+'/config.cfg'
-repoTemplateFile=(repoPath if repoPath else '.')+'/config-template.cfg'
-# Is there a config file in the local directory?
-if os.path.exists(localConfigFile):
-    configDict=readConfigFile(localConfigFile)
-# Is there a config file in the local directory?    
-elif os.path.exists(repoFile):
-    configDict=readConfigFile(repoFile)
-else:
-    raise Exception("Cannot find config.cfg file in local path ("+localConfigFile+") nor in OSM repo ("+repoFile+").  Copy "+repoTemplateFile+" to config.cfg and edit it for your environment"  )
-
-defaults=configure(configDict)
+    repoFile=(repoPath if repoPath else '.')+'/config.cfg'
+    repoTemplateFile=(repoPath if repoPath else '.')+'/config-template.cfg'
 
 
-# Also fill in some other things, through testing?
-defaults['stataVersion']='linux14' # Deprecated; need to remove
+    merged_dictionary=read_hierarchy_of_config_files([
+        repoTemplateFile,
+        repoFile,
+        localConfigTemplateFile,
+        localConfigFile,
+    ], config_file_structure,
+                                                     verbose=VERBOSE)
+
+    # Now impose our structure
+    defaults={}
+    if 'defaults' in merged_dictionary:
+        defaults.update(merged_dictionary['defaults'])
+    #defaults.upda=dict([[kk,vv] for kk,vv in merged_dictionary['defaults'].items() if kk in ['rdc','mode',]])
+    defaults.update(dict(paths=merged_dictionary['paths'],
+                        server=merged_dictionary['server'],
+                  ))
+    defaults['stata'] =  {'paths':copy.deepcopy(defaults['paths'])}
+    defaults['native'] = {'paths':copy.deepcopy(defaults['paths'])}
+    
+    return(defaults)
+defaults=main()
+paths=defaults['paths']
+if 'python_utils_path' in paths:
+    sys.path.append(paths['python_utils_path'])
+
+
 

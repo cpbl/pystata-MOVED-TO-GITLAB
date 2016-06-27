@@ -128,7 +128,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         if substitutions==None:
             substitutions=self.substitutions
         if 'version'=='priorToJune2011': # you can now pass "both" as value for transposed to appendRegressionTable, so that it doesn't duplicate the cpbltablec tex file.
-            if isinstance(transposed,str) and transposed=='both':
+            if isinstance(transposed,str) and transposed.lower()=='both':
                 self.appendRegressionTable(models,suppressSE=suppressSE,substitutions=substitutions,#modelTeXformat=modelTeXformat,
                            tableFilePath=tableFilePath, tableFormat=tableFormat,sourceLogfile=sourceLogfile,#tableCaption=tableCaption, tableComments=tableComments,
                            transposed=True,)#,hideRows=hideRows)
@@ -158,11 +158,13 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
 
         #if not colnums:
         #    colnums=['' for cn in colnames]
+        if transposed is None: transposed='both'
+        assert transposed in ['both',True,False]
         includedTex,wrapperTex,transposedChoice=composeLaTeXregressionTable(models,suppressSE=suppressSE,
                         substitutions=substitutions, tableFormat=tableFormat,transposed=transposed)#,hideRows=hideRows),modelTeXformat=modelTeXformat,
         # {'comments':tableComments,'caption':tableCaption,}
 
-        if transposedChoice in ['True','both']:
+        if transposedChoice.lower() in ['true','both']:
             assert 'BEGIN TRANSPOSED VERSION' in includedTex # File must have two versions of the table if we're to include the second.
 
         if 'version'=="no... i'm changing things june 2011 to always use the same file, and fit both normal andtransposed in it.":
@@ -178,7 +180,6 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         fout.write(        tableToTSV(includedTex) )
         fout.close()
 
-        
         print ' Appended table: '+tableFilePath
         
         ###################################################################################
@@ -4181,7 +4182,6 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
             fout.close()
 
             self.append(r'\newpage  '+callerTeX.replace('PUT-TABLETEX-FILEPATH-HERE',tableFilePath.replace(defaults['paths']['tex'],r'\texdocs '))+'\n\n')
-
 
 
 

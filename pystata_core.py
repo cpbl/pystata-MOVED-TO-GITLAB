@@ -532,7 +532,7 @@ TO do:
            saveold """+paths['scratch']+'__tmpv12_'+ff+ee+""", replace version(12)
            """)
            pp=paths['scratch']+'__tmpv12_'
-        df=pd.read_stata( pp+ff+ee,convert_categoricals=False)
+        df=pd.read_stata( pp+ff+ee,convert_categoricals=False)#, encoding='utf-8')
         df.to_pickle(pdoutfile)
     else:
         print('    '+ fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using existing Pandas file...')
@@ -612,7 +612,7 @@ def dataframe2dta(df,fn,forceToString=None, extraStata=None):
 
 ###########################################################################################
 ###
-def df2dta(df,filepath=None,index=False,             forceToString=None,sortBy=None,drop=None,keep=None,newdir=None,newpath=None,renameVars=None,labelVars=None,forceUpdate=True,extraStata=None,csv=False):
+def df2dta(df,filepath=None,index=False,             forceToString=None,sortBy=None,drop=None,keep=None,newdir=None,newpath=None,renameVars=None,labelVars=None,forceUpdate=True,extraStata=None,csv=False, encoding='utf-8'):
     ###
     #######################################################################################
    """ Save a pandas dataframe to dta. N.B.! Default index=False means do not include the index. So run reset_index() before calling this...
@@ -655,7 +655,7 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
 
 
    if 1: # 2014 July: I'm skipping df.to_stata: I don't know how to force things to string with it. Also forcing update to true, below.
-       df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index)
+       df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index,     encoding=encoding)
        return(tsv2dta(filepath+'_tmp',forceToString=forceToString,sortBy=sortBy,drop=drop,keep=keep,newdir=newdir,newpath=filepath,renameVars=renameVars,labelVars=labelVars,forceUpdate=True,extraStata=extraStata,csv=csv))
 
 
@@ -675,7 +675,7 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
    except (TypeError, AttributeError) as e:  # Apollo doesn't have to_stata. And on my machine, it doesn't like some contents (TypeError)
        repr( e )
        print(' df.to_stata() Failed! Falling back to awful .tsv method ')
-       df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index)
+       df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index, encoding=encoding)
        return(tsv2dta(filepath+'_tmp',forceToString=forceToString,sortBy=sortBy,drop=drop,keep=keep,newdir=newdir,newpath=filepath,renameVars=renameVars,labelVars=labelVars,forceUpdate=forceUpdate,extraStata=extraStata,csv=csv))
 
 
@@ -683,7 +683,7 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
 
 ###########################################################################################
 ###
-def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=None,newpath=None,renameVars=None,labelVars=None,keyRow=0,dataRow=1,labelRow=None,forceUpdate=False,extraStata=None,csv=False): # Specify filepath without the .tsv extension
+def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=None,newpath=None,renameVars=None,labelVars=None,keyRow=0,dataRow=1,labelRow=None,forceUpdate=False,extraStata=None,csv=False,  encoding='utf-8'): # Specify filepath without the .tsv extension
     ###
     #######################################################################################
     """ Make a dta version of data in a tsv file. This works even for Stata 9, which converts all variables to lower case (!).
@@ -763,7 +763,7 @@ def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=N
     print 'tsv2dta: Transforming %s.tsv into .dta.gz, possibly with options specified'%filepath
     # Following line before keyRow option existed...
     #cVars=open(filepath+tsv,'rt').readline().strip().split(csplit)
-    if defaults['mode'] in ['gallup','rdc']:
+    if 0 and defaults['mode'] in ['gallup','rdc']:
         from rdc_make import cpblRequire
         cpblRequire(filepath+tsv)
     ffl=open(filepath+tsv,'rt')
@@ -816,7 +816,7 @@ def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=N
             fout.write(csplit.join(dummies)+'\n')
         fout.write('\n'.join(open(filepath+tsv,'rt').readlines()[dataRow:]) + '\n')
         fout.close()
-        outs=insheetStata9(os.path.split(newpath)[0]+'/tmpTmpTEMP'+os.path.split(newpath)[1]+tsv,opts=insheetOptions)
+        outs=insheetStata9(os.path.split(newpath)[0]+'/tmpTmpTEMP'+os.path.split(newpath)[1]+tsv,opts=insheetOptions, encoding=encoding)
         if dropDummies:
             outs+='\ndrop if %s=="dummy"\n'%(dropDummies[0])
     elif not dataRow==1:
@@ -824,9 +824,9 @@ def tsv2dta(filepath,forceToString=None,sortBy=None,drop=None,keep=None,newdir=N
         fout.write(csplit.join(cVars)+'\n')
         fout.write('\n'.join(open(filepath+tsv,'rt').readlines()[dataRow:]) + '\n')
         fout.close()
-        outs=insheetStata9(os.path.split(newpath)[0]+'/tmpTmpTEMP'+os.path.split(newpath)[1]+tsv,opts=insheetOptions)
+        outs=insheetStata9(os.path.split(newpath)[0]+'/tmpTmpTEMP'+os.path.split(newpath)[1]+tsv,opts=insheetOptions , encoding=encoding)
     else:
-        outs=insheetStata9(filepath+tsv,opts=insheetOptions)
+        outs=insheetStata9(filepath+tsv,opts=insheetOptions  , encoding=encoding)
         #outs+='\ndrop if %s=="dummy"\n'%(firstVariable) # In case the file came with its own dummy line
 
     #outs='insheet using "%s.tsv" , clear\n'%filepath
@@ -894,13 +894,16 @@ def fixCaseStata9(afile): # This is because Stata9 does not offer the "case" opt
         return('\n*  WARNING! Stata will fail: %s does not exist\n'%afile)
 ###########################################################################################
 ###
-def insheetStata9(afile,double=False,opts=''): # This is used for all versions after Stata9, too...
+def insheetStata9(afile,double=False,opts='', encoding='utf-8'): # This is used for all versions after Stata9, too...
     ###
     #######################################################################################
     sdouble=' double '*double
-    if defaults['stataVersion']=='linux9':
+    if defaults['server']['stataVersion']=='linux9':
         return('\n insheet using %s, name clear %s %s'%(afile,sdouble,opts)  +fixCaseStata9(afile)  +'\n')
     else:
+        assert opts in ['',' tab ']
+        return('\n  import delimited '+afile+', clear case(preserve) delimiter(tab) '+ 'asdouble'*double+' encoding("'+encoding+'") \n')
+        # Old command:
         return('\n insheet using %s,  name clear case %s %s'%(afile,sdouble,opts)  +'\n')
 
 
@@ -2955,7 +2958,7 @@ def generate_postEstimate_sums_by_condition(vars, ifs=None):
                 *END MEAN LIST MULTI
                 """ for var in vars])+"""
                 *BEGIN SUM LIST MULTI
- sum """+' '.join(vars)+""" [w=weight] if cssaSample & ("""+anif+"""), separator(0) """+(defaults['stataVersion']=='linux11')*"""nowrap"""+"""
+ sum """+' '.join(vars)+""" [w=weight] if cssaSample & ("""+anif+"""), separator(0) """+(defaults['server']['stataVersion']=='linux11')*"""nowrap"""+"""
                 *END SUM LIST MULTI
 """ for anif in ifs]))
 
@@ -3352,9 +3355,9 @@ def stataMerge(key,filename,opts='',options=''): # options and opts are alternat
     else:
         mergevar='_merge'
 
-    if defaults['mode'] in ['gallup','rdc']:
-        from cpblMake import cpblRequire
-        cpblRequire(dfp+'.dta.gz')
+    #if defaults['mode'] in ['gallup','rdc']:
+    #    from cpblMake import cpblRequire
+    #    cpblRequire(dfp+'.dta.gz')
 
     # Clean up after ourselves (drop _merge) unless the _merge variable has been specified explicitly. :)
     return("""
@@ -4657,7 +4660,6 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
 
     stataDone=False
     if  parallel  and isinstance(stataCodeFunction,list) and  len(stataCodeFunction)>1:
-        from cpblUtilities import  runFunctionsInParallel
         runCode= latexfile.skipStataForCompletedTables or forceStata
         rfip=runFunctionsInParallel([[stataCodeWrapper,[fff,sVersion,rVersion,substitutions],{'runCode':runCode}] for fff in stataCodeFunction],names=[fff.func_name for fff in stataCodeFunction],offsetsSeconds=offsetsSeconds,expectNonzeroExit=True)
         success,stataCodesAndTex=rfip
@@ -4694,9 +4696,8 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
     if latexfile.skipStataForCompletedTables:
             print '   Automatically running Stata, since skipStataForCompletedTables==True and it might be quite fast!'
 
-    if not stataDone and ((latexfile.skipStataForCompletedTables  and not latexfile.usingDisclosedData )  or (defaults['islinux'] and 'yes'==raw_input('Run stata as batch?  (say "yes")'))): #or runStata
+    if not stataDone and ((latexfile.skipStataForCompletedTables  and not latexfile.usingDisclosedData )  or (defaults['server']['islinux'] and 'yes'==raw_input('Run stata as batch?  (say "yes")'))): #or runStata
         if parallel:
-            from cpblUtilities import        runFunctionsInParallel
             funcNames=[fff.func_name for fff in stataCodeFunction]
             offsets=deepcopy(offsetsSeconds)
 
@@ -5023,6 +5024,9 @@ I'm building in a much faster alternative into this same function! useStataColla
 def genWeightedMeansByGroup(oldvar,group,prefix=None,newvar=None,weight='weight',se=False,label=None):
     """
 2014 Oct: calculate weighted mean (and, todo, s.e.m.). without collapse, etc.: ie, preserve micro dataset while adding macro versions of them.
+
+group is a string of space-separated variables to group by.
+
 Can easily add se_ from weighted variance
 Other stats similar, e.g. weighted median:r(p50)
 Here we use w, not pw, because pw is not allowed for mean.
@@ -5032,13 +5036,15 @@ TODO: add s.e.m. option (easy)
 TODO: consolidate this with the two functions above: I've written nearly the same thing a few times.
 
 Is this extremely slow compare to collapse? If you're doing many variables, yes, I think so.
+
+And can we note why not use mean ..., over() ? You can't capture output from it?
     """
     groups=[gg for gg in group.split(' ') if gg] # List of levels to cycle over.
     if newvar is None:
         if prefix is not None:
             newvar=prefix+oldvar
         else:
-            newvar=group+'_'+oldvar
+            newvar='_'.join(groups)+'_'+oldvar
     # Following will need to be in quotes for string variables!! So encode to numeric first. :(
     ifs= ' & '.join(["%s == `l%d' "%(gg,ii) for ii,gg in enumerate(groups)])
     outs=("""
