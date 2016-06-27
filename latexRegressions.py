@@ -2,13 +2,20 @@
 import re
 from pystata_config import defaults,paths
 WP=paths['working']
+from pylab import array,flatten,arange
+import pandas as pd
+import pylab as plt
+from copy import deepcopy
+
 from .pystata_core import standardSubstitutions,texheader,defaultVariableOrder # Or import it as stata??
 from .pystata_core import *
 from codecs import open  # I need to do this just to get encoding= option in open() ?.
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
-from copy import deepcopy
 from cpblUtilities import debugprint, uniqueInOrder
+from cpblUtilities import transLegend,dfPlotWithEnvelope,str2pathname,flattenList,dgetget,NaN
+from cpblUtilities.cpblunicode import str2latex
+from cpblUtilities.color import getIndexedColormap
 
 """
 To do:
@@ -35,7 +42,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
 """
     # Caution: If you define variables here, before __init__, you can access them with latexinstance.avar , but those are common to the entire class, not to an instance.
 
-    def __init__(self,filename,margins='default',colour=True,modelVersion=None,regressionVersion=None,compactPreview=True,codebook=None,mainSurvey=None,mainDataFile=None,recreateCodebook=None,substitutions=None,texNameSuffix=None):
+    def __init__(self,filename,margins='default',allow_underscore=True,colour=True,modelVersion=None,regressionVersion=None,compactPreview=True,codebook=None,mainSurvey=None,mainDataFile=None,recreateCodebook=None,substitutions=None,texNameSuffix=None):
         """
         codebook can be either a string (name of DTA file) or a codebook object. It's appropriate when there is one dataset for the whole file.. Nov 2009. I suppose I could add this functionality of making descriptive stats tables somehow at the table-level....
         """
@@ -88,7 +95,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         self.fpathname=defaults['native']['paths']['tex']+self.fname  # Native: since we just want to run stata on windows, not tex
         #print '  Initiating a latex file %s.tex with margins: %s'%(self.fpathname,margins)
         #lfile=open(self.fpathname+'.partial.tex','wt')
-        thead=texheader(margins=margins).replace('%LOT:','').replace('%LOF:','')
+        thead=texheader(margins=margins,allow_underscore=allow_underscore).replace('%LOT:','').replace('%LOF:','')
         if not self.compactPreview:
             thead=thead.replace('%TOC:','')
         #lfile.write(thead)
@@ -164,7 +171,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
                         substitutions=substitutions, tableFormat=tableFormat,transposed=transposed)#,hideRows=hideRows),modelTeXformat=modelTeXformat,
         # {'comments':tableComments,'caption':tableCaption,}
 
-        if transposedChoice.lower() in ['true','both']:
+        if {True:'true',False:'false'}.get(transposedChoice,transposedChoice).lower() in ['true','both']:
             assert 'BEGIN TRANSPOSED VERSION' in includedTex # File must have two versions of the table if we're to include the second.
 
         if 'version'=="no... i'm changing things june 2011 to always use the same file, and fit both normal andtransposed in it.":
@@ -4283,12 +4290,6 @@ May 2012: Great idea is to Add in the option to also do fully-piecewise/full-rol
     
         """
         DVNN= 'dependent var, its name'
-        from pylab import arange
-        from cpblUtilities import transLegend,dfPlotWithEnvelope,str2latex,str2pathname,flattenList,dgetget,NaN
-        import pylab as plt
-        from pylab import array
-        from pylab import flatten
-        import pandas as pd
 
         #assert not weight is None # Until 2015, you need to specify weight is False or give a weight, since this started out assuming a weight.
         
@@ -4380,7 +4381,6 @@ gen _ord%(rx)s=(tmpOrd%(rx)s-r(min))/(r(max)-r(min))
         combineVars=[[avvv,'z_'+avvv] for avvv in allRollingCovNames]
 
         if rollCovColourLookup is None:  # Then assign it automagically? Using rainbow?
-            from cpblUtilities import getIndexedColormap
             ccc=getIndexedColormap(None,len(rollingCovariates))
             rollCovColourLookup=dict([[avvv,ccc[ia]] for ia,avvv in enumerate(rollingCovariates)])
 
