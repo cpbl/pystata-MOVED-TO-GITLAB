@@ -1,9 +1,9 @@
 #from pystata import *
 import re
-from .pystata_config import defaults,paths
+from pystata_config import defaults,paths
 WP=paths['working']
-from .pystata import standardSubstitutions,texheader,defaultVariableOrder # Or import it as stata??
-from .pystata import *
+from .pystata_core import standardSubstitutions,texheader,defaultVariableOrder # Or import it as stata??
+from .pystata_core import *
 from codecs import open  # I need to do this just to get encoding= option in open() ?.
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
