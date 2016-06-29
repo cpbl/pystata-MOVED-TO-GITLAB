@@ -1,14 +1,16 @@
 #from pystata import *
-import re
+import re,os
 from .pystata_config import defaults,paths
 WP=paths['working']
-from .pystata import standardSubstitutions,texheader,defaultVariableOrder # Or import it as stata??
-from .pystata import *
+from pystata_core import standardSubstitutions,substitutedNames,readStataRegressionLogFile,texheader,defaultVariableOrder # Or import it as stata??
+from pystata_core import * # Should I be removing this line for style reasons??
 from codecs import open  # I need to do this just to get encoding= option in open() ?.
 if 'stata' not in defaults['paths']: # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata']=defaults['paths']
 from copy import deepcopy
 from cpblUtilities import debugprint, uniqueInOrder
+from cpblUtilities.textables import chooseSFormat,tableToTSV
+
 
 """
 To do:
@@ -164,7 +166,8 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
                         substitutions=substitutions, tableFormat=tableFormat,transposed=transposed)#,hideRows=hideRows),modelTeXformat=modelTeXformat,
         # {'comments':tableComments,'caption':tableCaption,}
 
-        if transposedChoice.lower() in ['true','both']:
+        assert not transposed in [True,False] # If this happens, just fix the line below.
+        if isinstance(transposed,str) and transposedChoice.lower() in ['true','both']:
             assert 'BEGIN TRANSPOSED VERSION' in includedTex # File must have two versions of the table if we're to include the second.
 
         if 'version'=="no... i'm changing things june 2011 to always use the same file, and fit both normal andtransposed in it.":
@@ -175,7 +178,6 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         fout.close()
         # 2010 Jan: Also create a .csv file *from* the .tex.
         ###from cpblUtilities import cpblTableToCSV
-        from cpbl_tables import tableToTSV
         fout=open(tableFilePath+'-tex.csv','wt')
         fout.write(        tableToTSV(includedTex) )
         fout.close()
@@ -3944,7 +3946,6 @@ scalars:
             codebookT.summaryStatisticsTable_singleSurvey(texFilename=tableLogNameNoSuffix+'-%d.tex'%iIf,latex=self,showVars=showVars,comments=comments,substitutions=substitutions)
             # 2010 Jun: Also create a .csv file *from* the .tex.
 ###            from cpblUtilities import cpblTableToCSV
-            from cpbl_tables import tableToTSV
             fout=open(tableLogNameNoSuffix+'-%d.csv'%iIf,'wt')
             tmpCSV=tableToTSV(tableLogNameNoSuffix+'-%d.tex'%iIf)
             fout.write(  tmpCSV)
@@ -4176,7 +4177,6 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
             fout.close()
             # 2010 Jan: Also create a .csv file *from* the .tex.
             ###from cpblUtilities import cpblTableToCSV
-            from cpbl_tables import tableToTSV
             fout=open(tableFilePath+'-tex.csv','wt')
             fout.write(     tableToTSV(includeTeX) )
             fout.close()

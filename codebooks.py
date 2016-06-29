@@ -15,9 +15,10 @@ from .pystata_config import defaults,paths
 assert defaults is not None
 
 #try:
-from cpblUtilities import tsvToDict,doSystem,chooseSFormat, debugprint,dgetget #uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
+from cpblUtilities import tsvToDict,doSystem, debugprint,dgetget
+#uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule,str2latex, fileOlderThan, tonumeric, fNaN, renameDictKey,cwarning,str2pathname, dgetget, doSystem,shelfSave,shelfLoad
 from cpblUtilities.cpblunicode import str2latex
-
+from cpblUtilities.textables import chooseSFormat
 #    #from cpblUtilities.mathgraph import  seSum,mean_of_means
 #except ImportError:
 #    print(__file__+": Unable to find or import? CPBL's utilities package. Test: importing it directly.")

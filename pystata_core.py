@@ -53,7 +53,7 @@ except KeyError:
     print("  Default file paths not defined for pystata")
 
 try:
-    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, chooseSFormat, orderListByRule, fileOlderThan
+    from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, orderListByRule, fileOlderThan
     from cpblUtilities import doSystem,shelfSave,shelfLoad,  renameDictKey,cwarning, str2pathname,dgetget
     from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
     from cpblUtilities.cpblunicode import str2latex
@@ -63,7 +63,7 @@ except ImportError:
     print(__file__+": Unable to find or import? CPBL's utilities package. Try importing it yourself to debug this.")
 
 try:
-    from cpbl_tables import cpblTableStyC, cpblTableElements
+    from cpblUtilities.textables import cpblTableStyC, cpblTableElements,chooseSFormat
 except ImportError:
     print(__file__+": Unable to find (or unable to import) cpblTables module. Try importing it yourself to debug this.")
 
