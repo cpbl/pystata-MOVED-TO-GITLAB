@@ -166,8 +166,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
                         substitutions=substitutions, tableFormat=tableFormat,transposed=transposed)#,hideRows=hideRows),modelTeXformat=modelTeXformat,
         # {'comments':tableComments,'caption':tableCaption,}
 
-        assert not transposed in [True,False] # If this happens, just fix the line below.
-        if isinstance(transposed,str) and transposedChoice.lower() in ['true','both']:
+        if transposed is True or (isinstance(transposed,str) and transposedChoice.lower() in ['true','both']):
             assert 'BEGIN TRANSPOSED VERSION' in includedTex # File must have two versions of the table if we're to include the second.
 
         if 'version'=="no... i'm changing things june 2011 to always use the same file, and fit both normal andtransposed in it.":
