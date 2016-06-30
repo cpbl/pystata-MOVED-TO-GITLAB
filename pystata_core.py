@@ -1917,7 +1917,7 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     return(outpair)
 
 
-def texheader(margins='default',startDocument=True):
+def texheader(margins='default',startDocument=True, allow_underscore=True):
     if margins==None:
         mmm=r'\usepackage[left=0cm,top=0cm,right=.5cm,nohead,nofoot]{geometry}\n'
     else:
@@ -1934,6 +1934,7 @@ def texheader(margins='default',startDocument=True):
 %%\usepackage[svgnames]{xcolor} %% svgnames clashes with Beamer?
 \usepackage{geometry}
 \usepackage[colorlinks]{hyperref}
+"""+r'\usepackage{underscore}'*allow_underscore+r"""
 
 % If multirow is invoked, row labels will span the variable and its standard error.
 \usepackage{multirow}
