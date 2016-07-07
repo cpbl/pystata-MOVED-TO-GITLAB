@@ -2177,7 +2177,7 @@ error _rc
                 outs+="""
                 capture drop cssaSample
                 gen cssaSample=e(sample)
-    estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a r2_p N  N_clust ll r2_o """+('ivreg2' in model['method'])*'jp idp widstat'+') '+('drop('+dropIndicators+')' if dropIndicators else '')+"""
+    estimates table , varwidth(49) style(oneline) b se p stats(F r2  r2_a r2_p N  N_clust ll r2_o """+('ivreg2' in model['method'])*'jp idp widstat'+') '+('drop('+dropIndicators+')' if dropIndicators else '')+"""
     * ereturn list
     """%()
                 if 'compDiffBy' in model or 'getSubSampleSums' in model:

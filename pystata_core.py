@@ -1044,7 +1044,7 @@ defaultVariableOrder=r'w_meanClouds7days w_meanClouds7daysSquared w_diffClouds7d
 defaultVariableOrder+=''.join([''.join([' %s%sHHincome '%(a,b) for b in ['lnav','ln','lnadj','lnMean','lnMdn','lnStd','lnRav','al_ln','ag_ln','vm_ln','gini']]) for a in ['']+[pf+'_' for pf in dvoprefixes]])+' '
 defaultVariableOrder+=''.join([' %s '%b+''.join([' %s_%s '%(a,b) for a in dvoprefixes]) for b in r'CMA~prices $\sum\beta_{\rm{inc}}$ HHincomerank mortgagePayment lnhouseValue houseRooms age age100 age100sq agesq100 ageSquared agecu100 age100t3 agefo100 age100t4 age65up male  marriedAsMarried married asmarried asMarried  sepdivwid sepdiv separated divorced widowed  educHighSchool educStartedCollege educUnivDegree health workStress importedTrust  trustBool trustNeighbour  walletNeighbour walletStranger trustColleagues noColleagues  anySeeColleagues lnFreqSeeColleagues lnFreqSeeFamily anySeeFamily lnFreqSeeFriends anySeeFriends anyTalkFamily lnFreqTalkFamily anyTalkFriends lnFreqTalkFriends    lnCloseFriends lnCloseFamily lnOtherFriends     nCloseFamily nCloseFriends nOtherFriends lnOtherFriends      noReligion godImportance student employed domestic  unemployed retired mastery  confidencePolice dHHsize1 dHHsize2 dHHsize3 dHHsize4 dHHsize5 dHHsizeGT5  dHHsize5up constant cons_ controls mnth~f.e. stn~f.e. mnthStn~f.e.  PR~f.e. HR~f.e. CMA~f.e. CSD~f.e. CT~f.e. clustering $\tau_{\rm{neigh}}\geq$10yr $\tau_{\rm{city}}\geq$10yr citizen lnTenureHouse  lnTenureNeighbourhood lnTenureCity movedHouse1yr movedHouse5yr movedHouse10yr movedCity1yr movedCity5yr firstLangFrench frc_firstLang_french bornHomeProv foreignBorn foreign~born vismin belongCommunity belongProvince belongCountry valueSocial valueCoEthnic valueOtherEthnic      own~house'.split(' ') if b])
 #defaultVariableOrder+='  survey    e(N) N e(r2) r2 e(r2-a) r2_a e(r2-p) r2_p e(ll) ll e(N-clust) N_clust r(p)'
-defaultVariableOrder+='  survey    jp widstat idp  e(N) N e(r2) r2 e(r2-a) r2_a e(r2-p) r2_p ll e(N-clust) N_clust r(p)'
+defaultVariableOrder+='  survey    jp widstat idp  e(N) N e(r2) r2 e(r2-a) r2_a e(r2-p) r2_p ll e(N-clust) N_clust r(p) e(F)'
 defaultVariableOrder=[vv for vv in     defaultVariableOrder.split(' ') if vv]
 
 
@@ -1428,7 +1428,6 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
     coefVars=orderListByRule(byVar.keys(),variableOrder,dropIfKey=hideVars)
     statsVars=orderListByRule(orderListByRule(byStat.keys(),['r2','r2_a','r2_p','N','p','N_clust']),variableOrder,dropIfKey=hideStats)
     flagsVars=orderListByRule(byTextraline.keys(),variableOrder,dropIfKey=hideVars)
-
 
     if showOnlyVars: # In which case variableOrder, variableOrder will have no effect:
         coefVars=[vv for vv in showOnlyVars if vv in coefVars]#orderListByRule(vars,showOnlyVars) if vv in showOnlyVars]
