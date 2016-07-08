@@ -1032,11 +1032,10 @@ doHeader="""
     capture noisily clear all
     *set maxvar 7000,permanently
     set more off
-    * It appears that 500000 is the maximum allowed?! for scrollbufsize
-    set scrollbufsize 500000
     matrix drop _all
     set matsize 11000
-"""
+""" # For old stata versions:    * It appears that 500000 is the maximum allowed?! for scrollbufsize    ** set scrollbufsize 500000
+
 
 # The following is currently used to choose variable ordering in regression tables when it is not specified. This feature should probably be disabled for non-CPBL users; obviously below is very custom, and it overrides the natural order which is Stata's: ie the order in which variables are used in the regressions constituting a table.
 dvoprefixes=['da','dam','ct','ctm','a15','a15m','a50','a50m','csd','csdm','cma','cmam','hr','pr','prm']
@@ -2566,7 +2565,7 @@ F(  1,     9) =   10.82
 
 ################################################################################################
 ################################################################################################
-def readEstimatesTable(logtxt,command=None):
+def readEstimatesTable(logtxt,command=None,   removeFactorVariables=True):
     ############################################################################################
     ############################################################################################
         """
@@ -2579,6 +2578,10 @@ def readEstimatesTable(logtxt,command=None):
         Or allow the command (mode) to be passed....?
 
         2013March: when I include dummies like i.year#i.country in the output, there will be a space in the variable name... I'm now going to try to implement that.
+
+        removeFactorVariables=True: will remove from the results the coefficients for variables included using the i.variable syntax. 
+                 ((We only need to do this because of the "0*" in 0*('drop('+dropIndicators+')'  in latexRegressions.py. The drop() option was removed in 2016 July (see git for the ostensible reason) but maybe it should be back in there. It is true that the more general approach is to leave fixed effect dummies in the output, and then just filter them out here.))
+
         """
         from pylab import isnan
         parts=re.findall('Variable\s*\|\s*active\s*\n--------------------[-+-]*\n(.*?)\n\s*legend:(.*?)\n',logtxt,re.DOTALL)
@@ -2632,6 +2635,7 @@ sigma                                             |
             coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
 
 	elif len(sections)==2 or '\n\nOrdered probit regression' in logtxt or '\n\nOrdered logistic regression' in logtxt or '\n nl ' in '\n'+logtxt[:20]:
+            # This is OLS, quantile reg, oprobit, ologit, ...
 
             if len(sections)==2:
                 assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
@@ -2654,6 +2658,15 @@ sigma                                             |
             if 0: # Following used until March 2013:
                 # do the strip()'ing right in the regexp, although it makes it less readable:
                 coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
+
+            # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, throw away all those results!
+            if '|\n' in varsS and removeFactorVariables:
+                gg=varsS.split('  |\n')
+                for ii,asxn in enumerate(gg):
+                    if not asxn.split('\n')[0].split('|')[1].strip():
+                        gg.pop(ii)
+                varsS='\n'.join(gg)
+                
             # March 2013:  I'm doing the same but allowing spaces in the variable name! This works, and is better:
             coefss=re.findall('\s*(.*?)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
             coefOrder=[c[0] for c in coefss]
@@ -2681,7 +2694,6 @@ sigma                                             |
             assert not 'Unknown command output! Could be ologit, etc'
 
 
-
         stats=_pStatsSection_estTab(statss)
         outModel={'estcoefs':coefs,'eststats':stats,'estCoefOrder':coefOrder}
 	assert outModel['estcoefs']
@@ -2693,6 +2705,8 @@ def readStataEstimateResults(logtxt):
     ############################################################################################
     ############################################################################################
         """
+        This is a wrapper which mostly relies on readEstimatesTable (the previous method, above) but also reads other output, such as a covariance matrix, etc.
+
         This used to be a part of the following function, read a log file. But it also works for quantile regression, which is parsed separately.
 
         This was first designed for OLS. Right now it ignores the cut-points for ologit etc results. They end up in statss

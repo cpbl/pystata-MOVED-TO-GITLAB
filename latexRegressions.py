@@ -1546,6 +1546,7 @@ Bugs:
         if captureNoObservations==None: # Dec 2010: new default, since it's always an advantage.
             captureNoObservations=True
 
+        if '_' in tablename: tablename=tablename.replace('_','-')
         if skipStata==True and self.skipAllDerivedTables==True:
             print " REGTABLE:  !! Skipping an entire table "+str((tablename, extraTexFileSuffix))+" because it is a derived table, not one that controls Stata. Set the latex.skipAllDerivedTables==False to correct this special behavoiure"
             return('')
