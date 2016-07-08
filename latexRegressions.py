@@ -1974,7 +1974,9 @@ Bugs:
             
             RHSs['autoCreate']=' '.join(RHS['simplest']+RHS['inConditions']+RHS['inInteractions'])
             RHSs['zScoreVars']=' '.join([model['depvar']]+RHS['simplest']) #+RHS['inInteractions'])
-            RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['cleanedBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars])
+            RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['cleanedBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars ])
+            assert not any(['county' in ff for ff in  forceShowVars])
+            assert not forceShowVars
 
 
             # Following fails if there are redundant (repeated) RHS variables here...
@@ -2172,12 +2174,13 @@ error _rc
              (2) display regression variance-covariance results
              (3) record e(sample) as cssaSample, for use with making associated stats (means) later.
              """
+
             if not model.get('special','') == 'suestTests':
-                dropIndicators=RHSs['suppressEstimates']
+                dropIndicators=' '.join([ss for ss in RHSs['suppressEstimates'].split(' ') if ss and 'partial('+ss+')' not in model['regoptions']])
                 outs+="""
                 capture drop cssaSample
                 gen cssaSample=e(sample)
-    estimates table , varwidth(49) style(oneline) b se p stats(F r2  r2_a r2_p N  N_clust ll r2_o """+('ivreg2' in model['method'])*'jp idp widstat'+') '+('drop('+dropIndicators+')' if dropIndicators else '')+"""
+    estimates table , varwidth(49) style(oneline) b se p stats(F r2  r2_a r2_p N  N_clust ll r2_o """+('ivreg2' in model['method'])*'jp idp widstat'+') '+  0*('drop('+dropIndicators+')' if dropIndicators else '')+"""
     * ereturn list
     """%()
                 if 'compDiffBy' in model or 'getSubSampleSums' in model:

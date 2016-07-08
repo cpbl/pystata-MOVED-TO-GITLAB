@@ -1035,7 +1035,7 @@ doHeader="""
     * It appears that 500000 is the maximum allowed?! for scrollbufsize
     set scrollbufsize 500000
     matrix drop _all
-    set matsize 3000
+    set matsize 11000
 """
 
 # The following is currently used to choose variable ordering in regression tables when it is not specified. This feature should probably be disabled for non-CPBL users; obviously below is very custom, and it overrides the natural order which is Stata's: ie the order in which variables are used in the regressions constituting a table.
