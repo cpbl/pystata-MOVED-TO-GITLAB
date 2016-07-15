@@ -1325,7 +1325,16 @@ I've added various other flag/settings specified starting with *.
     
     ###########################################################################################
     ###
-    def regTable(self,tablename,models,method=None,depvar=None,regoptions=None,variableOrder=None, showonlyvars=None,hidevars=None,forceShowVars=None,extralines=None,comments='',substitutions=None,options='', attributes=None,landscape=False,transposed=None,combineRows=None,suppressSE=False, produceOnly=None,extraTexFileSuffix=None,doPcorr=False,stopForErrors=True,crcoefsVars=None,skipStata=False, skipLaTeX=False,hidePSumTest=False,defaultModel=None,hideModelNumbers=False,assignSaveCoefficientsPrefix=None, hideModels=None,showModels=None,hideModelNames=False,renumberModels=True,showFailedRegressions=False, multirowLabels=False,betas=False,followupFcn=None,followupArgs=None,showCompDiff=None,returnModels=False, postPlotFcn=None,postPlotArgs=None,autoCreateVars=True,captureNoObservations=None,skipReadingResults=False): # Do a set of regressions; output results to .tex and .txt files 
+    def regTable(self,tablename,models,method=None,depvar=None,regoptions=None,variableOrder=None,
+             showonlyvars=None,hidevars=None,forceShowVars=None,extralines=None,comments='',substitutions=None,options='',
+             attributes=None,landscape=False,transposed=None,combineRows=None,suppressSE=False,
+             produceOnly=None,extraTexFileSuffix=None,doPcorr=False,stopForErrors=True,crcoefsVars=None,skipStata=False,
+             skipLaTeX=False,hidePSumTest=False,defaultModel=None,hideModelNumbers=False,assignSaveCoefficientsPrefix=None,
+             hideModels=None,showModels=None,hideModelNames=False,renumberModels=True,showFailedRegressions=False,
+             multirowLabels=False,betas=False,followupFcn=None,followupArgs=None,showCompDiff=None,returnModels=False,
+             postPlotFcn=None,postPlotArgs=None,autoCreateVars=True,captureNoObservations=None,skipReadingResults=False): # Do a set of regressions; output results to .tex and .txt files 
+
+
         # retired options: useOUTREG2=False,
         ###
         #######################################################################################

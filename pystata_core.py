@@ -1616,7 +1616,6 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         Add a row or paired row
         """
     body=''
-
     # Decide whether to show just model numbers for rows, or model numbers and names:
     for model in models:
         model['tmpTableRowName']=model.get('texModelName', substitutedNames(str(model.get('name','')),substitutions))
@@ -1627,6 +1626,10 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         tableFormat['comments']=tableFormat.get('comments','')+' N.B.: All models/rows were named %s. '%(models[0].get('texModelName',''))
         multirowLabels=False
 
+    # Decide whether to separate models by showing their group names as mostly-blank rows:
+    mgns=[mm.get('modelGroupName','') for mm in models] # unused???
+    latestModelGroupName = ''
+
     # Loop over models, creating a pair of rows for each (coefficients and standard errors)
     for model in models:
         assert 'estcoefs' in model or 'separator' in model # means not yet programmed
@@ -1635,6 +1638,10 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
             # Above replaces lines below, since now the reformatting of flags has been done in textralines:
             #model['flags']=dict(model['flags'])
         if 'estcoefs' in model: # This is an estimate, not a mean, not a spacer
+            mgn=model.get('modelGroupName','' if latestModelGroupName == '' else '------------')
+            if not latestModelGroupName == mgn:
+                latestModelGroupName = mgn
+                body+= r'\multicolumn{2}{l}{' +  substitutedNames(mgn,substitutions)+ ':}'+   '\t& '.join(['' for vv in coefVars+statsVars])+' \\\\ \n'
             if model.get('special','') in ['suestTests']:
                 displayEst='p' # For OLS etc
                 displayErr='nothing!'
