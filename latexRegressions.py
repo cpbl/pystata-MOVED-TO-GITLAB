@@ -1373,7 +1373,7 @@ The argument regoptions includes code that should come after the variables to re
 
 N.B. if the "beta" option is given to Stata in a reg command, it is intercepted here, all the variables are normalised, and a robust weighted regression is done to create beta coefficients in place of the normal regression output. This results in the same coefficients as Stata produces, but allows full standard error calculation, etc.
 
-betas: Alternatively, an entire table can be turned into betas (if it is OLS) by giving the betas=True option.  Setting betas='both' would double every model (hm, can I do this safely, sensibly.?) so that there's a beta model following the raw coef model. Hm, in that case, shouldn't I ditch the stats for the beta version?  I guess that would need to be done by hand, given the final chosen layout for the table. No, there's not 'both' optoin. Just use the function   duplicateAllModelsToDualBeta(models):
+betas: Alternatively, an entire table can be turned into betas (if it is OLS) by giving the betas=True option.   If you want both raw and beta versions of each model, use the function     duplicateAllModelsToDualBeta()
 
 The argument "models" is a list of [dicts and lists of dicts]. Dicts have the following tags (and maybe more):
 
@@ -4065,7 +4065,7 @@ What is "launch"? It seems not used.
         if not closeOnly:
             from cpblUtilities import doSystemLatex
             ##doSystemLatex(self.fname,latexPath=None,launch=launch)
-            doSystemLatex(self.fname,latexPath=defaults['native']['paths']['tex'],launch=launch,tex=None,viewLatestSuccess=True,bgCompile=True)
+            doSystemLatex(self.fname)#launch=launch,tex=None,viewLatestSuccess=True,bgCompile=True)
         return(self.fpathname+'.tex')
 
     ###########################################################################################
