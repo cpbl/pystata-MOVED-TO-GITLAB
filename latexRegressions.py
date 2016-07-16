@@ -137,7 +137,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
 
         June 2011: Needs to be altered to use new two-formats-in-one-tex-file ability of cpblTableC style. For instance, I could have it so that the automated choice of transposed or not still here still uses the cpblTableC files as untransposed as first (default) option, and simple changes the wrapper.
         """
-
+        assert sourceLogfile
         if substitutions==None:
             substitutions=self.substitutions
         if 'version'=='priorToJune2011': # you can now pass "both" as value for transposed to appendRegressionTable, so that it doesn't duplicate the cpbltablec tex file.

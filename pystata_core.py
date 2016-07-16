@@ -2755,6 +2755,8 @@ def readStataEstimateResults(logtxt):
         if 'BEGIN SUM LIST MULTI' in logtxt:
             outModel.update({'subSums':read_postEstimate_sums_by_condition(logtxt) })
 
+        # Always save the raw output right in the model dict
+        outModel['rawLogfileOutput']=logtxt
         return(outModel)
 
 
@@ -2891,6 +2893,8 @@ May 2011: Adding suest tests. Or maybe tests in general???
                 print '   Dropped constant for beta estimate '
                 #assert not any([abs(vv['b'])<1e-9 for vv in mmm['estcoefs'].values()])
 
+            # Update model objects with the name of their source log file, and with the entire source text
+            mmm['logFilename']=logFilename
 
 
     #################### TROWS: A MODE FOR BACKWARDS COMPATIBILITY
