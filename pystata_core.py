@@ -1421,8 +1421,8 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
     # Following line fails, since const substition is part of substitutions, and could be early...
     variableOrder+=[vvv[0] for vvv in substitutions]
 
-    # Agh, shoot: need to massage hidvars:
-    hideStats=[sv for sv in byStat.keys() if 'e(%s)'%sv in hideVars]###'r2','r2_a','r2_p','N','p','N_clust'
+    # Agh, shoot: need to massage hidvars: [Not always; look both for e(stat) and stat.
+    hideStats=[sv for sv in byStat.keys() if 'e(%s)'%sv in hideVars or sv in hideVars]###'r2','r2_a','r2_p','N','p','N_clust'
 
     coefVars=orderListByRule(byVar.keys(),variableOrder,dropIfKey=hideVars)
     statsVars=orderListByRule(orderListByRule(byStat.keys(),['r2','r2_a','r2_p','N','p','N_clust']),variableOrder,dropIfKey=hideStats)
