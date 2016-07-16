@@ -137,7 +137,8 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
 
         June 2011: Needs to be altered to use new two-formats-in-one-tex-file ability of cpblTableC style. For instance, I could have it so that the automated choice of transposed or not still here still uses the cpblTableC files as untransposed as first (default) option, and simple changes the wrapper.
         """
-        assert sourceLogfile
+        if sourceLogfile is not None:
+            assert all([sourceLogfile==mm['logFilename'] for mm in models])
         if substitutions==None:
             substitutions=self.substitutions
         if 'version'=='priorToJune2011': # you can now pass "both" as value for transposed to appendRegressionTable, so that it doesn't duplicate the cpbltablec tex file.
@@ -159,11 +160,13 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         if tableFilePath.endswith('.tex'):
             tableFilePath=tableFilePath[:-4]
 
+        # Add either the whole logfile, if specified, or a concatenated version of each model output, if no logfile was specified.
         # Add all caution comments for this table to the table Caption.?
         if sourceLogfile is None:
-            sourceLogfile=['']
+            sourceLogfile=[LL+'\n' for LL in sum([mm['rawLogfileOutput'].split('\n') for mm in models],[])]
         else:
             sourceLogfile=open(sourceLogfile,'rt').readlines()
+
         twarnings=[r'\framebox{'+str2latex(LL)+'}' for LL in sourceLogfile if 'Warning' in LL or 'Caution' in LL or ( "CAUTION" in LL and 'di ' not in LL) ]
         tableFormat['comments']+=r' '+r' '.join(twarnings) if len(twarnings)<10 else r' \framebox{Warning!! More than TEN Cautions or Warnings were reported by Stata code for this estimate}'
 
