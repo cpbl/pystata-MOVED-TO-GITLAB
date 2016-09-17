@@ -3748,7 +3748,7 @@ N.B. As for 2010Feb, I am not yet reading/using the mean calculation.
             capture confirm variable """+vv+""",exact
             if _rc==0 {
             di "*-=-=-=-=-=-=-=-= """+vv+' '+oneifName+""""
-            sum """+vv+' '+oneweightsif+ (defaults['stataVersion']=='linux11')*""", nowrap"""+"""
+            sum """+vv+' '+oneweightsif+ (defaults['server']['stataVersion']=='linux11')*""", nowrap"""+"""
             *~=~=~=~=~=~=~=~
             return list
             capture confirm numeric variable """+vv+""",exact
@@ -3940,7 +3940,7 @@ scalars:
         # June 2010: Further kludge. for multiple conditions, just update the codebook for each one, in turn. Order of conditions not yet fixed.
         if not codebook:
             codebook=stataCodebookClass()
-        from dictTrees import dictTree
+        from cpblUtilities.dictTrees import dictTree
         byIf=dictTree(descStats2,['if','var'])
 
         if ifcondition==None:

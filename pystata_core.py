@@ -483,13 +483,18 @@ def dta2tsv(filepath,keep=None,newpath=None):
     print "No. Just use (or modify/upgrade features of the loadStataDataForPlotting ..."
     1/0
 
-def dta2dataframe(fn,noclobber=True):
+def dta2dataframe(fn,noclobber=True,columns=None):
     """ For small files (at least),  this is MUCH faster for reload. It creates a temporary pandas file (huge compared with dta.gz) for future use.
 
 For dta.gz files, it will create a .dta, needed for reading into pandas.
 
 noclobber = True will allow this function to write to the same filename but with .pandas suffix. Otherwise, it will default to putting a "tmp_" prefix in front of the filename if the pandas file already exists.
 That is, this function can now be used as the main way to create a pandas file from a dta file, even if you dn't want to load it.
+
+columns : list or None
+    Columns to retain.  Columns will be returned in the given order.  None
+    returns all columns
+
 
 N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster for next time.
  What is wrong with loadStataDataForPlotting()?
@@ -532,7 +537,7 @@ TO do:
            saveold """+paths['scratch']+'__tmpv12_'+ff+ee+""", replace version(12)
            """)
            pp=paths['scratch']+'__tmpv12_'
-        df=pd.read_stata( pp+ff+ee,convert_categoricals=False)#, encoding='utf-8')
+        df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
         df.to_pickle(pdoutfile)
     else:
         print('    '+ fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using existing Pandas file...')

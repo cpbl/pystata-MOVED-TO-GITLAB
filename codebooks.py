@@ -338,12 +338,14 @@ Fields in a stataCodebookClass object:
         datafilepath=stripdtagz(datafilepath)
         sourceDir,sourceName=os.path.split(datafilepath)
         assert '.' not in sourceName         # because stupid Stata screws up filenames for choosing log name/location!
+        """
         if defaults['mode'] not in ['gallup','klips']:
             try: 
                 from rdc_make import cpblRequireRDC as cpblRequire
                 cpblRequire(datafilepath)
             except AssertionError: #placeholder; it'll be something elsee
                 foiu
+        """
         if not os.path.exists(datafilepath+'.dta.gz'):
             print('   ********* There is no data file '+datafilepath+' from which to make a codebook... so no DTA codebook for you!!!!! (If this is not solved by running through any Stata execution, something is wrong!)')#cwarning
             fooo
@@ -1586,9 +1588,11 @@ April 2010: load(survey) should be robust to nonexistence of PDF...
             else:
                 self.save(saveName,version=version)
         elif survey and  version=='recoded':
+            """
             if defaults['mode'] not in ['gallup'] and defaults['mode'] in ['canada','RDC']:
                 from rdc_make import cpblRequire
                 cpblRequire('recoded-'+survey)
+            """
             # So now try thie following again, since file may/should exist now...
             shelffile = shelve.open(saveName+'.pythonshelf')
             self.update(shelffile[version])
