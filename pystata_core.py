@@ -2666,11 +2666,26 @@ Statistics                                        |
         stats=tonumeric(dict([[n,v] for n,v in re.findall('\s*([^\s]+)\s*\|(.*?)\n',statsWithoutCutpoints) if v.strip() ]))
         return(stats)
 
-    def _move_cut_points_to_front(stxt):
+    def _move_cut_points_to_front(secs):
         """  One way to deal safely with cutpoints is to remove them or to clean them up and place them at the beginning, so that they don't mess up any factor variable sections."""
-        fgoh
+        for ii,asec in reversed(list(enumerate(secs))[1:]):
+            if not asec.startswith('cut'): continue
+            if re.search('^cut([0-9]*) [ \n|]+_cons \\| [\\d\\-.\n ]*$',  asec, re.MULTILINE):
+                secs[0]= re.sub('^cut([0-9]*) [ \n|]+', ' '*20+r'   cut\1', asec) + secs[0]
+
+                #secs[0]=re.sub('^cut([0-9]*) [ \n|]+', ' '*20+r'  cut\1', asec)
+
+            #if re.search('^cut([0-9]*) [ \n|]_cons \\| [\\d-.\n ]*$')
+            #, r'    cut\1', ss) for ss in sections[1:-1]])
+            #varsS=''.join(sections[:1]+ [re.sub(
+            #if fogh
+        return(secs)
+
     # Split up into sections:
     sections=re.split(r'----+\+---+\n',parts[0][0])
+    #if command in ['ologit','oprobit']:
+    sections=_move_cut_points_to_front(sections)
+        
     # There will be two or more sections separated by "---" lines. In case of Oaxaca, each section has a title, identifable by no space at beginning of first line of section:
 
     if '\n nl ' in '\n'+logtxt[:20]: # NL regression
@@ -2726,13 +2741,12 @@ sigma                                             |
             # do the strip()'ing right in the regexp, although it makes it less readable:
             coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
 
-        # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, throw away all those results!
+        # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, optionally throw away all those results (if you want to keep them, specify the variables explicitly)
         # Actually, recent ologit also uses lines like this to separate the main coefs from the cut constants.
         if re.search('\n *\\|\n',varsS) and removeFactorVariables:
             print('    Doing kludge for i.var regressors... (removeFactorVariables=True)')
             gg=re.split('\n *\\|\n', varsS) # Sections are separated by a line with nothing but |
             #gg=varsS.split('  |\n')
-    
             for ii,asxn in enumerate(gg):
                 if not asxn.split('\n')[0].split('|')[1].strip(): # Does the first line contain a coefficient?
                     gg.pop(ii)
