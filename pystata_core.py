@@ -2672,13 +2672,6 @@ Statistics                                        |
             if not asec.startswith('cut'): continue
             if re.search('^cut([0-9]*) [ \n|]+_cons \\| [\\d\\-.\n ]*$',  asec, re.MULTILINE):
                 secs[0]= re.sub('^cut([0-9]*) [ \n|]+', ' '*20+r'   cut\1', asec) + secs[0]
-
-                #secs[0]=re.sub('^cut([0-9]*) [ \n|]+', ' '*20+r'  cut\1', asec)
-
-            #if re.search('^cut([0-9]*) [ \n|]_cons \\| [\\d-.\n ]*$')
-            #, r'    cut\1', ss) for ss in sections[1:-1]])
-            #varsS=''.join(sections[:1]+ [re.sub(
-            #if fogh
         return(secs)
 
     # Split up into sections:
@@ -2727,22 +2720,19 @@ sigma                                             |
             varsS,statss=sections[0],sections[1]
         elif '\n\nOrdered probit regression' in logtxt:
             assert command in [None,'oprobit']
-            print 'Parsing oprobit ignoring cutpoints ...'
+            print 'Parsing oprobit, saving/renaming cutpoints ...'
             varsS,statss=sections[0],sections[-1]
         elif '\n\nOrdered logistic regression' in logtxt:
             assert command in [None,'ologit']
             print 'Parsing ologit, saving/renaming cutpoints ...'
             assert 'lnHHincome' in sections[0]
-            varsS=''.join(sections[:1]+ [re.sub('^cut([0-9]*) [ \n|]+', r'    cut\1', ss) for ss in sections[1:-1]])
-            statss=sections[-1]
-            assert 'lnHHincome' in varsS
+            varsS,statss=sections[0],sections[-1]            
 
         if 0: # Following used until March 2013:
             # do the strip()'ing right in the regexp, although it makes it less readable:
             coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
 
-        # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, optionally throw away all those results (if you want to keep them, specify the variables explicitly)
-        # Actually, recent ologit also uses lines like this to separate the main coefs from the cut constants.
+        # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, optionally throw away all those results (if you want to keep them, specify the variables explicitly). Note that any  cutpoint constants are already hidden/renamed to look like normal variables, so should be safe from this regexp match.
         if re.search('\n *\\|\n',varsS) and removeFactorVariables:
             print('    Doing kludge for i.var regressors... (removeFactorVariables=True)')
             gg=re.split('\n *\\|\n', varsS) # Sections are separated by a line with nothing but |
