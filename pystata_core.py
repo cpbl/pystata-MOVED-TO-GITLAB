@@ -188,7 +188,7 @@ standardSubstitutions=[ # Make LaTeX output look prettier. Third column is for s
         ['socialiseFamily','socialise (family)'],
         ['dNoReligion','no religion'],
         ['godImportance','religiosity'],
-	['godPracticed','religious practice'],
+            ['godPracticed','religious practice'],
         ['godParticipateFrequency','church, etc attendance'],
         ['trustPolice','trust (police)'],
         ['nOrgCategories','memberships'],
@@ -279,7 +279,7 @@ Nov2012: weird. The only variable I want to keep labels for is the collapse vari
         foreach v of var * {
        	local l%s`v' : variable label `v'
        if `"`l%s`v''"' == "" {
-		local l%s`v' "`v'"
+    	local l%s`v' "`v'"
  	}
  }
 """%(commonPrefix,commonPrefix,commonPrefix)+0*"""  `"``''"'
@@ -414,7 +414,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
         #if nice==False:
         #    niceString=''
         # Following seems to work! aug2010
-	tmpDirCom='export TMPDIR='+WP #/home/cpbl/gallup/workingData' # or else be sure 20GB free on /tmp !
+        tmpDirCom='export TMPDIR='+WP #/home/cpbl/gallup/workingData' # or else be sure 20GB free on /tmp !
 
         if defaults.get('RDC',False):
             systemcom='cd %s && %s stata -v7000 -b do %s.do '%(dodir,niceString, dofile) #-m%d  mem
@@ -582,7 +582,7 @@ def dataframe2dta(df,fn,forceToString=None, extraStata=None):
    To do: 
       - only reset index if it's named?
       - automate forceToString a bit
-	"""
+    """
 
 
     import pandas as pd
@@ -597,9 +597,9 @@ def dataframe2dta(df,fn,forceToString=None, extraStata=None):
         else:
             forceToString=fts
     if forceToString not in [None,False,[]]:
-	    df.reset_index().append(pd.Series(dict([(fts,'dummy') for fts in forceToString])),ignore_index=True).to_csv(fn+'.tsv',sep='\t',header=True,index=False)
+        df.reset_index().append(pd.Series(dict([(fts,'dummy') for fts in forceToString])),ignore_index=True).to_csv(fn+'.tsv',sep='\t',header=True,index=False)
     else:
-	    df.to_csv(fn+'.tsv',sep='\t',header=True)
+        df.to_csv(fn+'.tsv',sep='\t',header=True)
     tsv2dta(fn, extraStata=extraStata)
     print('  Saved a CPBL df->TSV->dta.gz version as'+fn+'.dta.gz')
 
@@ -932,7 +932,7 @@ def substitutedNames(names, subs=None,newCol=1):
         subs=standardSubstitutions
 
     def isstringlike(ss):
-	    return(isinstance(ss,basestring) or isinstance(ss,unicode))
+        return(isinstance(ss,basestring) or isinstance(ss,unicode))
 
     lookup=dict([sss[0:2] for sss in subs if len(sss)>3 and sss[3] == EXACT])
     substringReplace=[sss for sss in subs if len(sss)<4 or not sss[3] == EXACT]
@@ -2283,18 +2283,18 @@ def modelResultsByVar(modelResults,tableFilename=None):
     # Dec 2010: let's allow overriding of stats with flags, though only for models in which the stat doesn't exist. Blech; what I mean is let's combine like-named fields in stats and extralines:  This may only be for N_clust
     for vv in allTextralinesM:#byTextraline:
         if vv in byStat:
-           for mmm in modelResults:
-               # First, we should fail if there are conflicts for any particular model.
-               assert not dgetget(mmm,'textralines',vv,'') or not dgetget(mmm,'eststats',vv,'') or dgetget(mmm,'textralines',vv,'') == dgetget(mmm,'eststats',vv,'')
-               # Otherwise, let's move values over to stats:
-               if dgetget(mmm,'textralines',vv,''):
-                  mmm['eststats'][vv]=dgetget(mmm,'textralines',vv,'')
-		  mmm['textralines'][vv]=''
-		  print '    textralines: Moved '+vv+' to stats '
-	   assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
-	   # Now, remove this item from the textralines that will be displayed!
-	   allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
-	   # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
+            for mmm in modelResults:
+                # First, we should fail if there are conflicts for any particular model.
+                assert not dgetget(mmm,'textralines',vv,'') or not dgetget(mmm,'eststats',vv,'') or dgetget(mmm,'textralines',vv,'') == dgetget(mmm,'eststats',vv,'')
+                # Otherwise, let's move values over to stats:
+                if dgetget(mmm,'textralines',vv,''):
+                    mmm['eststats'][vv]=dgetget(mmm,'textralines',vv,'')
+    	    mmm['textralines'][vv]=''
+    	    print '    textralines: Moved '+vv+' to stats '
+        assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
+        # Now, remove this item from the textralines that will be displayed!
+        allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
+        # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
 
 
 
@@ -2374,7 +2374,7 @@ If eq is specified (equation, if, weights, options), then the explicit equation 
     doFile=WP+name+'-'+'NL'
     logFile=doFile
     if getFileNameOnly:
-	    return(logFile+'.pyshelf')
+        return(logFile+'.pyshelf')
 
     assert eq # Others not programmed yet. See header footer flags, below, etc.
 
@@ -2580,47 +2580,101 @@ F(  1,     9) =   10.82
 def readEstimatesTable(logtxt,command=None,   removeFactorVariables=True):
     ############################################################################################
     ############################################################################################
+    """
+    Estimates table is currently (version 11) the only way to get results out without truncated variable names. In Stata 11, there is no way to do this for matrices.
+    Prior to Jan 2010 I had this working for OLS and quantile regression. I am now generalising it to deal with results from oaxaca command too (maybe).
+
+    This was first designed for OLS. Right now it still ignores the cut-points for ologit etc results. They end up in statss
+
+    Maybe I should have a "di e(cmd)" in there so that it knows what command it's dealing with...
+    Or allow the command (mode) to be passed....?
+
+    2013March: when I include dummies like i.year#i.country in the output, there will be a space in the variable name... I'm now going to try to implement that.
+
+    removeFactorVariables=True: will remove from the results the coefficients for variables included using the i.variable syntax. 
+             ((We only need to do this because of the "0*" in 0*('drop('+dropIndicators+')'  in latexRegressions.py. The drop() option was removed in 2016 July (see git 80b89fb6026c980dd9e05f8563331e56f8d1ef4a for the ostensible reason) but maybe it should be back in there. It is true that the more general approach is to leave fixed effect dummies in the output, and then just filter them out here.))
+
+    Here's an example from Stata 14 with both cut points and factor variables: How to deal with this??
+estimates table , varwidth(49) style(oneline) b se p stats(F r2  r2_a r2_p N  N_clust ll r2_o ) 
+
+----------------------------------------------------------------
+                                         Variable |   active    
+--------------------------------------------------+-------------
+SWL                                               |
+                                          married |  .23595471  
+                                                  |  .01574041  
+                                                  |     0.0000  
+                                    hr_lnHHincome | -.64860233  
+                                                  |  .04908245  
+                                                  |     0.0000  
+                                                  |
+                                           HHsize |
+                                       2 PERSONS  |  .24075706  
+                                                  |  .02066331  
+                                                  |     0.0000  
+                                       3 PERSONS  |  .22229913  
+                                                  |  .02342867  
+                                                  |     0.0000  
+                                       4 PERSONS  |  .31645499  
+                                                  |  .02399174  
+                                                  |     0.0000  
+                                  5 OR + PERSONS  |   .3524778  
+                                                  |  .03059288  
+                                                  |     0.0000  
+--------------------------------------------------+-------------
+cut1                                              |
+                                            _cons |  -8.962363  
+                                                  |  .54262659  
+                                                  |     0.0000  
+--------------------------------------------------+-------------
+cut2                                              |
+                                            _cons | -8.7136119  
+                                                  |   .5418395  
+                                                  |     0.0000  
+--------------------------------------------------+-------------
+Statistics                                        |             
+                                                F |             
+                                               r2 |             
+                                             r2_a |             
+                                             r2_p |  .01396873  
+                                                N |      75031  
+                                          N_clust |             
+                                               ll | -126776.13  
+                                             r2_o |             
+----------------------------------------------------------------
+                                                  legend: b/se/p
+
+
+    """
+    from pylab import isnan
+    parts=re.findall('Variable\s*\|\s*active\s*\n--------------------[-+-]*\n(.*?)\n\s*legend:(.*?)\n',logtxt,re.DOTALL)
+    if len(parts)==0:
+        print 'CAUTION!! Found no estimates-like table in log txt for  this section '
+        return({})
+
+
+    assert len(parts)==1 # Only one estimates table found for the text given
+    legendstats=parts[0][1].strip().split('/')
+
+    def _pStatsSection_estTab(statss):
+        # Deal with the final section, stats.
+        #    For logit etc output, the cut points are in statss so far (oops). Also, in oaxaca, the label exists too.
+        if 'Statistics' in statss:
+            statsWithoutCutpoints=re.findall('(Statistics.*)',statss,re.DOTALL)[0]
+        else:
+            statsWithoutCutpoints=statss
+        stats=tonumeric(dict([[n,v] for n,v in re.findall('\s*([^\s]+)\s*\|(.*?)\n',statsWithoutCutpoints) if v.strip() ]))
+        return(stats)
+
+    def _move_cut_points_to_front(stxt):
+        """  One way to deal safely with cutpoints is to remove them or to clean them up and place them at the beginning, so that they don't mess up any factor variable sections."""
+        fgoh
+    # Split up into sections:
+    sections=re.split(r'----+\+---+\n',parts[0][0])
+    # There will be two or more sections separated by "---" lines. In case of Oaxaca, each section has a title, identifable by no space at beginning of first line of section:
+
+    if '\n nl ' in '\n'+logtxt[:20]: # NL regression
         """
-        Estimates table is currently (version 11) the only way to get results out without truncated variable names. In Stata 11, there is no way to do this for matrices.
-        Prior to Jan 2010 I had this working for OLS and quantile regression. I am now generalising it to deal with results from oaxaca command too (maybe).
-
-        This was first designed for OLS. Right now it still ignores the cut-points for ologit etc results. They end up in statss
-
-        Maybe I should have a "di e(cmd)" in there so that it knows what command it's dealing with...
-        Or allow the command (mode) to be passed....?
-
-        2013March: when I include dummies like i.year#i.country in the output, there will be a space in the variable name... I'm now going to try to implement that.
-
-        removeFactorVariables=True: will remove from the results the coefficients for variables included using the i.variable syntax. 
-                 ((We only need to do this because of the "0*" in 0*('drop('+dropIndicators+')'  in latexRegressions.py. The drop() option was removed in 2016 July (see git for the ostensible reason) but maybe it should be back in there. It is true that the more general approach is to leave fixed effect dummies in the output, and then just filter them out here.))
-
-        """
-        from pylab import isnan
-        parts=re.findall('Variable\s*\|\s*active\s*\n--------------------[-+-]*\n(.*?)\n\s*legend:(.*?)\n',logtxt,re.DOTALL)
-        if len(parts)==0:
-            print 'CAUTION!! Found no estimates-like table in log txt for  this section '
-
-            return({})
-        assert len(parts)==1 # Only one estimates table found for the text given
-        legendstats=parts[0][1].strip().split('/')
-
-        def _pStatsSection_estTab(statss):
-            # Deal with the final section, stats.
-            #    For logit etc output, the cut points are in statss so far (oops). Also, in oaxaca, the label exists too.
-            if 'Statistics' in statss:
-                statsWithoutCutpoints=re.findall('(Statistics.*)',statss,re.DOTALL)[0]
-            else:
-                statsWithoutCutpoints=statss
-            stats=tonumeric(dict([[n,v] for n,v in re.findall('\s*([^\s]+)\s*\|(.*?)\n',statsWithoutCutpoints) if v.strip() ]))
-            return(stats)
-
-        # Split up into sections:
-        sections=re.split(r'----+\+---+\n',parts[0][0])
-        # There will be two or more sections separated by "---" lines. In case of Oaxaca, each section has a title, identifable by no space at beginning of first line of section:
-
-
-	if '\n nl ' in '\n'+logtxt[:20]: # NL regression
-            """
 	    Last section is statistics. Rest are estimates.
 	    The format is screwy. Why does each line say _cons? Come on, Stata...
 
@@ -2639,77 +2693,93 @@ sigma                                             |
                                                   |     0.0000  
 
 	    """  
-	    varsS,statss=''.join(sections[:-1]),sections[-1]
+        varsS,statss=''.join(sections[:-1]),sections[-1]
 
-            # do the strip()'ing right in the regexp, although it makes it less readable:
-            coefss=re.findall('\s*([^\s]+)\s*\|\s*_cons\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
-            coefOrder=[c[0] for c in coefss]
-            coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
+        # do the strip()'ing right in the regexp, although it makes it less readable:
+        coefss=re.findall('\s*([^\s]+)\s*\|\s*_cons\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
+        coefOrder=[c[0] for c in coefss]
+        coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
+    elif len(sections)==2 or '\n\nOrdered probit regression' in logtxt or '\n\nOrdered logistic regression' in logtxt or '\n nl ' in '\n'+logtxt[:20]:
+        # This is OLS, quantile reg, oprobit, ologit, ...
 
-	elif len(sections)==2 or '\n\nOrdered probit regression' in logtxt or '\n\nOrdered logistic regression' in logtxt or '\n nl ' in '\n'+logtxt[:20]:
-            # This is OLS, quantile reg, oprobit, ologit, ...
-
-            if len(sections)==2:
-                assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
-                assert command in [None,'OLS','ols','rreg', 'reg','regress','qreg','ivregress 2sls','ivreg2']
-                #print 'OLS etc'
-                varsS,statss=sections[0],sections[1]
-            elif command in ['xtreg']:
-                print 'Parsing xtreg as though it were OLS, ie ignoring some variance info....'
-                varsS,statss=sections[0],sections[1]
-            elif '\n\nOrdered probit regression' in logtxt:
-                assert command in [None,'oprobit']
-                print 'Parsing oprobit ignoring cutpoints ...'
-                varsS,statss=sections[0],sections[-1]
-            elif '\n\nOrdered logistic regression' in logtxt:
-                assert command in [None,'ologit']
-                print 'Parsing ologit ignoring cutpoints ...'
-                varsS,statss=sections[0],sections[-1]
-
-
-            if 0: # Following used until March 2013:
-                # do the strip()'ing right in the regexp, although it makes it less readable:
-                coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
-
-            # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, throw away all those results!
-            if '|\n' in varsS and removeFactorVariables:
-                gg=varsS.split('  |\n')
-                for ii,asxn in enumerate(gg):
-                    if not asxn.split('\n')[0].split('|')[1].strip():
-                        gg.pop(ii)
-                varsS='\n'.join(gg)
-                
-            # March 2013:  I'm doing the same but allowing spaces in the variable name! This works, and is better:
-            coefss=re.findall('\s*(.*?)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
-            coefOrder=[c[0] for c in coefss]
-            coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
-            
-        elif sections[0].startswith('overall') or  sections[0].startswith('Differential'):  # 2015June: I think format has changed in recent stata.
-            debugprint('Looks like Oaxaca')
-            assert command in [None,'oaxaca']
+        if len(sections)==2:
+            assert sections[0].startswith(' ') # ie there should be no section titles for OLS or quantile reg
+            assert command in [None,'OLS','ols','rreg', 'reg','regress','qreg','ivregress 2sls','ivreg2']
+            #print 'OLS etc'
+            varsS,statss=sections[0],sections[1]
+        elif command in ['xtreg']:
+            print 'Parsing xtreg as though it were OLS, ie ignoring some variance info....'
+            varsS,statss=sections[0],sections[1]
+        elif '\n\nOrdered probit regression' in logtxt:
+            assert command in [None,'oprobit']
+            print 'Parsing oprobit ignoring cutpoints ...'
+            varsS,statss=sections[0],sections[-1]
+        elif '\n\nOrdered logistic regression' in logtxt:
+            assert command in [None,'ologit']
+            print 'Parsing ologit, saving/renaming cutpoints ...'
+            assert 'lnHHincome' in sections[0]
+            varsS=''.join(sections[:1]+ [re.sub('^cut([0-9]*) [ \n|]+', r'    cut\1', ss) for ss in sections[1:-1]])
             statss=sections[-1]
-            oaxaca={}
-            # I assume below that coefOrder is same in each section...?
-            for section in sections[0:-1]:
-                sectionName=section.split('\n')[0].strip(' |')
-                varsS='\n'.join(section.split('\n')[1:])
-                # do the strip()'ing right in the regexp, although it makes it less readable:
-                coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
-                coefOrder=[c[0] for c in coefss]
-                coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
-                oaxaca[sectionName]=coefs
+            assert 'lnHHincome' in varsS
 
-            outModel={'oaxaca':oaxaca,'eststats':_pStatsSection_estTab(statss)}#,'estCoefOrder':coefOrder}
+        if 0: # Following used until March 2013:
+            # do the strip()'ing right in the regexp, although it makes it less readable:
+            coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
 
-            return(tonumeric(outModel))
-        else:
-            assert not 'Unknown command output! Could be ologit, etc'
+        # Deal with possibility that we have a set of fixed effects (i.var) in the output. If we do, throw away all those results!
+        # Actually, recent ologit also uses lines like this to separate the main coefs from the cut constants.
+        if re.search('\n *\\|\n',varsS) and removeFactorVariables:
+            print('    Doing kludge for i.var regressors... (removeFactorVariables=True)')
+            gg=re.split('\n *\\|\n', varsS) # Sections are separated by a line with nothing but |
+            #gg=varsS.split('  |\n')
+    
+            for ii,asxn in enumerate(gg):
+                if not asxn.split('\n')[0].split('|')[1].strip(): # Does the first line contain a coefficient?
+                    gg.pop(ii)
+            assert gg
+            varsS='\n'.join(gg)
+
+        # March 2013:  I'm doing the same but allowing spaces in the variable name! This works, and is better:
+        coefss=re.findall('\s*(.*?)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
+        coefOrder=[c[0] for c in coefss]
+        coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
+
+    
+    elif sections[0].startswith('overall') or  sections[0].startswith('Differential'):  # 2015June: I think format has changed in recent stata.
+        debugprint('Looks like Oaxaca')
+        assert command in [None,'oaxaca']
+        statss=sections[-1]
+        oaxaca={}
+        # I assume below that coefOrder is same in each section...?
+        for section in sections[0:-1]:
+            sectionName=section.split('\n')[0].strip(' |')
+            varsS='\n'.join(section.split('\n')[1:])
+            # do the strip()'ing right in the regexp, although it makes it less readable:
+            coefss=re.findall('\s*([^\s]+)\s*\|(.*?)\n'+''.join((len(legendstats)-1)*'\s*\|(.*?)\n'),varsS)
+            coefOrder=[c[0] for c in coefss]
+            coefs=dict([[cc[0],dict(zip(legendstats,cc[1:]))] for cc in coefss])
+            oaxaca[sectionName]=coefs
+
+        outModel={'oaxaca':oaxaca,'eststats':_pStatsSection_estTab(statss)}#,'estCoefOrder':coefOrder}
+
+        return(tonumeric(outModel))
+    else:
+        assert not 'Unknown command output! Could be ologit, etc'
 
 
-        stats=_pStatsSection_estTab(statss)
-        outModel={'estcoefs':coefs,'eststats':stats,'estCoefOrder':coefOrder}
-	assert outModel['estcoefs']
-        return(outModel)
+
+
+
+
+
+
+
+
+    stats=_pStatsSection_estTab(statss)
+    outModel={'estcoefs':coefs,'eststats':stats,'estCoefOrder':coefOrder}
+    assert outModel['estcoefs']
+    return(outModel)
+
 
 ################################################################################################
 ################################################################################################
@@ -3196,8 +3266,8 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
     # Using: '\t'.join(rr.split()) replaces all multi-white space with tabs. :)
     tsegments=['\n'.join(['\t'.join(rr.split()) for rr in segment.split('\n') if not rr.replace('o.','').strip()=='']) for segment in segments]
     cells=tonumeric([
-	    [re.split('\t',rr.strip()) for rr in segment.split('\n') if not rr.replace('o.','').strip()=='']
-	    for segment in tsegments])
+        [re.split('\t',rr.strip()) for rr in segment.split('\n') if not rr.replace('o.','').strip()=='']
+        for segment in tsegments])
     # Ensure all segments have the same number of rows:
     nL=len(cells[0])
     assert all( len(segm) ==nL for segm in cells)
@@ -3205,9 +3275,9 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
     # Drop first column on 2nd and later segments:
     matr=deepcopy(cells[0])
     for iseg in range(len(segments))[1:]:
-	    matr[0]+=cells[iseg][0]
-	    for iline in range(nL)[1:]:
-		    matr[iline]+=cells[iseg][iline][1:]
+        matr[0]+=cells[iseg][0]
+        for iline in range(nL)[1:]:
+    	    matr[iline]+=cells[iseg][iline][1:]
     import pandas as pd
     df=pd.DataFrame([row[1:] for row in matr[1:]],columns=colnames,index=colnames)
 
@@ -3227,13 +3297,13 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
                 covar[col]={}
         for row in rows[1:]:
             entries=[ss for ss in row.split(' ') if ss]
-	    checkvar=entries[0].strip()
-	    if checkvar.startswith('o.'):
-                entries[0]=entries[0].strip()[2:]
-		omittedVars+=[entries[0]]
-                if 0 and checkvar in covar:
-		    covar.pop(checkvar)
-	        continue
+        checkvar=entries[0].strip()
+        if checkvar.startswith('o.'):
+            entries[0]=entries[0].strip()[2:]
+    	    omittedVars+=[entries[0]]
+            if 0 and checkvar in covar:
+    	        covar.pop(checkvar)
+            continue
             assert len(entries)==1+len(cols) # Hm. This may happen with time series names?? Or, when I've mistakenly listed a variable twice, Stata? puts an "o." prefix on the second copy, and this part of the name can get wrapped? or form a separate column? or something... Try deleting the log file and fixing the duplicate variable.
             for icol in range(len(cols)):
                 if entries[1+icol]=='0':
@@ -3242,7 +3312,7 @@ symmetric [^[]*.(\d*),(\d*).(.*?)MID: matrix list .*?display "`names_.*?\n(.*?)\
                 if entries[0] not in covar:
                     covar[entries[0]]={}
                 covar[entries[0]][cols[icol]] = tonumeric(entries[1+icol])
-		
+    	
     assert nCols==len(covar)
     # Now (2013 updated: behaviour has changed):
     for ov in uniqueInOrder(omittedVars):
@@ -4506,31 +4576,31 @@ Jan 2013: testing new pandas routine without dataoverrieds... let's see how it d
 
     if fileOlderThan([npF],WPdta(DTAfile)) or forceUpdate:
 
-	#indata=np.genfromtxt(tsvF, delimiter='\t',names=True,dtype=None)
-	dataDF=pd.read_table(tsvF)
-	if dtypeoverrides:
-           dt=dict(dataDF.dtypes)
-	   dtypeoverrides=dict([kk,np.dtype(vv)] for kk,vv in dtypeoverrides.items())
-	   dt.update(dtypeoverrides)
-	   dataDF=pd.read_table(tsvF,dtype=dt)
-	   """
+        #indata=np.genfromtxt(tsvF, delimiter='\t',names=True,dtype=None)
+        dataDF=pd.read_table(tsvF)
+        if dtypeoverrides:
+            dt=dict(dataDF.dtypes)
+            dtypeoverrides=dict([kk,np.dtype(vv)] for kk,vv in dtypeoverrides.items())
+            dt.update(dtypeoverrides)
+            dataDF=pd.read_table(tsvF,dtype=dt)
+            """
            dd=indata.dtype
-	   print dd
-	   dd=[(name,dtypeoverrides.get(name,dd[name])) for name in dd.names]
-	   print dd
-	   indata=np.genfromtxt(tsvF, delimiter='\t',names=True,dtype=dd)
+           print dd
+           dd=[(name,dtypeoverrides.get(name,dd[name])) for name in dd.names]
+           print dd
+           indata=np.genfromtxt(tsvF, delimiter='\t',names=True,dtype=dd)
 
-		labels = np.genfromtxt(tsvF, delimiter='\t', dtype=None)  # Find default types.
-raw_data = np.genfromtxt('data.txt', delimiter=',')[:,1:]
-data = {label: row for label, row in zip(labels, raw_data)}
-"""
+           labels = np.genfromtxt(tsvF, delimiter='\t', dtype=None)  # Find default types.
+            raw_data = np.genfromtxt('data.txt', delimiter=',')[:,1:]
+            data = {label: row for label, row in zip(labels, raw_data)}
+            """
 
-	dataDF.to_pickle(npF)#np.save(npF,indata)
-	returnVal=dataDF
+        dataDF.to_pickle(npF)#np.save(npF,indata)
+        returnVal=dataDF
     else:
-            print 'Loading '+npF+'...',
-            returnVal=pd.read_pickle(npF)#np.load(npF)  # DataFrame.
-            print ' [Done] '
+        print 'Loading '+npF+'...',
+        returnVal=pd.read_pickle(npF)#np.load(npF)  # DataFrame.
+        print ' [Done] '
     return(returnVal)
 
 
@@ -4580,7 +4650,7 @@ May 2011: Adding robustness to non-existence of some variables ie. any requested
     tsvF=WP+'TMP-'+stripWPdta(DTAfile)+sSuffix+randomsuffix+'.tsv'
     shelfF=WP+'TMP-'+stripWPdta(DTAfile)+sSuffix+'.pyshelf'
     if isinstance(treeKeys,basestring):
-	    treeKeys=treeKeys.split(' ')
+        treeKeys=treeKeys.split(' ')
 
     if defaults['mode'] in ['gallup','rdc']:
 
@@ -5129,24 +5199,24 @@ def makeEstimateCoefsByGroup(groupVar,whichCoef,themodel,coefName,inputFilename=
     if 'estcoefs' not in qmodels[0]:
         stataSystem(stataCode,filename=fnbase+'tmpdo')
         qlatexfile=latexRegressionFile(fnbase,modelVersion='auto',regressionVersion='tmp')
-	qlatexfile.skipStataForCompletedTables=not forceUpdate
-	stataCode=doHeader+stataLoad(inputFilename)+qlatexfile.regTable(fnbase, qmodels,returnModels=True,captureNoObservations=True)
-	qlatexfile.closeAndCompile(closeOnly=True,launch=False)#)#compileOnly=True)#closeOnly=True)
+    qlatexfile.skipStataForCompletedTables=not forceUpdate
+    stataCode=doHeader+stataLoad(inputFilename)+qlatexfile.regTable(fnbase, qmodels,returnModels=True,captureNoObservations=True)
+    qlatexfile.closeAndCompile(closeOnly=True,launch=False)#)#compileOnly=True)#closeOnly=True)
     # And anyway, do it a couple more times to make the PDF, while we're at it:
     for iii in 0*[1,2]:
         qlatexfile=latexRegressionFile(fnbase,modelVersion='auto',regressionVersion='tmp')
-	qlatexfile.skipStataForCompletedTables=True
-	stataCode=doHeader+stataLoad(inputFilename)+qlatexfile.regTable(fnbase, qmodels,returnModels=True,captureNoObservations=True)
-	qlatexfile.closeAndCompile(launch=False,compileOnly=True)#closeOnly=True)
+    qlatexfile.skipStataForCompletedTables=True
+    stataCode=doHeader+stataLoad(inputFilename)+qlatexfile.regTable(fnbase, qmodels,returnModels=True,captureNoObservations=True)
+    qlatexfile.closeAndCompile(launch=False,compileOnly=True)#closeOnly=True)
 
     # Ensure that we have up to date Stata runs and that we have successfully caught some coefficients:
     assert 'estcoefs' in qmodels[0] and finiteValues([dgetget(qm,['estcoefs',whichCoef,'b'],NaN)  for qm in qmodels]).any()
 
     # okay... Now, write these to a file.
     writeData=[{groupVar:qm['name'],
-		    coefName:dgetget(qm,['estcoefs',whichCoef,'b'],NaN),
-		    'se'+coefName:dgetget(qm,['estcoefs',whichCoef,'se'],NaN),
-		    'r2'+coefName:dgetget(qm,['eststats','r2_a'],NaN)
+    	    coefName:dgetget(qm,['estcoefs',whichCoef,'b'],NaN),
+    	    'se'+coefName:dgetget(qm,['estcoefs',whichCoef,'se'],NaN),
+    	    'r2'+coefName:dgetget(qm,['eststats','r2_a'],NaN)
  } for qm in qmodels]
     dictToTsv(writeData,macroFilename+'.tsv',snan='')
 
@@ -5180,68 +5250,68 @@ Sept 2010: oops. I may want "beta" too... AAAAHHHHH I hate Stata. Can't see how 
 
     outS=''
     if inputFilename:
-	    outS+=doHeader+stataLoad(inputFilename)
+        outS+=doHeader+stataLoad(inputFilename)
 
     strs={'gv':groupVar,'mb1':modelbits[0],'mb2':'['+modelbits[1],'wc':whichCoef,'cn':coefName}
     if groupType=='numeric':
-	    outS+="""
-	    gen %(cn)s=.
-	    gen se%(cn)s=.
-	    gen r2%(cn)s=.
+        outS+="""
+        gen %(cn)s=.
+        gen se%(cn)s=.
+        gen r2%(cn)s=.
 
-	    gen beta%(cn)s=.
-	    gen sebeta%(cn)s=.
+        gen beta%(cn)s=.
+        gen sebeta%(cn)s=.
 
-	    levelsof %(gv)s, local(levels)
-	    foreach l of local levels {
-	       di "-> %(gv)s = `: label (%(gv)s) `l''"
-	       capture noisily {
-	*         quietly:
-	 {
-		 %(mb1)s  if %(gv)s == `l' & ~missing(%(gv)s)   %(mb2)s
+        levelsof %(gv)s, local(levels)
+        foreach l of local levels {
+           di "-> %(gv)s = `: label (%(gv)s) `l''"
+           capture noisily {
+    *         quietly:
+     {
+    	 %(mb1)s  if %(gv)s == `l' & ~missing(%(gv)s)   %(mb2)s
 
-		 matrix tmpB=e(b)
-		 matrix tmpSE=e(V)
+    	 matrix tmpB=e(b)
+    	 matrix tmpSE=e(V)
 
-		 replace %(cn)s=tmpB[1,%(wc)d]  if %(gv)s == `l' & ~missing(%(gv)s)
-		 replace se%(cn)s=sqrt(tmpSE[%(wc)d,%(wc)d])  if %(gv)s == `l' & ~missing(%(gv)s)
-		     }
-		 * For univariate, beta is sqrt of r2
-		 replace r2%(cn)s=e(r2)  if %(gv)s == `l' & ~missing(%(gv)s)
-
-
-		 }
-	       }
+    	 replace %(cn)s=tmpB[1,%(wc)d]  if %(gv)s == `l' & ~missing(%(gv)s)
+    	 replace se%(cn)s=sqrt(tmpSE[%(wc)d,%(wc)d])  if %(gv)s == `l' & ~missing(%(gv)s)
+    	     }
+    	 * For univariate, beta is sqrt of r2
+    	 replace r2%(cn)s=e(r2)  if %(gv)s == `l' & ~missing(%(gv)s)
 
 
-	    """%strs
+    	 }
+           }
+
+
+        """%strs
     elif groupType==str:
-	    outS+="""
-	    gen %(cn)s=.
-	    gen se%(cn)s=.
-	    gen r2%(cn)s=.
+        outS+="""
+        gen %(cn)s=.
+        gen se%(cn)s=.
+        gen r2%(cn)s=.
 
-	    levelsof %(gv)s, local(levels)
-	    foreach l of local levels {
-	       di "-> %(gv)s = `l'"
-	       capture noisily {
-	*         quietly:
-	 {
-		 %(mb1)s  if %(gv)s == "`l'" & ~missing(%(gv)s)   %(mb2)s
+        levelsof %(gv)s, local(levels)
+        foreach l of local levels {
+           di "-> %(gv)s = `l'"
+           capture noisily {
+    *         quietly:
+     {
+    	 %(mb1)s  if %(gv)s == "`l'" & ~missing(%(gv)s)   %(mb2)s
 
-		 matrix tmpB=e(b)
-		 matrix tmpSE=e(V)
+    	 matrix tmpB=e(b)
+    	 matrix tmpSE=e(V)
 
-		 replace %(cn)s=tmpB[1,%(wc)d]  if %(gv)s == "`l'" & ~missing(%(gv)s)
-		 replace se%(cn)s=sqrt(tmpSE[%(wc)d,%(wc)d])  if %(gv)s == "`l'" & ~missing(%(gv)s)
-		     }
-		 * For univariate, beta is sqrt of r2
-		 replace r2%(cn)s=e(r2)  if %(gv)s == "`l'" & ~missing(%(gv)s)
-		 }
-	       }
+    	 replace %(cn)s=tmpB[1,%(wc)d]  if %(gv)s == "`l'" & ~missing(%(gv)s)
+    	 replace se%(cn)s=sqrt(tmpSE[%(wc)d,%(wc)d])  if %(gv)s == "`l'" & ~missing(%(gv)s)
+    	     }
+    	 * For univariate, beta is sqrt of r2
+    	 replace r2%(cn)s=e(r2)  if %(gv)s == "`l'" & ~missing(%(gv)s)
+    	 }
+           }
 
 
-	    """%strs
+        """%strs
     # '
     if 1:
         outS+="""
@@ -5252,11 +5322,11 @@ Sept 2010: oops. I may want "beta" too... AAAAHHHHH I hate Stata. Can't see how 
         outS+=stataSave(macroFilename)
 
     if inputFilename:
-	    assert macroFilename
-	    if fileOlderThan(WPdta(macroFilename),WPdta(inputFilename)) or forceUpdate:
-		    stataSystem(outS,filename='doRegsBy'+groupVar+stripWPdta(inputFilename).split('.')[0])
+        assert macroFilename
+        if fileOlderThan(WPdta(macroFilename),WPdta(inputFilename)) or forceUpdate:
+    	    stataSystem(outS,filename='doRegsBy'+groupVar+stripWPdta(inputFilename).split('.')[0])
     else:
-	    assert not forceUpdate
+        assert not forceUpdate
 
     return(outS)
 
@@ -5339,9 +5409,9 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
         microQuantFile=rankfileprefix+'-'+byGroup+'.tsv'
         macroQuantFileShelf=rankfileprefix+'-'+byGroup+'.pyshelf'
         macroQuantFile=rankfileprefix+'-'+byGroup+'.tsv'
-	plotfileprefix=WP+'graphics/'+stripWPdta(rankfileprefix)+byGroup
+    plotfileprefix=WP+'graphics/'+stripWPdta(rankfileprefix)+byGroup
     if ginifileprefix:
-	    macroGiniFile=ginifileprefix+'-'+byGroup+'.tsv'
+        macroGiniFile=ginifileprefix+'-'+byGroup+'.tsv'
     if not fileOlderThan([microQuantFile,macroQuantFileShelf]+doGini*[macroGiniFile],WPdta(stataFile)) and not forceUpdate:
         print '    (Skipping generateRankingData; no need to update %s/%s from %s...)'%(microQuantFile,macroQuantFileShelf,stataFile)
         return(os.path.splitext(microQuantFile)[0],os.path.splitext(macroQuantFileShelf)[0])
@@ -5387,7 +5457,7 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
         groupDfinite=[xx for xx in groupD if isfinite(xx[quantilesOf]) ]
         # Hm, does the following fail if I include the nan's!?
         groupDfinite.sort(key=lambda x:x[quantilesOf])
-	if doGini:
+        if doGini:
             macroInequalities[agroup]={byGroup:agroup}
 
         if 0: # I'm eliminating the following, unweighted ranking for now.
@@ -5433,7 +5503,7 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
             plot(y,x,hold=True)
             xlabel(substitutedNames(quantilesOf))
             ylabel('Quantile')
-	    print 'More up to date plots are made by a custom function using the .shelf data, in regressionsInequality'
+        print 'More up to date plots are made by a custom function using the .shelf data, in regressionsInequality'
 
         #print [stats.mean([gg['lnHHincome'] for gg in byQtl[qq]])  for qq in pQtl]
         #print [stats.mean([gg['lifeToday'] for gg in byQtl[qq]])  for qq in pQtl]
@@ -5459,8 +5529,8 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
         for iv,vname in enumerate(varsByQuantile+[quantilesOf]):
             # Use values with weights:
             vvww=[  finiteValues(array([respondent[vname] for respondent in byQtl[qtl]]),
-				   array([respondent[weightVar] for respondent in byQtl[qtl]])
-				   ) for qtl in pQtl]
+    			   array([respondent[weightVar] for respondent in byQtl[qtl]])
+    			   ) for qtl in pQtl]
 
             #qtlStats['uw_'+vname]=[np.mean(
             #            finiteValues(array([respondent[vname] for respondent in byQtl[qtl]]))
@@ -5471,45 +5541,45 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
             #            )             for qtl in pQtl]
             qtlStats['se'+vname]=[wtsem(vv,ww) for vv,ww in vvww]
 
-	    # Ugly kludge:
-	    if vname in ['SWL','lifeToday']:
+        # Ugly kludge:
+        if vname in ['SWL','lifeToday']:
 
-                vvall,wwall=finiteValues(array([respondent[vname] for respondent in groupDfinite]),
-				   array([respondent[weightVar] for respondent in groupDfinite]))
-		from pylab import histogram,array
-                qtlStats['hist'+vname]=histogram(vvall,bins=-0.5+array([0,1,2,3,4,5,6,7,8,9,10,11]),weights=wwall)
+            vvall,wwall=finiteValues(array([respondent[vname] for respondent in groupDfinite]),
+                                     array([respondent[weightVar] for respondent in groupDfinite]))
+            from pylab import histogram,array
+            qtlStats['hist'+vname]=histogram(vvall,bins=-0.5+array([0,1,2,3,4,5,6,7,8,9,10,11]),weights=wwall)
 
 
-	    # Shall I also calculate Gini here? It seems it may be much faster than Stata's version. #:(, Though I won't have a standard error for it.
-	    if doGini and (ginisOf is None or vname in ginisOf):
+        # Shall I also calculate Gini here? It seems it may be much faster than Stata's version. #:(, Though I won't have a standard error for it.
+        if doGini and (ginisOf is None or vname in ginisOf):
                 # n.b. I don't just want the ones with finite rankVar. So go back to groupD:
                 xxV=array([respondent[vname] for respondent in groupD])
-		macroInequalities[agroup]['gini'+vname]= cpblGini(weightD,xxV)
+    	macroInequalities[agroup]['gini'+vname]= cpblGini(weightD,xxV)
 
 
-		#print "             %s=%s: Gini=%f"%(byGroup,agroup,inequality.Gini)
+    	#print "             %s=%s: Gini=%f"%(byGroup,agroup,inequality.Gini)
 
-            # ne=where(logical_and(logical_and(isfinite(x),isfinite(y)),logical_and(isfinite(yLow),isfinite(yHigh))))
-
-
-            #vQtl=array([stats.mean(finiteValues(
-            #            vv[find(logical_and(y<=yQtl[iq] , y>=([min(y)]+yQtl)[iq]))]      )) for iq in range(len(yQtl))])
-            #sevQtl=array([stats.sem(finiteValues(
-            #            vv[find(logical_and(y<=yQtl[iq] , y>=([min(y)]+yQtl)[iq]))]      )) for iq in range(len(yQtl))])
+        # ne=where(logical_and(logical_and(isfinite(x),isfinite(y)),logical_and(isfinite(yLow),isfinite(yHigh))))
 
 
-            if (not skipPlots) and vname in varsByQuantile:
-                figure(126)
-                subplot(122)
-                colors='rgbckm'
-                vQtl= array(qtlStats[vname])
-                sevQtl= array(qtlStats['se'+vname])
-                pQtl=array(pQtl)
-                plotWithEnvelope(pQtl,vQtl,vQtl+sevQtl,vQtl-sevQtl,linestyle='.-',linecolor=None,facecolor=colors[iv],alpha=0.5,label=None,lineLabel=None,patchLabel=vname,laxSkipNaNsSE=True,laxSkipNaNsXY=True,ax=None,skipZeroSE=True) # Why do I seem to need both lax flags?
-                plot(pQtl,vQtl,'.',color=colors[iv],alpha=0.5)
-                xlabel(substitutedNames(quantilesOf) +' quantile')
+        #vQtl=array([stats.mean(finiteValues(
+        #            vv[find(logical_and(y<=yQtl[iq] , y>=([min(y)]+yQtl)[iq]))]      )) for iq in range(len(yQtl))])
+        #sevQtl=array([stats.sem(finiteValues(
+        #            vv[find(logical_and(y<=yQtl[iq] , y>=([min(y)]+yQtl)[iq]))]      )) for iq in range(len(yQtl))])
 
-            ##ylabel(vname)
+
+        if (not skipPlots) and vname in varsByQuantile:
+            figure(126)
+            subplot(122)
+            colors='rgbckm'
+            vQtl= array(qtlStats[vname])
+            sevQtl= array(qtlStats['se'+vname])
+            pQtl=array(pQtl)
+            plotWithEnvelope(pQtl,vQtl,vQtl+sevQtl,vQtl-sevQtl,linestyle='.-',linecolor=None,facecolor=colors[iv],alpha=0.5,label=None,lineLabel=None,patchLabel=vname,laxSkipNaNsSE=True,laxSkipNaNsXY=True,ax=None,skipZeroSE=True) # Why do I seem to need both lax flags?
+            plot(pQtl,vQtl,'.',color=colors[iv],alpha=0.5)
+            xlabel(substitutedNames(quantilesOf) +' quantile')
+
+        ##ylabel(vname)
         from cpblUtilities import str2pathname
         if not skipPlots:
             transLegend(comments=[groupNames.get(agroup,agroup),r'$\pm$1s.e.'],loc='lower right')
@@ -5518,11 +5588,11 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
         macroStats+=[qtlStats]
 
 
-	if 0*'doRankCoefficients':
-		groupVectors=dict([[kk,[gd[kk] for gd in groupDfinite ]] for kk in groupDfinite[0].keys()])
-		from cpblUtilities import cpblOLS
-		x=cpblOLS('lifeToday',groupVectors,rhsOnly=[ 'rankHHincome'],betacoefs=False,weights=groupVectors['weight'])
-		foioi
+    if 0*'doRankCoefficients':
+    	groupVectors=dict([[kk,[gd[kk] for gd in groupDfinite ]] for kk in groupDfinite[0].keys()])
+    	from cpblUtilities import cpblOLS
+    	x=cpblOLS('lifeToday',groupVectors,rhsOnly=[ 'rankHHincome'],betacoefs=False,weights=groupVectors['weight'])
+    	foioi
 
         # assert not 'afg: Kabul' in agroup
         # Add the quantile info for this group to the data. Also, compile the summary stats for it.
@@ -5530,16 +5600,16 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
 #[, 0.25, 0.5, 0.75]
         # Centre a series of quantiles
         """
-	No. Create 20 quantiles. Assign. if none there, weight nearest?
+    No. Create 20 quantiles. Assign. if none there, weight nearest?
 
-	e.g. 1  2 10 13
+    e.g. 1  2 10 13
 
 
-	scipy.stats.mstats.mquantiles
+    scipy.stats.mstats.mquantiles
 
-	scipy.stats.mstats.mquantiles(data, prob=[, 0.25, 0.5, 0.75], alphap=0.40000000000000002, betap=0.40000000000000002, axis=None, limit=())
+    scipy.stats.mstats.mquantiles(data, prob=[, 0.25, 0.5, 0.75], alphap=0.40000000000000002, betap=0.40000000000000002, axis=None, limit=())
 
-	"""
+    """
 
 
     from cpblUtilities import dictToTsv
@@ -5547,7 +5617,7 @@ loadAll: [aug2012] when loading data from a stata file... Use "loadAll" to assur
     tsv2dta(microQuantFile)
     if doGini:
         dictToTsv(macroInequalities.values(),macroGiniFile)
-	tsv2dta(macroGiniFile)
+    tsv2dta(macroGiniFile)
 
     shelfSave(macroQuantFileShelf,macroStats)
     if 0: # whoooo... i think this was totally misguided. it's not a macro file..
