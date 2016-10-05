@@ -4064,7 +4064,6 @@ What is "launch"? It seems not used.
             return(self.fpathname+'.tex')
         if not compileOnly:
             lfile=open(self.fpathname+'.tex','wt',encoding='utf-8')
-            farty
             lfile.write(self.lfileTeXwrapper[0]+self.lfileTeXbody+self.lfileTeXwrapper[1]) # Write entire, accumulated contents of file.
             lfile.close()
             print 'Completing LaTeX file %s...'%(self.fpathname+'.tex')
