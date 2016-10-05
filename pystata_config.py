@@ -45,17 +45,19 @@ def main():
     localConfigFile=os.getcwd()+'/config.cfg'
     localConfigTemplateFile=os.getcwd()+'/config-template.cfg'
     repoPath=os.path.abspath(os.path.dirname(__file__ if __file__ is not None else '.'))
+    incomingPath=os.getcwd()
     
     # Change directory to the repo bin folder, ie location of this module. That way, we always have the osm config.cfg file as local, which means other utlilities using config.cfg will find the right one.
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
-    #if 'bin/pystata' not in os.getcwd():
-    #    os.chdir(dir_path)
+    if 'bin/pystata' not in os.getcwd():
+        print(' Caution: new code October 2016: chdir in pystata_config. Not sure why this was not done before. Complaints to CPBL. chdir(%s)'%dir_path)
+        os.chdir(dir_path)
 
     repoFile=(repoPath if repoPath else '.')+'/config.cfg'
     repoTemplateFile=(repoPath if repoPath else '.')+'/config-template.cfg'
 
-
+    print('pystata setting defaults:')
     merged_dictionary=read_hierarchy_of_config_files([
         repoTemplateFile,
         repoFile,
@@ -63,7 +65,7 @@ def main():
         localConfigFile,
     ], config_file_structure,
                                                      verbose=VERBOSE)
-
+    #print localConfigFile
     # Now impose our structure
     defaults={}
     if 'defaults' in merged_dictionary:
@@ -74,7 +76,8 @@ def main():
                   ))
     defaults['stata'] =  {'paths':copy.deepcopy(defaults['paths'])}
     defaults['native'] = {'paths':copy.deepcopy(defaults['paths'])}
-    
+
+    os.chdir(incomingPath)
     return(defaults)
 defaults=main()
 paths=defaults['paths']
