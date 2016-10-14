@@ -1113,6 +1113,8 @@ I've added various other flag/settings specified starting with *.
                 if '[' in aline:
                     model,regoptions=therest.split('[')
                     regoptions='['+regoptions
+                    if ',' not in regoptions:
+                        regoptions+=' ,'
                 elif ',' not in therest:
                     model,regoptions=therest,''
                 else:
@@ -1959,7 +1961,6 @@ Bugs:
             ###RHS['rawBeforeIf']=RHS['rawWithIf'].split(' if ')[0].split(' ')
             RHS['cleanedBeforeIf']=[ss for ss in re.sub('\(|\)|=',' ',RHS['rawWithIf'].split(' if ')[0]).split(' ') if ss]# Deals with ivregress syntax.. This is now a list of words.
             RHS['mentionedBeforeIf']=[ss for ss in re.sub('\(|\)|#|=',' ',RHS['rawWithIf'].split(' if ')[0]).split(' ') if ss]# Deals with ivregress syntax, and interactions notation. Leaves i.var as is.  NOT USED?
-
             RHS['inConditions']=uniqueInOrder(''.join([cc for cc in (re.sub('".*?"','',RHS['rawWithIf'].split(' if ')[1])).replace('<',' ').replace('>',' ').replace('=',' ').replace('&',' ').split(' ') if cc and cc[0].isalpha() and not cc in ['if','samp','sample']]).split(' '))
             # Assume there are no wildcards or etc after the "if"
             # What about weight var? where is that?
@@ -1990,6 +1991,7 @@ Bugs:
             RHSs['suppressEstimates']=' '.join([rhsv for rhsv in  RHS['cleanedBeforeIf'] if rhsv.startswith('i.') and rhsv not in forceShowVars ])
             assert not any(['county' in ff for ff in  forceShowVars])
             assert not forceShowVars
+
 
 
             # Following fails if there are redundant (repeated) RHS variables here...
@@ -2107,19 +2109,19 @@ capture gen `var'=0
             if captureNoObservations==True and not model.get('special','') == 'suestTests':
                 model['code']['existenceConditionBefore']='* ALLOW FOR POSSIBILITY THAT THERE ARE NO OBSERVATIONS MEETING THIS CONDITION... REPLACE REGRESSION WITH DUMMY REGRESSION IN THIS CASE, AND KEEP GOING. (captureNoObservations==True)'
                 model['code']['existenceConditionAfter']="""
-if _rc==2000 |_rc==302 |_rc==2001 {
-capture gen _dummyOne=1
-reg _dummyOne _dummyOne
-} 
-else {
-if _rc!=0 {
-di _rc
-di foodle untrapped error! (following line should stop execution if reached)
-error _rc
-}
-"""+0*(regressionLine.split('capture')[1])+"""
-}
-""" # No loonger, above, need to repeat regression, since used capture NOISILY
+                if _rc==2000 |_rc==302 |_rc==2001 {
+                capture gen _dummyOne=1
+                reg _dummyOne _dummyOne
+                } 
+                else {
+                if _rc!=0 {
+                di _rc
+                di foodle untrapped error! (following line should stop execution if reached)
+                error _rc
+                }
+                """+0*(regressionLine.split('capture')[1])+"""
+                }
+                """ # No loonger, above, need to repeat regression, since used capture NOISILY
 
 
             # New feature August 2009: Create sub-sample sums
