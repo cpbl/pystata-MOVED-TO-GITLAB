@@ -4685,7 +4685,7 @@ May 2011: Adding robustness to non-existence of some variables ie. any requested
             returnVal=shelfLoad(shelfF)
     return(returnVal)
 
-def runBatchSet(sVersion,rVersion,stataCodeFunction,dVersion=None,mainDataFile=None,compileLaTeX=True, skipStataForCompletedTables=False,variableOrder=None,substitutions=None,parallel=None,offsetsSeconds=None,forceStata=False): #,runStata=None):
+def runBatchSet(sVersion,rVersion,stataCodeFunction,dVersion=None,mainDataFile=None,compileLaTeX=True, skipStataForCompletedTables=False,variableOrder=None,substitutions=None,parallel=None,offsetsSeconds=None,forceStata=False, autoYes=False): #,runStata=None):
     """
 April 2010:  do the generic sequence of running code, compiling, etc.
 This is poorly named so far...
@@ -4800,7 +4800,7 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
     if latexfile.skipStataForCompletedTables:
             print '   Automatically running Stata, since skipStataForCompletedTables==True and it might be quite fast!'
 
-    if not stataDone and ((latexfile.skipStataForCompletedTables  and not latexfile.usingDisclosedData )  or (defaults['server']['islinux'] and 'yes'==raw_input('Run stata as batch?  (say "yes")'))): #or runStata
+    if not stataDone and ((latexfile.skipStataForCompletedTables  and not latexfile.usingDisclosedData )  or (defaults['server']['islinux'] and (autoYes or ('yes'==raw_input('Run stata as batch?  (say "yes")'))))): #or runStata
         if parallel:
             funcNames=[fff.func_name for fff in stataCodeFunction]
             offsets=deepcopy(offsetsSeconds)
