@@ -2291,7 +2291,7 @@ def modelResultsByVar(modelResults,tableFilename=None):
                     mmm['eststats'][vv]=dgetget(mmm,'textralines',vv,'')
     	    mmm['textralines'][vv]=''
     	    print '    textralines: Moved '+vv+' to stats '
-        assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
+        #assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
         # Now, remove this item from the textralines that will be displayed!
         allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
         # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
