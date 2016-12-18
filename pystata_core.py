@@ -499,8 +499,6 @@ columns : list or None
 N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster for next time.
  What is wrong with loadStataDataForPlotting()?
 
-TO do:
-    2015June:      - Pandas does not read Stata 14 files yet!!
 
     """
     
