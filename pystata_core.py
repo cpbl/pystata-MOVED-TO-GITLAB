@@ -1819,6 +1819,18 @@ def latexFormatEstimateWithPvalue(x,pval=None,allowZeroSE=None,tstat=False,gray=
            chooseSFormat(ses,convertStrings=convertStrings,threeSigDigs=threeSigDigs,conditionalWrapper=[r'\coefp{','}',])])
 
 
+def formatPairedRow_DataFrame(df, est_col, se_col, prefix=None ):
+    """
+    The name of this function is not great, but it simply applies formatPairedRow to two columns in a dataframe, returning the df with two new formatted string columns. The formatting is for use in cpblTables.
+    """
+    a,b = formatPairedRow([df[est_col].values.tolist(), df[se_col].values.tolist()])
+    if prefix is None: prefix ='s'
+    assert prefix+est_col not in df
+    assert prefix+se_col not in df
+    df[prefix+est_col] = a
+    df[prefix+se_col] = b
+    return(df)
+
 ###########################################################################################
 ###
 def formatPairedRow(pair,pValues=None,greycells=None,modelsAsRows=None,varsAsRows=None,allowZeroSE=False):
@@ -2421,6 +2433,98 @@ Jan 2013: I'm not yet integrating this into my latex class because I cannot get 
 So, instead, I'll be running these outside of latexclass for now, and using the explicit equation syntax. 
 
 This parses the output resulting from doNLregression.
+    """
+
+    if '\n' in logFile: # logfile text must have been passed.
+        logTxt=logFile
+    else:
+        logTxt=open(logFile+'.log','rt').read() # Should already have >\n's removed by stataSystem...
+        print ' Parsing '+logFile+'.log'
+
+    if 0:
+        regs=re.findall(r"""\s*.\s+CPBL BEGIN NL EQUATION REGRESSION
+    (.*?)
+    \s*.\s+CPBL END NL EQUATION REGRESSION""",logTxt,re.DOTALL)
+        assert len(nlregs)==1
+        nlreg=nlregs[0]
+
+    regs=re.findall(r"""CPBL BEGIN NL EQ REGRESSION MODEL(.*?)CPBL END NL EQ REGRESSION MODEL""",logTxt,re.DOTALL)
+    assert len(regs)>0
+
+    results=[]
+    vars=[]
+    for areg in regs:
+        results+= [readStataEstimateResults(areg)]
+
+    return(results)
+
+################################################################################################
+################################################################################################
+def do_mlogit_notwrittenyet(name,eq=None,datafile=None,plotTitle=None,execStata=True,forceUpdate=False,getFileNameOnly=False):#,skipPlots=False,options='',simultaneous=False,substitutions=None):
+    ############################################################################################
+    ############################################################################################
+    """
+If eq is specified (equation, if, weights, options), then the explicit equation syntax is used. Otherwise, one could also call a function and list the variables.name=None,
+"""
+    import numpy as np
+    assert name
+    name=''.join([ch for ch in name if ch.isalpha() or ch.isdigit() or ch in '-'])
+
+    doText=''
+    if datafile:
+        doText+=stataLoad(datafile)
+
+    # Make a do file:
+    doFile=WP+name+'-'+'NL'
+    logFile=doFile
+    if getFileNameOnly:
+        return(logFile+'.pyshelf')
+
+    assert eq # Others not programmed yet. See header footer flags, below, etc.
+
+    from pylab import arange
+
+    # In following, I've added "log" option to list estimates as we go...
+    doText+="""
+log using """+logFile+""".log, text replace
+* CPBL BEGIN NL EQ REGRESSION MODEL
+nl """+eq+' ,'*(',' not in eq)+""" log
+estimates table , varwidth(49) style(oneline) b se p stats(r2  r2_a r2_p N  N_clust)
+* CPBL END NL EQ REGRESSION MODEL
+* CPBL Finished successfully
+log close
+"""
+
+    if not execStata:
+        return(doText)
+
+    # Read the result:
+    if not os.path.exists(logFile+'.log'):
+        print doFile+' does not exist yet: running Stata...'
+        stataSystem(doText, filename=doFile) # Give do file without .do
+    elif forceUpdate:
+        print doFile+' exists but forceUpdate is true: running Stata...'
+        stataSystem(doText, filename=doFile) # Give do file without .do
+    if "CPBL Finished successfully" not in open(logFile+'.log','rt').read():
+        print doFile+' failed. Trying agiain...'
+        stataSystem(doText, filename=doFile) # Give do file without .do
+
+    if fileOlderThan(logFile+'.pyshelf',logFile+'.log'):
+        results=parseNLregression(logFile)
+        shelfSave(logFile+'.pyshelf',results)
+    #else:
+    #    results=shelfLoad(logFile+'.pyshelf')
+    return(logFile+'.pyshelf')
+
+################################################################################################
+################################################################################################
+def parse_mlogit_notwrittenyet(logFile):
+    ############################################################################################
+    ############################################################################################
+    """
+Not yet integrated into latex class
+
+This parses the output resulting from do_mlogit.
     """
 
     if '\n' in logFile: # logfile text must have been passed.
