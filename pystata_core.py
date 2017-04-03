@@ -479,12 +479,33 @@ def stataLogFile_joinLines(filename):
 ###########################################################################################
 ###
 def dta2tsv(filepath,keep=None,newpath=None):
-    ###
-    #######################################################################################
     print "No. Just use (or modify/upgrade features of the loadStataDataForPlotting ..."
     1/0
 
+###########################################################################################
+
+
+
+###########################################################################################
+def dtasaveold(pp,ff,ee='.dta', keep=None):
+    ###
+    """
+    # Create stata 12 version of data :( since Pandas cannot read stata14
+    for the moment, this must be a .dta file, not .dta.gz.
+    """
+    print('      Making stata 12 version of '+ff+ee+' ... ')
+    stataSystem("""
+   use """+pp+ff+""",clear
+   """+('' if keep is None else ' keep ' + (keep if isinstance(keep,str) else ' '.join(keep)))+"""
+   saveold """+paths['scratch']+'__tmpv12_'+ff+ee+""", replace version(12)
+   """)
+    pp=paths['scratch']+'__tmpv12_'
+    return(pp+ff+'.dta')
+
+###
 def dta2dataframe(fn,noclobber=True,columns=None):
+    ###
+    #######################################################################################
     """ For small files (at least),  this is MUCH faster for reload. It creates a temporary pandas file (huge compared with dta.gz) for future use.
 
 For dta.gz files, it will create a .dta, needed for reading into pandas.
@@ -529,14 +550,20 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
 
 
         if float(pd.__version__[2:]) < 17.0:
-           # Create stata 12 version of data :( since Pandas cannot read stata14
-           print('      Making stata 12 version of '+ff+ee+' ... ')
-           stataSystem("""
-           use """+pp+ff+""",clear
-           saveold """+paths['scratch']+'__tmpv12_'+ff+ee+""", replace version(12)
-           """)
-           pp=paths['scratch']+'__tmpv12_'
-        df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+            ppffee=dtasaveold(pp,ff,ee)
+            df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+        else:
+            try:
+                df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+            except UnicodeDecodeError as e:
+                ppffee=dtasaveold(pp,ff,ee)
+                print(' \n\n\n ****  RESORTED TO JUNK CHARACTERS FOR UNICODE, SINCE THE FILE HAS CORRUPTED  UNICODE. RECREATE IT USING Stata 14+?? *** \n\n')
+                df=pd.read_stata( ppffee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+                """
+            print(' UnicodeDecodeError: if you are using Stata14, then the file is probably the problem. Maybe it needs re-creating using Stata14 from the source data. My advice is to use saveold to create a Stata version 12 version. At least then, it will have garbage for the high-bit characters, rather than expecting them to be valid unicode.')
+            print e
+            raw_input('acknowledge:')
+            raise"""
         df.to_pickle(pdoutfile)
     else:
         print('    '+ fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using existing Pandas file...')
