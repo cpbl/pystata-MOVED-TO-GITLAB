@@ -456,7 +456,7 @@ codebook `var'
 
         """
         if not missingNames:
-            missingNames=["don't know","not stated",'not asked','not available','not applicable']
+            missingNames=["don't know","not stated",'not asked','not available','not applicable','question not asked','not asked in survey', 'missing; unknown', 'no answer']
         outs=''
         if onlyVars==None:
             onlyVars=self.keys()

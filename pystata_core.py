@@ -38,8 +38,7 @@ Configuration:
   (2) Otherwise, pystata will look for a config.ini file in the operating system's local path at run time. Typically, this would be a file in the package of some caller module and would be in .gitignore so that it can be locally customized
   (3) Otherwise, pystata will look for a config.ini file in its own (the pystata repository) folder.  
 """
-import os
-import re
+import os,re
 from .pystata_config import defaults,paths
 assert 'paths' in defaults
 WP=paths['working']
@@ -68,6 +67,8 @@ except ImportError:
     print(__file__+": Unable to find (or unable to import) cpblTables module. Try importing it yourself to debug this.")
 
 from copy import deepcopy
+import pandas as pd
+import numpy as np
 
 global rawCodebooks
 # Load up lists of *all* variables for surveys, if this info is available: (No, I need to reprogram thi to do it based just on the codebook class I've made)
@@ -520,7 +521,7 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
         'Not sure what to do here. Find dta or dta.gz...'
     import pandas as pd
     pdoutfile= pp+ff+'.pandas' if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff+'.pandas'
-    if 1 or fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
+    if fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
         print('    ' +fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using original Stata file...')
         if fn.endswith('.dta.gz') and fileOlderThan(ppff+'.dta',fn):
             os.system('gunzip -c %s > %s.dta'%(fn,ppff))
@@ -583,8 +584,6 @@ def dataframe2dta(df,fn,forceToString=None, extraStata=None):
     """
 
 
-    import pandas as pd
-    import numpy as np
     if forceToString is not False: # look for automatic force-to-string unless we're told not to
         dfr=df.reset_index()
         fts=[cc   for cc in dfr.columns if isinstance(dfr[cc][0],str)]
@@ -901,7 +900,7 @@ def insheetStata9(afile,double=False,opts='', encoding='utf-8'): # This is used 
     ###
     #######################################################################################
     sdouble=' double '*double
-    if defaults['server']['stataVersion']=='linux9':
+    if defaults['server']['stataVersion'] in ['linux9','linux12']:
         return('\n insheet using %s, name clear %s %s'%(afile,sdouble,opts)  +fixCaseStata9(afile)  +'\n')
     else:
         assert opts in ['',' tab ']
@@ -1036,7 +1035,8 @@ doHeader="""
     *set maxvar 7000,permanently
     set more off
     matrix drop _all
-    set matsize 11000
+* following is okay except on small machine on Stata 12? temp'ly turned off:
+    *set matsize 11000
 """ # For old stata versions:    * It appears that 500000 is the maximum allowed?! for scrollbufsize    ** set scrollbufsize 500000
 
 
@@ -1823,6 +1823,9 @@ def formatPairedRow_DataFrame(df, est_col, se_col, prefix=None ):
     """
     The name of this function is not great, but it simply applies formatPairedRow to two columns in a dataframe, returning the df with two new formatted string columns. The formatting is for use in cpblTables.
     """
+    #assert df[est_col].notnull().all()
+    #assert df[est_col].notnull().all()
+    #a,b = formatPairedRow([df[est_col].fillna('.').values.tolist(), df[se_col].fillna('.').values.tolist()])
     a,b = formatPairedRow([df[est_col].values.tolist(), df[se_col].values.tolist()])
     if prefix is None: prefix ='s'
     assert prefix+est_col not in df
@@ -1870,6 +1873,10 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     outpair=deepcopy(pair)
     coefs=pair[0]
     ses=pair[1]
+    def isitnegative(obj):
+        if not isinstance(obj,float): return False
+        return obj<0
+    assert not any([isitnegative(ss) for ss in ses])
     
     # If it's not regression coefficients, we may want to specify the p-values (and thus stars/colours) directly, rather than calculating t values here (!!). Indeed, aren't p-values usually available, in which case they should be used anyway? hmm.
     if pValues is None:
@@ -1880,14 +1887,13 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
     significanceString,greyString=[[] for i in range(len(pair[0]))],   [[] for i in range(len(pair[0]))]
     for i in range(len(pair[0])):
         significanceString[i], greyString[i]='',''
-    
     for icol in range(len(pair[0])):
         yesGrey=icol in greycells or greycells==True
         if isinstance(coefs[icol],basestring) or isinstance(coefs[icol],unicode) or isnan(coefs[icol]):
             if coefs[icol] in ['nan',fNaN] or (isinstance(coefs[icol],float) and isnan(coefs[icol])):
                 outpair[0][icol],outpair[1][icol]=r'\aggc'*yesGrey,r'\aggc'*yesGrey
             else:
-                outpair[0][icol],outpair[1][icol]=coefs[icol]+r'\aggc'*yesGrey,ses[icol]+r'\aggc'*yesGrey
+                outpair[0][icol],outpair[1][icol] = coefs[icol]+r'\aggc'*yesGrey,ses[icol]+r'\aggc'*yesGrey
             continue
         # So we have floats
         # Aug 2012: Agh.. It's in principle possible to have an int, with 1e-16 s.e., etc.
@@ -1916,10 +1922,14 @@ May 2011: I'm trying to remove some of the logic from here to a utility, latexFo
 
         # Changing line below: May 2011. Why did I put a ' ']
         #outpair[0][icol]= significanceString[icol]+chooseSFormat(coefs[icol])+'}'*(not not significanceString[icol])
+
         outpair[0][icol]= significanceString[icol]+chooseSFormat(coefs[icol])+'}'*(not not significanceString[icol])
         #debugprint( 'out0=',        outpair[0][icol],
- #'   signStr=',(not not significanceString[icol]),significanceString[icol],
- #'   tratio=',tratio,coefs[icol],ses[icol])
+        #'   signStr=',(not not significanceString[icol]),significanceString[icol],
+        #'   tratio=',tratio,coefs[icol],ses[icol])
+
+        # This catches a 2017 bug:
+        ###NO!assert all([isitnull(outpair[0][ii]) == isitnull(coefs[ii])  for ii in range(len(outpair[0]))])
 
         if ses[icol]<1e-10 and allowZeroSE: # Added Dec 2009
             ses[icol]=0
