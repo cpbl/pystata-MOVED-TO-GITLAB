@@ -51,7 +51,8 @@ def main():
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
     if 'bin/pystata' not in os.getcwd():
-        print(' Caution: new code October 2016: chdir in pystata_config. Not sure why this was not done before. Complaints to CPBL. chdir(%s)'%dir_path)
+        # 201709: No complaints for a year; so this caution was suppressed
+        #print(' Caution: new code October 2016: chdir in pystata_config. Not sure why this was not done before. Complaints to CPBL. chdir(%s)'%dir_path)
         os.chdir(dir_path)
 
     repoFile=(repoPath if repoPath else '.')+'/config.cfg'

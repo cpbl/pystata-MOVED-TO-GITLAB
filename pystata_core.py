@@ -54,7 +54,7 @@ except KeyError:
 try:
     from cpblUtilities import uniqueInOrder, debugprint, tsvToDict, orderListByRule, fileOlderThan
     from cpblUtilities import doSystem,shelfSave,shelfLoad,  renameDictKey,cwarning, str2pathname,dgetget
-    from cpblUtilities.mathgraph import tonumeric, fNaN, seSum #,mean_of_means
+    from cpblUtilities.mathgraph import tonumeric, fNaN, seSum, weightedPearsonCoefficient
     from cpblUtilities.cpblunicode import str2latex
     from cpblUtilities.parallel import runFunctionsInParallel
 except ImportError:
@@ -217,7 +217,7 @@ standardSubstitutions=[ # Make LaTeX output look prettier. Third column is for s
 ['highHHincome',r'HH income $>$100k\$/yr'],
 ['satisJob','Job satisfaction'],
 #
-['SWL1','SWL (scaled to [0,1])'],
+['SWL1','SWL (scaled to [0,1])',[], EXACT],
 ['commonLawEver','ever lived common law'],
 ['friendlyPolice','friendly police'],
 ['gayPartner','homosexual partner'],
@@ -503,7 +503,7 @@ def dtasaveold(pp,ff,ee='.dta', keep=None):
     return(pp+ff+'.dta')
 
 ###
-def dta2dataframe(fn,noclobber=True,columns=None):
+def dta2dataframe(fn,noclobber=True,columns=None, filesuffix=None):
     ###
     #######################################################################################
     """ For small files (at least),  this is MUCH faster for reload. It creates a temporary pandas file (huge compared with dta.gz) for future use.
@@ -520,7 +520,6 @@ columns : list or None
 
 N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster for next time.
  What is wrong with loadStataDataForPlotting()?
-
 
     """
     
@@ -541,7 +540,7 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
     if ee in ['']:
         'Not sure what to do here. Find dta or dta.gz...'
     import pandas as pd
-    pdoutfile= pp+ff+'.pandas' if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff+'.pandas'
+    pdoutfile= (pp+ff if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff)+bool(filesuffix is not None)*filesuffix+'.pandas' 
     if fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
         print('    ' +fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using original Stata file...')
         if fn.endswith('.dta.gz') and fileOlderThan(ppff+'.dta',fn):
@@ -1565,6 +1564,7 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         """
         See description for main function, above.
         returns headersline1,headersline2
+See also 201709 single_to_multicolumn_fixer() in cpblUtilities/textables
         """
         if not any(colheads):
             assert  not any(colgroups) # It would be silly to have group names but no names: If you just want one row, use names. (?)
@@ -1849,6 +1849,9 @@ def latexFormatEstimateWithPvalue(x,pval=None,allowZeroSE=None,tstat=False,gray=
 def formatPairedRow_DataFrame(df, est_col, se_col, prefix=None ):
     """
     The name of this function is not great, but it simply applies formatPairedRow to two columns in a dataframe, returning the df with two new formatted string columns. The formatting is for use in cpblTables.
+
+2017: What about a tool to take every other column and stick them as alternate rows? See interleave_columns_as_rows in cpblutils
+
     """
     #assert df[est_col].notnull().all()
     #assert df[est_col].notnull().all()
@@ -1860,6 +1863,7 @@ def formatPairedRow_DataFrame(df, est_col, se_col, prefix=None ):
     df[prefix+est_col] = a
     df[prefix+se_col] = b
     return(df)
+
 
 ###########################################################################################
 ###
@@ -6065,6 +6069,107 @@ log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 #    print(__file__+": Unable to find (or unable to import) pystata.latexRegressions module")
 
 
+
+def stataPCA(df, weight=None, tmpname=None, scratch_path=None, method='cor', package='stata'):
+    """ Pandas interface to Stata's PCA function.
+    Returns dict including: coefficients, eigenvalues, cumulative fraction variance explained, the PCA vectors, correlation matrix
+    
+    """
+    
+    assert package in ['stata','scipy','jake']
+    dfnn=df.dropna()
+    if not len(dfnn) == len(df):
+        raise Exception(' WARNING: stataPCA dropped {} NaN observations (out of {}).'.format(-len(dfnn)+len(df),len(df)))
+        df=dfnn
+    if weight is None:
+        assert 'wuns' not in df.columns
+        df.loc[:,'wuns'] = 1
+        weight='wuns'
+    pcvars = [cc for cc in df.columns if cc not in [weight]]
+    if package =='stata':
+        df.to_stata(scratch_path+tmpname+'.dta')
+        statado = """
+        use {fn},clear
+        capture ssc inst pcacoefsave
+
+        pca {pcvars} {ww} , {method}
+        pcacoefsave using {SP}{fn}_pca_coefs, replace
+        mat eigenvalues = e(Ev)
+        gen eigenvalues = eigenvalues[1,_n]
+        egen varexpl=total(eigenvalues) if !mi(eigenvalues)
+        replace varexpl=sum((eigenvalues/varexpl)) if !mi(eigenvalues)
+        gen component=_n if !mi(eigenvalues)
+        keep varexpl eigenvalues component 
+        keep if ~missing(component)
+        list
+        outsheet using {SP}{fn}_varexpl.tsv, replace  noquote
+        u {SP}{fn}_pca_coefs, clear
+        outsheet using {SP}{fn}_pca_coefs.tsv, replace noquote
+        """.format(method = method, fn=tmpname, SP=scratch_path, pcvars = ' '.join(pcvars), ww = '' if weight is None else '[w='+weight+']')
+        with open(scratch_path+tmpname+'.do','wt') as fout:
+            fout.write(statado)
+        os.system(' cd {SP} && stata -b {SP}{fn}.do'.format(SP=scratch_path, fn=tmpname))
+        df_coefs = pd.read_table(scratch_path+tmpname+'_pca_coefs.tsv')
+        df_varexpl = pd.read_table(scratch_path+tmpname+'_varexpl.tsv')
+        df_varexpl['cumvarexpl'] = df_varexpl['varexpl'].values
+        df_varexpl['varexpl'] = df_varexpl['cumvarexpl'].diff()
+        df_varexpl.loc[0,'varexpl'] = df_varexpl['cumvarexpl'][0]
+    elif package == 'scipy':
+        #from sklearn.decomposition import PCA as spPCA    
+        from statsmodels.multivariate.pca import PCA as smPCA
+        ss=smPCA(df[pcvars], standardize=True) # No sample weights available; the weights argument weights variables!
+        return ss
+        foo
+    elif package =='jake':
+        from wpca import PCA, WPCA, EMPCA
+        stopp
+        def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=2):
+            # Compute the standard/weighted PCA
+            if weights is None:
+                kwds = {}
+            else:
+                kwds = {'weights': weights}
+
+            # Compute the PCA vectors & variance
+            pca = ThisPCA(n_components=10).fit(X, **kwds)
+
+        
+    assert  package in ['stata']
+    # Diagnostic plot
+    plt.figure(456789876)
+    fig, ax1 = plt.subplots()
+    ax1.plot(df_varexpl.component, df_varexpl.varexpl, 'b', label='Explained variance')
+    ax1.set_xlabel('PCA component')
+    # Make the y-axis label, ticks and tick labels match the line color.
+    ax1.set_ylabel('Explained variance', color='b')
+    ax1.tick_params('y', colors='b')
+    ax1.grid()
+    ax2 = ax1.twinx()
+    ax2.plot(df_varexpl.component, df_varexpl.eigenvalues,'b', label='Eigenvalue')
+    ax2.set_ylabel('Eigenvalue', color='b')
+    ax2.tick_params('y', colors='b')
+    fig.tight_layout()
+    plotfn=scratch_path+tmpname+'diagnostic-plot.pdf'
+    plt.savefig(plotfn)
+
+    # Calc vectors:
+    cmat=df_coefs.pivot(index='PC', columns='varname', values='loading').dropna()
+    cmat.index = cmat.index.map(lambda nn:'PCA'+str(nn))
+    assert not pd.isnull(cmat).any().any()
+    pcs = cmat[pcvars].dot(df[pcvars].T).T  # Nice: name-checking matrix multiplication
+    assert not pd.isnull(pcs).any().any()
+
+    # Calc correlations of df with principal components:
+    pccorr = pd.DataFrame(index = pcvars+cmat.index.tolist(), columns = cmat.index)
+    for pcv in pccorr.columns:
+        for ov in pcvars:
+            pccorr.loc[ov,pcv] = weightedPearsonCoefficient(df[ov].values, pcs[pcv].values, df[weight].values)
+        for pcv2 in pccorr.columns:
+            pccorr.loc[pcv2,pcv] = weightedPearsonCoefficient(pcs[pcv2].values, pcs[pcv].values, df[weight].values)
+            
+    # pcs is a df with the new vectors, along with the original index of df (so use df.join if you wish to merge)
+    results= {'coefs':df_coefs, 'explained':df_varexpl, 'corr':pccorr, 'plot':plotfn, 'vectors':pcs, 'fig':fig}
+    return results
 
 
 if __name__ == '__main__':
