@@ -39,6 +39,7 @@ Configuration:
   (3) Otherwise, pystata will look for a config.ini file in its own (the pystata repository) folder.  
 """
 import os,re
+import matplotlib.pyplot as plt
 from .pystata_config import defaults,paths
 assert 'paths' in defaults
 WP=paths['working']
@@ -6057,120 +6058,134 @@ def asinh_truncate(fromvar,tovar,truncate=True):
     * }
     sum %(fv)s %(tv)s
     """%{'fv':fromvar,'tv':tovar})
-log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
+#log_asinh_truncate=asinh_truncate  # This is deprecated! Misnamed!
 
 
 
 
-    
-#try:
-#    from .latexRegressions import latexRegressionFile
-#except ImportError:
-#    print(__file__+": Unable to find (or unable to import) pystata.latexRegressions module")
 
-
-
-def stataPCA(df, weight=None, tmpname=None, scratch_path=None, method='cor', package='stata'):
-    """ Pandas interface to Stata's PCA function.
-    Returns dict including: coefficients, eigenvalues, cumulative fraction variance explained, the PCA vectors, correlation matrix
-    
-    """
-    
-    assert package in ['stata','scipy','jake']
-    dfnn=df.dropna()
-    if not len(dfnn) == len(df):
-        raise Exception(' WARNING: stataPCA dropped {} NaN observations (out of {}).'.format(-len(dfnn)+len(df),len(df)))
-        df=dfnn
-    if weight is None:
-        assert 'wuns' not in df.columns
-        df.loc[:,'wuns'] = 1
-        weight='wuns'
-    pcvars = [cc for cc in df.columns if cc not in [weight]]
-    if package =='stata':
-        df.to_stata(scratch_path+tmpname+'.dta')
-        statado = """
-        use {fn},clear
-        capture ssc inst pcacoefsave
-
-        pca {pcvars} {ww} , {method}
-        pcacoefsave using {SP}{fn}_pca_coefs, replace
-        mat eigenvalues = e(Ev)
-        gen eigenvalues = eigenvalues[1,_n]
-        egen varexpl=total(eigenvalues) if !mi(eigenvalues)
-        replace varexpl=sum((eigenvalues/varexpl)) if !mi(eigenvalues)
-        gen component=_n if !mi(eigenvalues)
-        keep varexpl eigenvalues component 
-        keep if ~missing(component)
-        list
-        outsheet using {SP}{fn}_varexpl.tsv, replace  noquote
-        u {SP}{fn}_pca_coefs, clear
-        outsheet using {SP}{fn}_pca_coefs.tsv, replace noquote
-        """.format(method = method, fn=tmpname, SP=scratch_path, pcvars = ' '.join(pcvars), ww = '' if weight is None else '[w='+weight+']')
-        with open(scratch_path+tmpname+'.do','wt') as fout:
-            fout.write(statado)
-        os.system(' cd {SP} && stata -b {SP}{fn}.do'.format(SP=scratch_path, fn=tmpname))
-        df_coefs = pd.read_table(scratch_path+tmpname+'_pca_coefs.tsv')
-        df_varexpl = pd.read_table(scratch_path+tmpname+'_varexpl.tsv')
-        df_varexpl['cumvarexpl'] = df_varexpl['varexpl'].values
-        df_varexpl['varexpl'] = df_varexpl['cumvarexpl'].diff()
-        df_varexpl.loc[0,'varexpl'] = df_varexpl['cumvarexpl'][0]
-    elif package == 'scipy':
-        #from sklearn.decomposition import PCA as spPCA    
-        from statsmodels.multivariate.pca import PCA as smPCA
-        ss=smPCA(df[pcvars], standardize=True) # No sample weights available; the weights argument weights variables!
-        return ss
-        foo
-    elif package =='jake':
-        from wpca import PCA, WPCA, EMPCA
-        stopp
-        def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=2):
-            # Compute the standard/weighted PCA
-            if weights is None:
-                kwds = {}
-            else:
-                kwds = {'weights': weights}
-
-            # Compute the PCA vectors & variance
-            pca = ThisPCA(n_components=10).fit(X, **kwds)
-
-        
-    assert  package in ['stata']
-    # Diagnostic plot
-    plt.figure(456789876)
-    fig, ax1 = plt.subplots()
-    ax1.plot(df_varexpl.component, df_varexpl.varexpl, 'b', label='Explained variance')
-    ax1.set_xlabel('PCA component')
-    # Make the y-axis label, ticks and tick labels match the line color.
-    ax1.set_ylabel('Explained variance', color='b')
-    ax1.tick_params('y', colors='b')
-    ax1.grid()
-    ax2 = ax1.twinx()
-    ax2.plot(df_varexpl.component, df_varexpl.eigenvalues,'b', label='Eigenvalue')
-    ax2.set_ylabel('Eigenvalue', color='b')
-    ax2.tick_params('y', colors='b')
-    fig.tight_layout()
-    plotfn=scratch_path+tmpname+'diagnostic-plot.pdf'
-    plt.savefig(plotfn)
-
-    # Calc vectors:
-    cmat=df_coefs.pivot(index='PC', columns='varname', values='loading').dropna()
-    cmat.index = cmat.index.map(lambda nn:'PCA'+str(nn))
-    assert not pd.isnull(cmat).any().any()
-    pcs = cmat[pcvars].dot(df[pcvars].T).T  # Nice: name-checking matrix multiplication
-    assert not pd.isnull(pcs).any().any()
-
-    # Calc correlations of df with principal components:
-    pccorr = pd.DataFrame(index = pcvars+cmat.index.tolist(), columns = cmat.index)
-    for pcv in pccorr.columns:
-        for ov in pcvars:
-            pccorr.loc[ov,pcv] = weightedPearsonCoefficient(df[ov].values, pcs[pcv].values, df[weight].values)
-        for pcv2 in pccorr.columns:
-            pccorr.loc[pcv2,pcv] = weightedPearsonCoefficient(pcs[pcv2].values, pcs[pcv].values, df[weight].values)
-            
-    # pcs is a df with the new vectors, along with the original index of df (so use df.join if you wish to merge)
-    results= {'coefs':df_coefs, 'explained':df_varexpl, 'corr':pccorr, 'plot':plotfn, 'vectors':pcs, 'fig':fig}
-    return results
-
+#def stataPCA(df, weight=None, tmpname=None, scratch_path=None, method='cor', package='stata'):
+#    """ Pandas interface to Stata's PCA function.
+#    Returns dict including: coefficients, eigenvalues, cumulative fraction variance explained, the PCA vectors, correlation matrix
+#    
+#    """
+#    
+#    assert package in ['stata','scipy','jake']
+#    dfnn=df.dropna()
+#    if not len(dfnn) == len(df):
+#        raise Exception(' WARNING: stataPCA dropped {} NaN observations (out of {}).'.format(-len(dfnn)+len(df),len(df)))
+#        df=dfnn
+#    if weight is None:
+#        assert 'wuns' not in df.columns
+#        df.loc[:,'wuns'] = 1
+#        weight='wuns'
+#    pcvars = [cc for cc in df.columns if cc not in [weight]]
+#    if package =='stata':
+#        df.to_stata(scratch_path+tmpname+'.dta')
+#        statado = """
+#        capture ssc inst pcacoefsave
+#
+#        use {fn},clear
+#        pca {pcvars} {ww} , {method}
+#        predict {PCAvlist}, score
+#        outsheet {PCAvlist} using {SP}{fn}_score.tsv, replace  noquote        
+#
+#        use {fn},clear
+#        pca {pcvars} {ww} , {method}
+#        pcacoefsave using {SP}{fn}_pca_coefs, replace
+#        mat eigenvalues = e(Ev)
+#        gen eigenvalues = eigenvalues[1,_n]
+#        egen varexpl=total(eigenvalues) if !mi(eigenvalues)
+#        replace varexpl=sum((eigenvalues/varexpl)) if !mi(eigenvalues)
+#        gen component=_n if !mi(eigenvalues)
+#        keep varexpl eigenvalues component 
+#        keep if ~missing(component)
+#        list
+#        outsheet using {SP}{fn}_varexpl.tsv, replace  noquote
+#        u {SP}{fn}_pca_coefs, clear
+#        outsheet using {SP}{fn}_pca_coefs.tsv, replace noquote
+#        """.format(PCAvlist= ' '.join(['PCA{}'.format(ii+1) for ii in range(len(pcvars))]), method = method, fn=tmpname, SP=scratch_path, pcvars = ' '.join(pcvars), ww = '' if weight is None else '[w='+weight+']')
+#        with open(scratch_path+tmpname+'.do','wt') as fout:
+#            fout.write(statado)
+#        os.system(' cd {SP} && stata -b {SP}{fn}.do'.format(SP=scratch_path, fn=tmpname))
+#        df_coefs = pd.read_table(scratch_path+tmpname+'_pca_coefs.tsv')
+#        df_varexpl = pd.read_table(scratch_path+tmpname+'_varexpl.tsv')
+#        df_varexpl['cumvarexpl'] = df_varexpl['varexpl'].values
+#        df_varexpl['varexpl'] = df_varexpl['cumvarexpl'].diff()
+#        df_varexpl.loc[0,'varexpl'] = df_varexpl['cumvarexpl'][0]
+#        df_score = pd.read_table(scratch_path+tmpname+'_score.tsv')
+#    elif package == 'scipy':
+#        #from sklearn.decomposition import PCA as spPCA    
+#        from statsmodels.multivariate.pca import PCA as smPCA
+#        ss=smPCA(df[pcvars], standardize=True) # No sample weights available; the weights argument weights variables!
+#        return ss
+#        foo
+#    elif package =='jake':
+#        from wpca import PCA, WPCA, EMPCA
+#        stopp
+#        def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=2):
+#            # Compute the standard/weighted PCA
+#            if weights is None:
+#                kwds = {}
+#            else:
+#                kwds = {'weights': weights}
+#
+#            # Compute the PCA vectors & variance
+#            pca = ThisPCA(n_components=10).fit(X, **kwds)
+#
+#        
+#    assert  package in ['stata']
+#    # Diagnostic plot
+#    plt.figure(456789876)
+#    fig, ax1 = plt.subplots()
+#    ax1.plot(df_varexpl.component, df_varexpl.varexpl, 'b', label='Explained variance')
+#    ax1.set_xlabel('PCA component')
+#    # Make the y-axis label, ticks and tick labels match the line color.
+#    ax1.set_ylabel('Explained variance', color='b')
+#    ax1.tick_params('y', colors='b')
+#    ax1.grid()
+#    ax2 = ax1.twinx()
+#    ax2.plot(df_varexpl.component, df_varexpl.eigenvalues,'b', label='Eigenvalue')
+#    ax2.set_ylabel('Eigenvalue', color='b')
+#    ax2.tick_params('y', colors='b')
+#    fig.tight_layout()
+#    plotfn=scratch_path+tmpname+'diagnostic-plot.pdf'
+#    plt.savefig(plotfn)
+#
+#    # Calc vectors:
+#    df_cmat=df_coefs.pivot(index='PC', columns='varname', values='loading').dropna()
+#    df_cmat.index = df_cmat.index.map(lambda nn:'PCA'+str(nn))
+#    assert not pd.isnull(df_cmat).any().any()
+#    def _normalize(s):        return (s-s.mean())/s.std()
+#    def _demean(s):        return (s-s.mean())
+#    dfstd = df[pcvars].std()
+#    dfmean = df[pcvars].mean()
+#    if method.lower().startswith('cor'):
+#        # If the method is "corr", then Stata's coefficients are for demeaned original data values:
+#        dfnorm = df[pcvars].apply(_demean, axis=0)
+#        # No! It seems still to be the normalized version
+#        dfnorm = df[pcvars].apply(_normalize, axis=0)
+#    elif method.lower().startswith('cov'):
+#        # If the method is "cov", then Stata's coefficients are for the normalized (demeaned and divided by std) values:
+#        dfnorm = df[pcvars].apply(_normalize, axis=0)
+#    else:
+#        raise Exception(" What is the method? Not cov or cor")
+#    pcs = df_cmat[pcvars].dot(dfnorm[pcvars].T).T  # Nice: name-checking matrix multiplication
+#    assert not pd.isnull(pcs).any().any()
+#
+#    # Calc correlations of df with principal components:
+#    pccorr = pd.DataFrame(index = pcvars+df_cmat.index.tolist(), columns = df_cmat.index)
+#    for pcv in pccorr.columns:
+#        for ov in pcvars:
+#            pccorr.loc[ov,pcv] = weightedPearsonCoefficient(df[ov].values, pcs[pcv].values, df[weight].values)
+#        for pcv2 in pccorr.columns:
+#            pccorr.loc[pcv2,pcv] = weightedPearsonCoefficient(pcs[pcv2].values, pcs[pcv].values, df[weight].values)
+#            
+#    # pcs is a df with the new vectors, along with the original index of df (so use df.join if you wish to merge)
+#    results= {'coefs':df_cmat, 'loadingStata':df_coefs, 'explained':df_varexpl, 'corr':pccorr, 'plot':plotfn, 'vectors':pcs,  'vectorsStata':df_score, 'fig':fig}
+#    #'vectorsN':pcsN,
+#    return results
+#
 
 if __name__ == '__main__':
     #pass
