@@ -342,7 +342,7 @@ def stataSystem(dofile, filename=None, mem=None,nice=True,version=None): # Give 
               filename=[filename+'%02d'%idf for idf,df in enumerate(dofile)]
 
       #return(runFunctionsInParallelOLD([[stataSystem,df,filename[ii],mem,nice] for ii,df in enumerate(dofile)],names=filename))
-      return(runFunctionsInParallel([[stataSystem,[dofi,filename[ii],mem,nice]] for ii,dofi in enumerate(dofile)],names=filename,expectNonzeroExit=True))
+      return(runFunctionsInParallel([[stataSystem,[dofi,filename[ii],mem,nice]] for ii,dofi in enumerate(dofile)],names=filename,expectNonzeroExit=True, parallel=defaults['server']['parallel']))
 
 
 
@@ -541,7 +541,7 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
     if ee in ['']:
         'Not sure what to do here. Find dta or dta.gz...'
     import pandas as pd
-    pdoutfile= (pp+ff if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff)+bool(filesuffix is not None)*filesuffix+'.pandas' 
+    pdoutfile= (pp+ff if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff)+{None:''}.get(filesuffix,filesuffix)+'.pandas' 
     if fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
         print('    ' +fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using original Stata file...')
         if fn.endswith('.dta.gz') and fileOlderThan(ppff+'.dta',fn):
@@ -2331,22 +2331,23 @@ def modelResultsByVar(modelResults,tableFilename=None):
 
 
 
-
-    # Dec 2010: let's allow overriding of stats with flags, though only for models in which the stat doesn't exist. Blech; what I mean is let's combine like-named fields in stats and extralines:  This may only be for N_clust
-    for vv in allTextralinesM:#byTextraline:
-        if vv in byStat:
+    """ What if something exists as a stat in one model but as a textraline in a different model? In this case, the textraline should be moved to stats for all models.
+    (  This may only be for N_clust)
+    """
+    for vv in allTextralinesM: # Anything that is a textraline in ANY model
+        if vv in byStat: # Anything that is a stat in ANY model
             for mmm in modelResults:
-                # First, we should fail if there are conflicts for any particular model.
-                assert not dgetget(mmm,'textralines',vv,'') or not dgetget(mmm,'eststats',vv,'') or dgetget(mmm,'textralines',vv,'') == dgetget(mmm,'eststats',vv,'')
-                # Otherwise, let's move values over to stats:
-                if dgetget(mmm,'textralines',vv,''):
-                    mmm['eststats'][vv]=dgetget(mmm,'textralines',vv,'')
-    	    mmm['textralines'][vv]=''
+                # First, we should fail if there are conflicts for this model:
+                assert not dgetget(mmm,['textralines',vv],'') or not dgetget(mmm,['eststats',vv],'') or dgetget(mmm,['textralines',vv],'') == dgetget(mmm,['eststats',vv],'')
+                # Otherwise, let's move this from textralines to stats in this model:
+                if dgetget(mmm,['textralines',vv],''):
+                    mmm['eststats'][vv]=dgetget(mmm,['textralines',vv],'')
+    	    mmm['textralines'][vv]='' # Rather than deleting it, set it to blank? It'll get dropped anyway.
     	    print '    textralines: Moved '+vv+' to stats '
-        #assert not any([dgetget(mmm,'textralines',vv,'')  for mmm in modelResults])
-        # Now, remove this item from the textralines that will be displayed!
-        allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
-        # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
+            assert not any([dgetget(mmm,['textralines',vv],'')  for mmm in modelResults])
+            # Now, remove this item from the textralines that will be displayed!
+            allTextralinesM=[tlm for tlm in allTextralinesM if not tlm==vv]
+            # Note that in general I do not clean up empty textralines, except in this case, because they might be specified on purpose to put an empty space in a table? hmm, no: I could use "~" for that.
 
 
 
@@ -4867,14 +4868,10 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
     if not dVersion:
         dVersion=''
     if parallel is None:
-        import os
-        parallel='apollo' in os.uname()[1] and len(stataCodeFunction)>1
+        parallel = defaults['server']['parallel']
 
 
-    texNameSuffix='' #if not parallel else stataCodeFunction.func_name
-    #parallel = parallel  # Parallelizing a single function wouldn't make sense.
-    #parallel=False
-
+    texNameSuffix=''
 
     if not isinstance(stataCodeFunction,list):
         stataCodeFunction=[stataCodeFunction]
