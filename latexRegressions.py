@@ -138,7 +138,7 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         June 2011: Needs to be altered to use new two-formats-in-one-tex-file ability of cpblTableC style. For instance, I could have it so that the automated choice of transposed or not still here still uses the cpblTableC files as untransposed as first (default) option, and simple changes the wrapper.
         """
         if sourceLogfile is not None:
-            assert all([sourceLogfile==mm['logFilename'] for mm in models])
+            assert all([sourceLogfile==mm['logFilename'] for mm in models]) 
         if substitutions==None:
             substitutions=self.substitutions
         if 'version'=='priorToJune2011': # you can now pass "both" as value for transposed to appendRegressionTable, so that it doesn't duplicate the cpbltablec tex file.
@@ -2562,7 +2562,7 @@ copy "%s" "%s", replace
             ##assert frommodel['model']['compDiffBy'] in frommodel['estmodel']
             ##print 'Model num unsafe in folloinwg.....' (still?? or did this refer to before deepcopy?)
             #cdModel=deepcopy(frommodel) # This is TOO MUCH... ONLY COPY A FEW, NEEDED ITEMS. explicitly listed...  [April 2011: why? does RAM matter??]
-            cdModel=dict(deepcopy([ims for ims in frommodel.items() if ims[0] in ['name','modelNum','model','substitutions','depvar','stataModelName','method','eststats','format','showCompDiffVars','compDiffHideVars']]))
+            cdModel=dict(deepcopy([ims for ims in frommodel.items() if ims[0] in ['name','modelNum','model','substitutions','depvar','stataModelName','method','eststats','format','showCompDiffVars','compDiffHideVars','logFilename']]))
             cdModel.update({'baseModelCopy':deepcopy(frommodel)}) # Added April 2011.
             cdModel.update({'special':'compDiff','compDiff':True,'name':"comp. diff's"+0*frommodel['name']})# ,'modelNum':max([mm['modelNum'] for mm in models])})
             cdModel['eststats']['r2']=fNaN
