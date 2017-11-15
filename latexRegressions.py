@@ -3626,7 +3626,7 @@ So, this can be used either in a sort of automatic mode when closing a LaTeX fil
         
         # Choose variables to make stats of:
         """ 2010Feb. If showVars is not specified, then we try all variables in the variablesUsed list, but note that the Stata code below is robust to each variable not existing. Only those that exist are sum'ed, mean'ed, or read.
-"""
+        """
         if showVars==None:
             assert self.variablesUsed
             showVars=[vv for vv in uniqueInOrder(self.variablesUsed.split(' ')) if vv]
@@ -3862,7 +3862,18 @@ scalars:
         for vsection in vsections:
 
             piecesA= re.findall(sstr2+"""(.*?)\n-~-~-~-~-~-~-~-~\n(.*)""",vsection,re.DOTALL)
-            assert len(piecesA)==1
+            if not len(piecesA)==1:
+                print("""
+                      ===============================================
+                      addDescriptiveStats: len(piecesA)=={} for {}
+                      ABORTING ENTIRE DESCRIPTIVE STATS TABLE.
+                      Most likely this will get resolved if you rerun
+                      things once or twice.
+                      ===============================================
+
+""".format(len(piecesA), vsection))
+                return('')
+                #assert len(piecesA)==1
             # Following is failing April2013 on a long variable.
             # meanStr=r'[^~]*\|[^~]*\|\s*([^\s]*)\s+([^\s]*)\s+([^\s]*)\s+([^\s]*)\n'  +       r'[^~]*Prob >([\sFchi2]*)=\s*([^\s]+)\s+\}'
             # Updated re string , April 2013, which doesn't fail on long var names

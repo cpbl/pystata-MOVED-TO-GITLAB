@@ -3065,15 +3065,15 @@ May 2011: Adding suest tests. Or maybe tests in general???
             # Oct 2009: For my beta regressions (zscore), I find that the _cons gets an estimate when nothing else exists.... ? Ah, that's becuase I have a loop that sets them all to "1" if they don't exist... but I am temporarily deactiving that now that I have reinstituted z_dSample. It is important only to call the algorithm with variables that are available, obviously.
             isVal=[mmm['estcoefs'][vv][btp].strip() not in nullValues+['1']  for btp in mmm['estcoefs'][vv]]
             #assert all(isVal) or not any(isVal) or not forceShowVars==None
+            """ 201710 update: Stata, without other warning, does sometimes give a value for the constant's coefficient but not for its se or p.  
+            """
             weirdCaseSeemingStataBug=False
             if (not all(isVal) and any(isVal)):# and forceShowVars==None):
-
                 weirdCaseSeemingStataBug=True
-
-                if models[immm].get('special','')=='suestTests':
+                if mmm.get('special','')=='suestTests':
                     print 'weirdCaseSeemingStataBug! for suestTests. Check svyset?'
                 elif mmm['estcoefs'][vv]['se'].strip()=='0':
-                    print "weirdCase: %s: Stata gave a coefficient, but no standard error. Did the whole regression fail? I don't think so. Maybe it guessed at this coefficient even though it's a dummy with very little variation"%vv
+                    print "weirdCase: %s: Stata gave a coefficient, but no standard error. Did the whole regression fail? I don't think so. Maybe it guessed at this coefficient even though it's a dummy with very little variation (likely a singleton value associated with dummies). In fact, it may be that if you try  non-robust standard errors, you get a s.e. estimate "%vv
                 else:
                     print 'weirdCaseSeemingStataBug!'
             if not any(isVal) or weirdCaseSeemingStataBug:
@@ -5954,6 +5954,7 @@ def models2df(models,latex=None):
             collected+=[dict(  mm['estcoefs'][vv].items() + [[aa,bb] for aa,bb in mm.items() if aa in indexlist]+[(rhsvar,vv)] )]
             # Also add the flags for this model (rather than construct and merge a DataFrame at the model level (rather than the regressor/coefficient level)):
             collected[-1].update(mm.get('flags',{}))
+            
     import pandas as pd
     if not collected:
         return(pd.DataFrame())
@@ -6060,7 +6061,7 @@ def asinh_truncate(fromvar,tovar,truncate=True):
 
 
 
-
+# This moved somewhere else??? to pca.py , I guess.
 #def stataPCA(df, weight=None, tmpname=None, scratch_path=None, method='cor', package='stata'):
 #    """ Pandas interface to Stata's PCA function.
 #    Returns dict including: coefficients, eigenvalues, cumulative fraction variance explained, the PCA vectors, correlation matrix
