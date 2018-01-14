@@ -2453,7 +2453,7 @@ copy "%s" "%s", replace
                 r2=mm['eststats']['r2']
             else:
                 r2=mm['eststats'].get('r2_p','noR2')
-            if r2 in badR2 and mm['method'] not in ['glm'] and 'ivreg' not in mm['method']:  # Huh? What about r2-p?  N.b.: I'm not detecting failed ivregress yet (2015)
+            if r2 in badR2 and mm['method'] not in ['glm','xtreg','xtregress'] and 'ivreg' not in mm['method']:  # Huh? What about r2-p?  N.b.: I'm not detecting failed ivregress yet (2015)
                 print ' Suppressing model %d (name="%s") from LaTeX table because the regression failed (OR TYPE UNKNOWN to pystata)'%(mm['modelNum'],mm['name'])
                 mm['eststats']['r2']=fNaN
                 mm['eststats']['r2_a']=fNaN
