@@ -1318,6 +1318,8 @@ I've added various other flag/settings specified starting with *.
         Add a normalized (beta) version of each model immediately following it: only if it's OLS.
         """
         from copy import deepcopy
+        if isinstance(models,basestring):
+            models = self.str2models(models)
         for imm in range(len(models))[::-1]:
             newm=deepcopy(models[imm])
             assert isinstance(newm,dict)
