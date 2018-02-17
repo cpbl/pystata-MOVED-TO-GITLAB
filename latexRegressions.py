@@ -1315,7 +1315,7 @@ I've added various other flag/settings specified starting with *.
 
     def duplicateAllModelsToDualBeta(self,models):
         """
-        Add a normalized (beta) version of each model immediately following it: only if it's OLS.
+        Add a normalized (beta) version of each model immediately following it: only if it's OLS or xtreg (That's a weird thing; it would be normalizing the underlying variables, before taking first differences, etc).
         """
         from copy import deepcopy
         if isinstance(models,basestring):
@@ -1324,8 +1324,8 @@ I've added various other flag/settings specified starting with *.
             newm=deepcopy(models[imm])
             assert isinstance(newm,dict)
             assert 'beta' not in newm['regoptions']
-            if newm['method'] in ['svy:reg','svy:regress','reg','regress','rreg']:
-                # For method==rreg, this "beta" will need to be removed later.
+            if newm['method'] in ['svy:reg','svy:regress','reg','regress','rreg', 'xtreg']:
+                # For method in [rreg,xtreg], this "beta" will need to be removed later.
                 newm['regoptions']+=' beta'
                 models.insert(imm+1,newm)
         return(models)
@@ -1940,7 +1940,7 @@ Bugs:
                 doBetaMode=True
                 model['textralines'][r'$\beta$ coefs']=r'\YesMark'
 
-                if ('cluster' in modelregoptions and 'beta' in modelregoptions) or model['method'] in ['rreg']:
+                if ('cluster' in modelregoptions and 'beta' in modelregoptions) or model['method'] in ['rreg','xtreg']:
                     #print 'Replacing all "beta"s in :'+modelregoptions
                     modelregoptions=modelregoptions.replace('beta','')
 
