@@ -684,6 +684,9 @@ Dec 2014: This is now worse than dataframe2dta, which, like this, uses tsv's to 
 
 
    if 1: # 2014 July: I'm skipping df.to_stata: I don't know how to force things to string with it. Also forcing update to true, below.
+       if any([' ' in cc for cc in  df.columns]):
+           print(" Warning: found spaces in column names. Replacing them with underscores in df2dta")
+           df.columns =  [cc.replace(' ','_') for cc in df.columns]
        df.to_csv(filepath+'_tmp.tsv',sep='\t',index=index,     encoding=encoding)
        return(tsv2dta(filepath+'_tmp',forceToString=forceToString,sortBy=sortBy,drop=drop,keep=keep,newdir=newdir,newpath=filepath,renameVars=renameVars,labelVars=labelVars,forceUpdate=True,extraStata=extraStata,csv=csv))
 
