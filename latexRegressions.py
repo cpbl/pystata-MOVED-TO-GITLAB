@@ -1930,8 +1930,7 @@ Bugs:
             model['textralines']=parseFlags(model.get('flags',None))
 
             
-
-	    modelregoptions=model.get('regoptions',',robust'*(method not in ['rreg']))
+            modelregoptions = model.get('regoptions', ',robust'*(method not in ['rreg']))
 
             assert betas in [None,False,True]
             doBetaMode=False
