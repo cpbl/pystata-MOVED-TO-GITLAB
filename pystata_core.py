@@ -1544,7 +1544,7 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
         ##         tworows=formatPairedRow([estValues,errValues],
         ##                                 greycells='tableshading' in model and model['tableshading'] in ['grey'],
         ##                                 pValues=pValues)
-
+        assert  '_' not in substitutedNames(vv,substitutions)
         tworows=formatPairedRow(  [[r'\sltrheadername{%s}'%substitutedNames(vv,substitutions)]+byVar[vv]['coefs'],
                                 ['']+byVar[vv]['ses']] ,pValues=pValues)
         #    ['']+[dgetget(model,'estcoefs',vv,displayErr,fNaN) for vv in coefVars]+['' for vv in flagsVars]+['' for vv in statsVars]],greycells='tableshading' in model and model['tableshading'] in ['grey'])#,modelsAsRows=True)
@@ -3077,6 +3077,8 @@ May 2011: Adding suest tests. Or maybe tests in general???
                     print 'weirdCaseSeemingStataBug! for suestTests. Check svyset?'
                 elif mmm['estcoefs'][vv]['se'].strip()=='0':
                     print "weirdCase: %s: Stata gave a coefficient, but no standard error. Did the whole regression fail? I don't think so. Maybe it guessed at this coefficient even though it's a dummy with very little variation (likely a singleton value associated with dummies). In fact, it may be that if you try  non-robust standard errors, you get a s.e. estimate "%vv
+                elif vv=='_cons' and  mmm['estcoefs']['_cons']['b'].strip() not in ['.',''] and float(mmm['estcoefs']['_cons']['b'].strip())<1e-10:
+                    todel+=['_cons'] # For my normalized regs, this has started happening. Just drop the constant?
                 else:
                     print 'weirdCaseSeemingStataBug!'
             if not any(isVal) or weirdCaseSeemingStataBug:
@@ -3085,7 +3087,7 @@ May 2011: Adding suest tests. Or maybe tests in general???
                 #for estval in todel:
                 #    del mmm['estcoefs'][vv][estval]
         for vv in todel:
-            del mmm['estcoefs'][vv]
+            if vv in mmm['estcoefs']:  del mmm['estcoefs'][vv]
 
         # Okay, so now let's work with numbers:
         mmm['estcoefs']=tonumeric(mmm['estcoefs'])
@@ -5386,7 +5388,7 @@ If inputFilename is specified, it will run Stata (if needed)
 
 Sept 2010: need to specify if grouptype is str or "numeric"! Since the Stata code (ugh) is different
 
-Sept 2010: oops. I may want "beta" too... AAAAHHHHH I hate Stata. Can't see how to do that in a parallel (ereturn) way. So just do it myself in Python!?
+Sept 2010: oops. I may want "beta" too...  Can't see how to do that in a parallel (ereturn) way. So just do it myself in Python!?
 
 """
 
