@@ -1938,6 +1938,7 @@ Bugs:
                 assert model['method'] in ['svy:reg','svy:regress','reg','regress','rreg','areg','xtreg'] # Can I Adding xtreg??
                 doBetaMode=True
                 model['textralines'][r'$\beta$ coefs']=r'\YesMark'
+                model['flags']['beta'] = True
 
                 if ('cluster' in modelregoptions and 'beta' in modelregoptions) or model['method'] in ['rreg','xtreg']:
                     #print 'Replacing all "beta"s in :'+modelregoptions
@@ -2416,10 +2417,17 @@ copy "%s" "%s", replace
         #
         assert not hideModels or not showModels  # Can't specify both. Well, actually, the line below gives a sensible way in which they could both be allowed at once: a model would be shown if in showModels (or showModels==None) and not in hideModels.
         assert showModels or showModels==None # don't pass [] or ''
+        assert not returnModels or (showModels is None and hideModels is None)
         # Note: hideModels / showModels should be a list of pointers to actual model dicts now, and they should simply be dropped here...  No need to deepcopy here, I believe.
         #if (not hideModels or isinstance(hideModels[0],dict)) and (not showModels or isinstance(showModels[0],dict)):
-        if (hideModels and isinstance(hideModels[0],dict)) or (showModels and isinstance(showModels[0],dict)):
+        if (hideModels and isinstance(hideModels[0],dict)) and (showModels and isinstance(showModels[0],dict)): # Allow for strange case of both being specified... BUT this does not allow reordering!
             models=[mmm for mmm in models if (not showModels or mmm in showModels) and (not hideModels or mmm not in hideModels) ] # I could instead just set a "hidden" flag for these but keep them around until exporting...
+            assert models
+        elif hideModels and isinstance(hideModels[0],dict): 
+            models=[mmm for mmm in models if (not hideModels or mmm not in hideModels) ] # I could instead just set a "hidden" flag for these but keep them around until exporting...
+            assert models
+        elif showModels and isinstance(showModels[0],dict): # This allows for reordering the models
+            models=[mmm for mmm in showModels if mmm in models ]
             assert models
         elif hideModels or showModels: # These are indices (1-based..) to the model list
             if showModels:
@@ -3559,7 +3567,7 @@ June 2012: Added / Passing rv option through to savefigall
 """
         return(statacode)
         
-    def addDescriptiveStatistics(self,tablename=None,dataFile=None,codebook=None,showVars=None,weightVar=None,ifcondition=None,forceUpdate=False,mainSurvey=None,code=None,ifNames=None,caption='',mode=None,substitutions=None):
+    def addDescriptiveStatistics(self, tablename=None, dataFile=None, codebook=None, showVars=None, weightVar=None, ifcondition=None, forceUpdate=False, mainSurvey=None, code=None, ifNames=None, caption='', mode=None, substitutions=None):
         # callStata=False,
         """ Starting over.
         This is now a member of latexRegressionFile, rather than the codebook class.
