@@ -504,7 +504,8 @@ def dtasaveold(pp,ff,ee='.dta', keep=None):
     return(pp+ff+'.dta')
 
 ###
-def dta2dataframe(fn,noclobber=True,columns=None, filesuffix=None):
+def dta2dataframe(fn,noclobber=True,columns=None, filesuffix=None,
+                  use_scratch=True):
     ###
     #######################################################################################
     """ For small files (at least),  this is MUCH faster for reload. It creates a temporary pandas file (huge compared with dta.gz) for future use.
@@ -522,6 +523,7 @@ columns : list or None
 N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster for next time.
  What is wrong with loadStataDataForPlotting()?
 
+.dta files and .pandas files are now created in scratch, unless use_scratch=False
     """
     
     if fn.endswith('.dta.gz'):
@@ -533,30 +535,34 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
     else:
         ppff,ee=fn,''
     pp,ff=os.path.split(ppff)
-
+    pp= paths['working'] if pp in [''] else pp+'/' # Sorry; this line may be out of date now (201802)
+    # sp is the path to use for all written files
+    sp = paths['scratch'] if use_scratch else pp
+        
+        
     ####pp,ff,ee=[os.path.split(fn)[0] ] +    list(os.path.splitext(os.path.split(fn)[1])) 
-    pp= WP if pp in [''] else pp+'/'
     assert ee in ['','.dta','.dta.gz']
     assert ee in ['','.dta']
     if ee in ['']:
         'Not sure what to do here. Find dta or dta.gz...'
     import pandas as pd
-    pdoutfile= (pp+ff if noclobber is False or not os.path.exists(pp+'tmp_'+ff+'.pandas') else pp+'tmp_'+ff)+{None:''}.get(filesuffix,filesuffix)+'.pandas' 
+    pdoutfile= (sp+ff if noclobber is False or not os.path.exists(sp+'tmp_'+ff+'.pandas') else sp+'tmp_'+ff)+{None:''}.get(filesuffix,filesuffix)+'.pandas' 
     if fileOlderThan(pdoutfile, pp+ff+'.dta.gz'):
         print('    ' +fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using original Stata file...')
-        if fn.endswith('.dta.gz') and fileOlderThan(ppff+'.dta',fn):
-            os.system('gunzip -c %s > %s.dta'%(fn,ppff))
+        if fn.endswith('.dta.gz') and fileOlderThan(sp+ff+'.dta',fn):
+            os.system('gunzip -c {} > {}.dta'.format(fn,sp+ff))
         print('        read_stata '+pp+ff+ee)
 
-
         if float(pd.__version__[2:]) < 17.0:
-            ppffee=dtasaveold(pp,ff,ee)
-            df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+            ppffee=dtasaveold(sp,ff,ee)
+            df=pd.read_stata( sp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
         else:
             try:
-                df=pd.read_stata( pp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+                df=pd.read_stata( sp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+            except ValueError as e:
+                raise(Exception(' Your columns do not all exist. Better restrict the df after loading the whole DTA file?'))
             except UnicodeDecodeError as e:
-                ppffee=dtasaveold(pp,ff,ee)
+                ppffee=dtasaveold(sp,ff,ee)
                 print(' \n\n\n ****  RESORTED TO JUNK CHARACTERS FOR UNICODE, SINCE THE FILE HAS CORRUPTED  UNICODE. RECREATE IT USING Stata 14+?? *** \n\n')
                 df=pd.read_stata( ppffee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
                 """
@@ -983,10 +989,10 @@ def substitutedNames(names, subs=None,newCol=1):
                 names[iname]=names[iname].replace(ps[0],ps[newCol])
     return(names)
 
-try:
-    from .codebooks import stataCodebookClass
-except ImportError:
-    print(__file__+": Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
+#try:
+#    from pystata.codebooks import stataCodebookClass
+#except ImportError:
+#    print(__file__+": Unable to find (or unable to import) pystata.codebooks module, part of pystata package")
 
 global globalGroupCounter
 globalGroupCounter=1 # This is used to label groups of models with a sequence of cell dummies.
@@ -1425,7 +1431,9 @@ June 2011: Done: updated this to use new cpblTableC ability to have both transpo
 
 
     # Make .csv output copy for the same data:
-    composeTSVregressionTable(models,substitutions=substitutions,tableTitle=tableFormat['title'],caption=tableFormat['caption'],comments=tableFormat.get('comments',''),tableFormat={'csvMode':'all'})
+    tsvTableFormat = deepcopy(tableFormat)
+    tsvTableFormat.update({'csvMode':'all'})
+    composeTSVregressionTable(models, substitutions=substitutions, tableTitle=tableFormat['title'], caption=tableFormat['caption'],comments=tableFormat.get('comments',''),tableFormat=tsvTableFormat)
 
 
 
@@ -1998,6 +2006,7 @@ def texheader(margins='default',startDocument=True, allow_underscore=True):
 \usepackage{xcolor} %% For general, v powerful color handling: e.g simple coloured text.
 %%\usepackage[svgnames]{xcolor} %% svgnames clashes with Beamer?
 \usepackage{geometry}
+\usepackage{siunitx}
 \usepackage[colorlinks]{hyperref}
 """+r'\usepackage{underscore}'*allow_underscore+r"""
 
