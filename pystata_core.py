@@ -553,23 +553,32 @@ N.B.: This uses pd.read_stata(); but it also makes a pandas file so it's faster 
             os.system('gunzip -c {} > {}.dta'.format(fn,sp+ff))
         print('        read_stata '+pp+ff+ee)
 
-        if float(pd.__version__[2:]) < 17.0:
-            ppffee=dtasaveold(sp,ff,ee)
-            df=pd.read_stata( sp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
-        else:
+        #if float(pd.__version__[2:]) < 17.0:
+        #    ppffee=dtasaveold(sp,ff,ee)
+        #    df=pd.read_stata( sp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+        #else:
+        if 1:
             try:
                 df=pd.read_stata( sp+ff+ee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
-            except ValueError as e:
-                raise(Exception(' Your columns do not all exist. Better restrict the df after loading the whole DTA file?'))
-            except UnicodeDecodeError as e:
-                ppffee=dtasaveold(sp,ff,ee)
-                print(' \n\n\n ****  RESORTED TO JUNK CHARACTERS FOR UNICODE, SINCE THE FILE HAS CORRUPTED  UNICODE. RECREATE IT USING Stata 14+?? *** \n\n')
-                df=pd.read_stata( ppffee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
-                """
-            print(' UnicodeDecodeError: if you are using Stata14, then the file is probably the problem. Maybe it needs re-creating using Stata14 from the source data. My advice is to use saveold to create a Stata version 12 version. At least then, it will have garbage for the high-bit characters, rather than expecting them to be valid unicode.')
-            print e
-            raw_input('acknowledge:')
-            raise"""
+            except:# Error as e:
+                print(' Failed with {}. Trying saving dta to old format ...'.format(ff))
+                oldppffee=dtasaveold(sp,ff,ee)
+                try:
+                    df=pd.read_stata( oldppffee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+
+                except ValueError as e:
+                    print e
+                    print ('Possible problem (see error statement above): Your columns do not all exist. Better restrict the df after loading the whole DTA file?')
+                except UnicodeDecodeError as e:
+                    print e
+                    ppffee=dtasaveold(sp,ff,ee)
+                    print(' \n\n\n ****  RESORTED TO JUNK CHARACTERS FOR UNICODE, SINCE THE FILE HAS CORRUPTED  UNICODE. RECREATE IT USING Stata 14+?? *** \n\n')
+                    df=pd.read_stata( ppffee,convert_categoricals=False, columns=columns)#, encoding='utf-8')
+                    """
+                print(' UnicodeDecodeError: if you are using Stata14, then the file is probably the problem. Maybe it needs re-creating using Stata14 from the source data. My advice is to use saveold to create a Stata version 12 version. At least then, it will have garbage for the high-bit characters, rather than expecting them to be valid unicode.')
+                print e
+                raw_input('acknowledge:')
+                raise"""
         df.to_pickle(pdoutfile)
     else:
         print('    '+ fn+' --> '+ os.path.split(pdoutfile)[1]+' --> DataFrame: using existing Pandas file...')
