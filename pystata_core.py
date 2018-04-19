@@ -61,6 +61,7 @@ try:
     from cpblUtilities.mathgraph import tonumeric, fNaN, seSum, weightedPearsonCoefficient
     from cpblUtilities.cpblunicode import str2latex
     from cpblUtilities.parallel import runFunctionsInParallel
+    from cpblUtilities.textables.stats_formatting import tsvSignificanceTable, formatPairedRow
 except ImportError:
     import sys
     print(
@@ -362,7 +363,7 @@ def stataSystem(dofile, filename=None, mem=None, nice=True,
             [[stataSystem, [dofi, filename[ii], mem, nice]]
              for ii, dofi in enumerate(dofile)],
             names=filename,
-            expectNonzeroExit=True,
+            allowJobFailure=True,
             parallel=defaults['server']['parallel']))
 
     if '\n' in dofile:  # we were passed code, not a filename. Write the code to a tmp file.
@@ -1188,66 +1189,6 @@ def substitutedNames(names, subs=None, newCol=1):
 global globalGroupCounter
 globalGroupCounter = 1  # This is used to label groups of models with a sequence of cell dummies.
 
-#below: a t-distribution with infinitely-many degrees of freedom is a normal distribution...
-TstatsSignificanceTable = [
-    [-0.1, 0.00001],  # Backstop
-    [0.0, 0.00001],
-    [0.5, 0.674],
-    [0.6, 0.841],
-    [0.7, 1.036],
-    [0.80, 1.28155],
-    [0.90, 1.64485],
-    [0.95, 1.95996],
-    [0.96, 2.054],
-    [0.98, 2.32635],
-    [0.99, 2.57583],
-    [0.995, 2.80703],
-    [0.998, 3.09023],
-    [0.999, 3.29052],
-]
-significanceTable = [
-    # Latex format, t-ratio, tolerance percentage
-    [r'', 0, 100.0],
-    [r'\signifTenPercent', 1.64485, 10.0],
-    [r'\signifFivePercent', 1.95996, 5.0],
-    [r'\signifOnePercent', 2.57583, 1.0],
-    [r'\wrapSigOneThousandth{', 3.291, 0.1],
-    #r'', 999999999999999999999999999
-]
-significanceTable = [
-    # Latex format, t-ratio, tolerance percentage
-    [r'', 0, 100.0],
-    [r'\wrapSigTenPercent{', 1.64485, 10.0],
-    [r'\wrapSigFivePercent{', 1.95996, 5.0],
-    [r'\wrapSigOnePercent{', 2.57583, 1.0],
-    [r'\wrapSigOneThousandth{', 3.291, 0.1],
-    #r'', 999999999999999999999999999
-]
-tsvSignificanceTable=[# for spreadsheet (tsv/csv) format: ie just text
-    # stars, t-ratio, tolerance percentage
-    [r'',0  ]  ,
-    [r'*',  1.64485, 10],
-    [r'**',  1.95996, 5],
-    [r'***',  2.57583, 1],
-    [r'****',  3.291,0.1],
-    #r'', 999999999999999999999999999
-]
-"""
-    Here are t-stats for one-sided and two sided.
-    One Sided	75%	80%	85%	90%	95%	97.5%	99%	99.5%	99.75%	99.9%	99.95%
-    Two Sided	50%	60%	70%	80%	90%	95%	98%	99%	99.5%	99.8%	99.9%
-               0.674	0.842	1.036	1.282	1.645	1.960	2.326	2.576	2.807	3.090	3.291
-
-    """
-
-# this below is obselete?
-# Maybe the following "significanceLevels" could be set externally by a call to this object/module.
-significanceLevels = [
-    90, 95, 99
-]  # This is used for the command below, as well as for the colour/star replacement and corresponding legend!
-significanceLevels = [
-    100 - ss[2] for ss in significanceTable[1:]
-]  # This is used for the command below, as well as for the colour/star replacement and corresponding legend!
 
 # This just hard-codes the relationship between some geographic scales in Canada.
 
@@ -1369,7 +1310,6 @@ def older_composeSpreadsheetRegressionTable(modelNames,
 
 
     """
-
     if tableFormat and tableFormat.get(
             'csvMode', None
     ) == 'all':  # isinstance(tableFormat,basestring) and tableFormat=='all':
@@ -2295,247 +2235,6 @@ Hm... why are variable names already somewhat transformed??...  well, i guess i 
         comments=comments,
         rowModelNames=rowModelNames,
         tableFormat=tableFormat)
-
-
-###########################################################################################
-###
-def latexFormatEstimateWithPvalue(x,
-                                  pval=None,
-                                  allowZeroSE=None,
-                                  tstat=False,
-                                  gray=False,
-                                  convertStrings=True,
-                                  threeSigDigs=None):
-    ### Why is this in pystata.py? Becuase it needs significanceTable.
-    #######################################################################################
-    """
-    This is supposed to encapsulate the colour/etc formatting for a single value and, optionally, its standard error or t-stat or etc. (take it out of formatpairedrow?)
-
-    It'll do the chooseSformat as well.
-
-    May 2011.
-    Still needs to learn about tratios and calculate own p...! if tstat==True
-    """
-    yesGrey = gray
-    if isinstance(x, list):
-        assert len(x) == 2
-        est, ses = x  # Primary estimate, and secondary t-stat/se/p-value
-        singlet = False
-    else:
-        singlet = True
-        est = x  ###chooseSFormat(x,convertStrings=convertStrings,threeSigDigs=threeSigDigs)
-
-    assert isinstance(pval, float) or pval in [
-    ]  # For now, require p to be passed!
-
-    if 0 and ses < 1e-10 and not allowZeroSE:
-        pair[0] = ''
-        pair[1] = ''  # Added Aug 2009... is not this right? It covers the (0,0) case.
-    if pval not in [
-            None, fNaN
-    ]:  # This is if we specified p-values directly: then don't calculate it from t-stat, etc!
-        significanceString = (
-            [''] +
-            [tt[0] for tt in significanceTable if pval <= tt[2] * 1.0 / 100.0]
-        )[-1]
-
-    if significanceString and yesGrey:
-        significanceString = r'\agg' + significanceString[1:]
-    if not significanceString and yesGrey:
-        significanceString = r'\aggc{'
-    if yesGrey:
-        greyString = r'\aggc'
-    if singlet:
-        return (significanceString + chooseSFormat(
-            est, convertStrings=convertStrings, threeSigDigs=threeSigDigs) +
-                '}' * (not not significanceString))
-    # By default, I don't think we want the standard errors/etc to contain the colour/significance formatting.
-    if 0:
-        return ([
-            significanceString + chooseSFormat(
-                est, convertStrings=convertStrings,
-                threeSigDigs=threeSigDigs) + '}' *
-            (not not significanceString), significanceString + chooseSFormat(
-                ses,
-                convertStrings=convertStrings,
-                threeSigDigs=threeSigDigs,
-                conditionalWrapper=[
-                    r'\coefp{',
-                    '}' + '}' * (not not significanceString),
-                ])
-        ])
-    else:
-        return ([
-            significanceString + chooseSFormat(
-                est, convertStrings=convertStrings, threeSigDigs=threeSigDigs)
-            + '}' * (not not significanceString), chooseSFormat(
-                ses,
-                convertStrings=convertStrings,
-                threeSigDigs=threeSigDigs,
-                conditionalWrapper=[
-                    r'\coefp{',
-                    '}',
-                ])
-        ])
-
-
-def formatPairedRow_DataFrame(df, est_col, se_col, prefix=None):
-    """
-    The name of this function is not great, but it simply applies formatPairedRow to two columns in a dataframe, returning the df with two new formatted string columns. The formatting is for use in cpblTables.
-
-2017: What about a tool to take every other column and stick them as alternate rows? See interleave_columns_as_rows in cpblutils
-
-    """
-    #assert df[est_col].notnull().all()
-    #assert df[est_col].notnull().all()
-    #a,b = formatPairedRow([df[est_col].fillna('.').values.tolist(), df[se_col].fillna('.').values.tolist()])
-    a, b = formatPairedRow(
-        [df[est_col].values.tolist(), df[se_col].values.tolist()])
-    if prefix is None: prefix = 's'
-    assert prefix + est_col not in df
-    assert prefix + se_col not in df
-    df[prefix + est_col] = a
-    df[prefix + se_col] = b
-    return (df)
-
-
-###########################################################################################
-###
-def formatPairedRow(pair,
-                    pValues=None,
-                    greycells=None,
-                    modelsAsRows=None,
-                    varsAsRows=None,
-                    allowZeroSE=False):
-    ###
-    #######################################################################################
-    """ August 2009.
-
-    Takes a pair of entries. First in each row of pair is a label; typicall that in the second row (label for s.e.'s) is blank. Returns pair of lists of LaTeX strings.
-
-
-Takes care of significance marking; grey shading, and formatting row/column headers. (maybe.. not implemented yet.  For the latter, it would need to know whether rows or cols..)
-
-pairedRows were conventionally one model? one variable?
-
-greycells: can list column numbers? can be True ie for all in this model.
-
-needs to be in charge of making row/model header grey too, if greycells==True  [done!]
-
-    Dec 2009: allowZeroSE: set this to true when the values passed are sums, etc, which may be exact (is SE=standard error  is 0).
-
-
-? April 2010. Trying to get multirow to work with colortbl.  Why was I not using rowcolor{} ?? Try to implement that now/here... hm.. no, kludging it in the calling function for now?
-
-
-May 2011: can now also send an array of pvalues. This avoids calculating p categories from t-stats. Also, there may not be t-stats, as in the case of suestTests: ie test results.
-
-May 2011: I'm trying to remove some of the logic from here to a utility, latexFormatEstimateWithPvalue(x,pval=None,allowZeroSE=None,tstat=False,gray=False,convertStrings=True,threeSigDigs=None)
-    """
-
-    from pylab import isnan
-    if not greycells:
-        greycells = []
-    if greycells == True:
-        greycells = range(len(pair[0]))
-
-    outpair = deepcopy(pair)
-    coefs = pair[0]
-    ses = pair[1]
-
-    def isitnegative(obj):
-        if not isinstance(obj, float): return False
-        return obj < 0
-
-    assert not any([isitnegative(ss) for ss in ses])
-
-    # If it's not regression coefficients, we may want to specify the p-values (and thus stars/colours) directly, rather than calculating t values here (!!). Indeed, aren't p-values usually available, in which case they should be used anyway? hmm.
-    if pValues is None:
-        pValues = [None for xx in coefs]
-    assert len(pValues) == len(coefs)
-
-    # Is following redundant?!
-    significanceString, greyString = [[] for i in range(len(pair[0]))
-                                      ], [[] for i in range(len(pair[0]))]
-    for i in range(len(pair[0])):
-        significanceString[i], greyString[i] = '', ''
-    for icol in range(len(pair[0])):
-        yesGrey = icol in greycells or greycells == True
-        if isinstance(coefs[icol], basestring) or isinstance(
-                coefs[icol], unicode) or isnan(coefs[icol]):
-            if coefs[icol] in ['nan', fNaN] or (isinstance(coefs[icol], float)
-                                                and isnan(coefs[icol])):
-                outpair[0][icol], outpair[1][
-                    icol] = r'\aggc' * yesGrey, r'\aggc' * yesGrey
-            else:
-                outpair[0][icol], outpair[1][icol] = coefs[
-                    icol] + r'\aggc' * yesGrey, ses[icol] + r'\aggc' * yesGrey
-            continue
-        # So we have floats
-        # Aug 2012: Agh.. It's in principle possible to have an int, with 1e-16 s.e., etc.
-        assert isinstance(outpair[0][icol], float) or isinstance(
-            outpair[0][icol], int)
-        assert isinstance(outpair[1][icol], float) or isinstance(
-            outpair[0][icol], int)
-
-        # Safety: so far this is only because of line "test 0= sumofincomecoefficients": when that fails, right now a value is anyway written to the output file (Aug 2008); this needs fixing. In the mean time, junk coefs with zero tolerance:
-        if ses[icol] < 1e-10 and not allowZeroSE:  #==0 or : # Added sept 2008...
-            pair[0][icol] = ''
-            pair[1][
-                icol] = ''  # Added Aug 2009... is not this right? It covers the (0,0) case.
-        if isinstance(coefs[icol], float) and not str(
-                coefs[icol]) == 'nan':  # and not ses[icol]==0:
-            tratio = abs(coefs[icol] / ses[icol])
-            # Ahh. May 2010: why is there a space below, rather than a nothing? Changning it.
-            #significanceString[icol]=([' ']+[tt[0] for tt in significanceTable if tratio>= tt[1]])[-1]
-            significanceString[icol] = (
-                [''] + [tt[0] for tt in significanceTable if tratio >= tt[1]]
-            )[-1]
-
-        if pValues[icol] not in [
-                None, fNaN
-        ]:  # This is if we specified p-values directly: then don't calculate it from t-stat, etc!
-            significanceString[icol] = ([''] + [
-                tt[0] for tt in significanceTable
-                if pValues[icol] <= tt[2] * 1.0 / 100.0
-            ])[-1]
-
-        if significanceString[icol] and yesGrey:
-            significanceString[icol] = r'\agg' + significanceString[icol][1:]
-        if not significanceString[icol] and yesGrey:
-            significanceString[icol] = r'\aggc{'
-        if yesGrey:
-            greyString[icol] = r'\aggc'
-
-        # Changing line below: May 2011. Why did I put a ' ']
-        #outpair[0][icol]= significanceString[icol]+chooseSFormat(coefs[icol])+'}'*(not not significanceString[icol])
-
-        outpair[0][icol] = significanceString[icol] + chooseSFormat(
-            coefs[icol]) + '}' * (not not significanceString[icol])
-        #debugprint( 'out0=',        outpair[0][icol],
-        #'   signStr=',(not not significanceString[icol]),significanceString[icol],
-        #'   tratio=',tratio,coefs[icol],ses[icol])
-
-        # This catches a 2017 bug:
-        ###NO!assert all([isitnull(outpair[0][ii]) == isitnull(coefs[ii])  for ii in range(len(outpair[0]))])
-
-        if ses[icol] < 1e-10 and allowZeroSE:  # Added Dec 2009
-            ses[icol] = 0
-
-        outpair[1][icol] = chooseSFormat(
-            ses[icol],
-            conditionalWrapper=[r'\coefse{', '}']) + greyString[icol]
-        # Shoot. May 2011, following line suddently started failing (regressionsQuebec.py: nested models). Can't fiure it out. I'm disabling this for the moment!! I guess try some asserts instead.
-        # Okay, I fixed it by rephrasing using "in": [may 2011]
-        # May 2011: Following FAILS to detect nan's. need to use isinstnace float and isnan as another option. Also, this should not be triggered for suestTests.
-        if ses[icol] in ['', float('nan')] and not coefs[icol] in [
-                '', float('nan')
-        ]:  #isnan(ses[icol]) and not isnan(coefs[icol]):
-            outpair[0][icol] = chooseSFormat(coefs[icol])
-            outpair[1][icol] = '?'
-            print ' CAUTION!! VERY STRANGE CASE OF nan FOR s.e. WHILE FLOAT FOR COEF '
-            assert 0
-    return (outpair)
 
 
 def texheader(margins='default', startDocument=True, allow_underscore=True):
@@ -5949,7 +5648,7 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
             ] for fff in stataCodeFunction],
             names=[fff.func_name for fff in stataCodeFunction],
             offsetsSeconds=offsetsSeconds,
-            expectNonzeroExit=True)
+            allowJobFailure=True)
         success, stataCodesAndTex = rfip
         if runCode:
             stataDone = True
@@ -6019,7 +5718,7 @@ Aug 2012. If a list of statacode is returned, rather than a string, then they sh
                 ] for iii, fff in enumerate(stataCodeFunction)],
                 names=[fff.func_name for fff in stataCodeFunction],
                 offsetsSeconds=offsetsSeconds,
-                expectNonzeroExit=True)
+                allowJobFailure=True)
         else:
             stataSystem(
                 stataCodes,

@@ -11,7 +11,8 @@ To do:
                 # May 2013: check for funny chars?
                 
 """
-from .pystata_config import defaults,paths
+from pystata import defaults # The idea is that pystata should only call pystata_config once. Other modules (e.g. RDC, Gallup code) may have overwritten pystata's defaults.
+paths= defaults['paths']
 assert defaults is not None
 
 #try:
@@ -287,7 +288,6 @@ Fields in a stataCodebookClass object:
             else:
                 print("You should rename the PDF codebook to surveyname+'-codebook.pdf'")
                 print( "Failed to find PDF codebook for "+survey+", or its .txt child or its .tsv child!")
-                stophere
                 return
                 #datafilepath=defaults['inputPath']+datafilepath+'_codebook.txt'
 

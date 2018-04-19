@@ -1,6 +1,7 @@
 #from pystata import *
 import re, os
-from .pystata_config import defaults, paths
+from pystata import defaults # Do not import from pystata_config; that should only be done in one place, and globally once.
+paths = defaults['paths']
 WP = paths['working']
 from pylab import array, flatten, arange
 import pandas as pd
@@ -15,13 +16,12 @@ from codecs import open  # I need to do this just to get encoding= option in ope
 if 'stata' not in defaults[
         'paths']:  # This is actually for sprawl's analysis.py, feb2014
     defaults['paths']['stata'] = defaults['paths']
-from cpblUtilities import debugprint, uniqueInOrder
-
-from cpblUtilities.textables import chooseSFormat, tableToTSV
-
-from cpblUtilities import transLegend, dfPlotWithEnvelope, str2pathname, flattenList, dgetget, NaN
+from cpblUtilities import debugprint, uniqueInOrder, doSystemLatex
+from cpblUtilities.textables import chooseSFormat, tableToTSV, cpblTable_to_PDF
+from cpblUtilities import transLegend, dfPlotWithEnvelope, str2pathname, flattenList, dgetget, NaN, dsetset
 from cpblUtilities.cpblunicode import str2latex
 from cpblUtilities.color import getIndexedColormap
+from pystata.codebooks import stataCodebookClass
 """
 To do:
  revise generate_postEstimate_sums_by_condition(rollingX,ifs) to give DataFrame return value
@@ -258,7 +258,6 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
         fout = open(tableFilePath + '-tex.csv', 'wt')
         fout.write(tableToTSV(includedTex))
         fout.close()
-
         print ' Appended table: ' + tableFilePath
 
         ###################################################################################
@@ -273,7 +272,10 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
             'PUT-TABLETEX-FILEPATH-HERE',
             tableFilePath.replace(defaults['paths']['tex'], r'\texdocs ')) +
                     '\n\n')
-
+        # Also create a standalone PDF of this table
+        cpblTable_to_PDF(tableFilePath, aftertabulartex = r' \\ {\footnotesize\cpblColourLegend} ')
+        if  transposed in ['both', True]:
+            cpblTable_to_PDF(tableFilePath, aftertabulartex = r' \\ {\footnotesize\cpblColourLegend} ', transposed=True)
         return
 
     ###########################################################################################
@@ -2355,7 +2357,7 @@ Bugs:
                 ]  # Can I Adding xtreg??
                 doBetaMode = True
                 model['textralines'][r'$\beta$ coefs'] = r'\YesMark'
-                model['flags']['beta'] = True
+                dsetset(model,['flags','beta'], True)
 
                 if ('cluster' in modelregoptions and 'beta' in modelregoptions
                     ) or model['method'] in ['rreg', 'xtreg']:
@@ -4432,7 +4434,7 @@ IF DTA is not specified, this will produce STATA CODE to make the means log. It 
 If codebook is specified, at the moment it still requires one of the above, but codebook can allow descriptions etc to be avaialble.
 
 
-June 2010: I added the feature o being able to giv ea list of "if conditions", but it still turns these into separate tables. Need to combine the tables.
+June 2010: I added the feature of being able to give a list of "if conditions", but it still turns these into separate tables. Need to combine the tables.
 
 June 2010: Added "ifNames" option: give names to the ifconditions.
 
@@ -4573,7 +4575,7 @@ So, this can be used either in a sort of automatic mode when closing a LaTeX fil
                 dataFile, str(weightsif), vString, str(ifcondition), logfname)
 
         else:
-            print ' PRoducing STata code to generate descriptive statistics using weight/condition "%s", and variables "%s".' % (
+            print ' Producing Stata code to generate descriptive statistics using weight/condition "%s", and variables "%s".' % (
                 str(weightsif), vString)
             if not '2013 and later mode':
                 logfname = self.fpathname + '-summaryStatistics-' + tablename + ''
@@ -5034,8 +5036,6 @@ What is "launch"? It seems not used.
 
         # And now compile the LaTeX:
         if not closeOnly:
-            from cpblUtilities import doSystemLatex
-            ##doSystemLatex(self.fname,latexPath=None,launch=launch)
             doSystemLatex(
                 self.fname
             )  #launch=launch,tex=None,viewLatestSuccess=True,bgCompile=True)
@@ -5069,7 +5069,7 @@ What is "launch"? It seems not used.
 
         Works nicely. Test case by running this module/file.
 
-Here are other options for correlation tables: [Damn; I bet ?I could have used the matrix one and my readmatrix function]
+Here are other options for correlation tables: [I bet ?I could have used the matrix one and my readmatrix function]
 
 Publication-style correlation matrix (corrtab):
 findit corrtab
@@ -5090,6 +5090,7 @@ makematrix, from(r(rho)) col(socst) format(%9.2f): corr read-socst
 
 Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation...
 
+2018: If you have data in Python, just use the non-Stata version of this in my pandas_utils.py
         """
         tablenamel = self.generateLongTableName(tablename)
 
@@ -5098,7 +5099,6 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
         tableFilePath = defaults['paths']['stata']['tex'] + str2pathname(
             tablenamel)  # for .tex , below
 
-        assert ifClause is None
 
         if os.path.exists(tableLogName):
             #cells=tsvToDict(tableLogName)
@@ -5106,8 +5106,7 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
                 LL.strip('\n').split('\t')
                 for LL in open(tableLogName, 'rt').readlines()
             ]
-            assert cells[0][
-                -1] == ''  # Bug in Stata's mkcorr? extra column. arghhhh
+            assert all([cell[-1]=='' for cell in cells])  # Bug in Stata's mkcorr? extra column. arghhhh
             header = cells[0][:-1]
             varsOrder = header[5:]  # 1:5 are mean, s.d., min, max.
             np = (len(cells) - 1) / 2
@@ -5220,12 +5219,31 @@ Jan 2011: Huh? But there is no "N" recorded in the log file for each correlation
                 tableFilePath.replace(defaults['paths']['tex'], r'\texdocs '))
                         + '\n\n')
 
+            # Also create a standalone PDF of this table
+            cpblTable_to_PDF(tableFilePath, aftertabulartex = r' \\ {\footnotesize\cpblColourLegend} ')
+
         return ("""
         * BEGIN mkcorr: produce a correlation table in output/TSV format.
-        mkcorr %s,log(%s) sig cdec(5) replace means
+        mkcorr {corrvars} {ifClause},log({tableLogName}) sig cdec(5) replace means
         * END mkcorr
-        """ % (corrvars, tableLogName))
+        """.format(corrvars = corrvars, tableLogName = tableLogName, ifClause = '' if ifClause is None else ifClause if ifClause.strip().startswith('if') else ' if '+ifClause))
 
+
+    
+    ###########################################################################################
+    ###
+    def test_addCorrelationTable(latex=None):
+        ###
+        #######################################################################################
+        assert latex
+        return ("""
+        gzuse macroNov2010,clear
+        """ + latex.addCorrelationTable(
+            'testMkCorr', 'gwp_beta*', ifClause=None) + """
+            """)
+
+
+    
     ###########################################################################################
     ###
     def writeMultiSurveyCodebookTable(self,
@@ -5962,16 +5980,8 @@ if __name__ == '__main__':
     ################################################################################################
     print ' DEMO MODE!!!!!!!!! for pystata.latexRegressions ... '
     sVersion, rVersion, dVersion = 'CPBLtesting', 'XXXX', 'testing'
-
+    """
     from recodeGallup import gDataVersion, pathList, gVersion
-
-    def testFunctions(latex):
-        return ("""
-gzuse macroNov2010,clear
-""" + latex.addCorrelationTable(
-            'testMkCorr', 'gwp_beta*', ifClause=None) + """
-
-""")
 
     from regressionsGallup import standardSubstitutions
     runBatchSet(
@@ -5979,3 +5989,4 @@ gzuse macroNov2010,clear
         rVersion, [testFunctions],
         dVersion='testingOnly-forCPBLStataLR',
         substitutions=standardSubstitutions)
+    """
