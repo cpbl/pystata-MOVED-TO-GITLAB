@@ -273,17 +273,17 @@ def estimatePCA(df, weight=None, tmpname=None, scratch_path=None, method=None, p
     fig, ax1 = plt.subplots()
     xPCAticks= np.arange(len(pcaresult.explained.index))+1
     xPCAticklabels = pcaresult.index.values
-    ax1.plot(xPCAticks, pcaresult.explained, 'b', label='Fraction explained variance')
+    ax1.plot(xPCAticks, pcaresult.explained, 'b.-', label='Fraction explained variance')
     ax1.set_xlabel('PCA component')
     ax1.set_xticks(xPCAticks)
-    ax1.set_xticklabels(xPCAticklabels)
+    ax1.set_xticklabels(xPCAticklabels, rotation=45, ha='right')
     plt.axis('tight')
     # Make the y-axis label, ticks and tick labels match the line color.
     ax1.set_ylabel('Explained variance', color='b')
     ax1.tick_params('y', colors='b')
     ax1.grid()
     ax2 = ax1.twinx()
-    ax2.plot(xPCAticks, pcaresult.eigenvalues,'b', label='Eigenvalue')
+    ax2.plot(xPCAticks, pcaresult.eigenvalues,'b.-', label='Eigenvalue')
     ax2.set_ylabel('Eigenvalue', color='b')
     ax2.tick_params('y', colors='b')
     fig.tight_layout()
