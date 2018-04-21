@@ -7,6 +7,11 @@ import os
 import matplotlib.pyplot as plt
 from cpblUtilities.mathgraph import  weightedPearsonCoefficient
 from cpblUtilities.utilities import  shelfSave,shelfLoad
+"""
+Implements some tools for estimating and for then using a PCA estimate.  
+ Has interfaces to more than one package for doing PCA estimate, including calling Stata.
+"""
+
 
         
 def _normalize(s):
@@ -125,6 +130,7 @@ class pca_result(pd.DataFrame):
         ax1.tick_params('y', colors='b')
         for ipca,pcaname in enumerate( self.explained[self.eigenvalues>1].index):
             ax1.text(ipca+1, self.explained[pcaname], pcaname, va='center')
+
         ax2 = ax1.twinx()
         ax2.plot(xPCAticks, self.eigenvalues,'b', label='Eigenvalue')
         ax2.set_ylabel('Eigenvalue', color='b')
@@ -190,10 +196,12 @@ def estimatePCA(df, weight=None, tmpname=None, scratch_path=None, method=None, p
         outsheet using {SP}{fn}_varexpl.tsv, replace  noquote
         u {SP}{fn}_pca_coefs, clear
         outsheet using {SP}{fn}_pca_coefs.tsv, replace noquote
+        di "Stata finished successfully"
         """.format(PCAvlist= ' '.join(['PCA{}'.format(ii+1) for ii in range(len(pcvars))]), method = method, fn=tmpname, SP=scratch_path, pcvars = ' '.join(pcvars), ww = '' if weight is None else '[w='+weight+']')
         with open(scratch_path+tmpname+'.do','wt') as fout:
             fout.write(statado)
         os.system(' cd {SP} && stata -b {SP}{fn}.do'.format(SP=scratch_path, fn=tmpname))
+        assert 'finished successfully' in open(scratch_path+tmpname+'.log', 'rt').read()
         df_coefs = pd.read_table(scratch_path+tmpname+'_pca_coefs.tsv')
         df_varexpl = pd.read_table(scratch_path+tmpname+'_varexpl.tsv')
         df_varexpl['cumvarexpl'] = df_varexpl['varexpl'].values
@@ -267,29 +275,31 @@ def estimatePCA(df, weight=None, tmpname=None, scratch_path=None, method=None, p
         """
         
         
-                   
-    # Diagnostic plot
-    plt.figure(456789876)
-    fig, ax1 = plt.subplots()
-    xPCAticks= np.arange(len(pcaresult.explained.index))+1
-    xPCAticklabels = pcaresult.index.values
-    ax1.plot(xPCAticks, pcaresult.explained, 'b.-', label='Fraction explained variance')
-    ax1.set_xlabel('PCA component')
-    ax1.set_xticks(xPCAticks)
-    ax1.set_xticklabels(xPCAticklabels, rotation=45, ha='right')
-    plt.axis('tight')
-    # Make the y-axis label, ticks and tick labels match the line color.
-    ax1.set_ylabel('Explained variance', color='b')
-    ax1.tick_params('y', colors='b')
-    ax1.grid()
-    ax2 = ax1.twinx()
-    ax2.plot(xPCAticks, pcaresult.eigenvalues,'b.-', label='Eigenvalue')
-    ax2.set_ylabel('Eigenvalue', color='b')
-    ax2.tick_params('y', colors='b')
-    fig.tight_layout()
-    plotfn=scratch_path+tmpname+'diagnostic-plot.pdf'
-    plt.savefig(plotfn)
-    pcaresult.fig = fig
+    if 0: # ! No. Use the diagnostic plot method
+        # Diagnostic plot
+        plt.figure(456789876)
+        fig, ax1 = plt.subplots()
+        xPCAticks= np.arange(len(pcaresult.explained.index))+1
+        xPCAticklabels = pcaresult.columns #index.values
+        ax1.plot(xPCAticks, pcaresult.explained, 'b.-', label='Fraction explained variance')
+        ax1.set_xlabel('PCA component')
+        ax1.set_xticks(xPCAticks)
+        ax1.set_xticklabels(xPCAticklabels)#, rotation=45, ha='right')
+        assert xPCAticklabels[0]=='PCA1'
+        omg
+        plt.axis('tight')
+        # Make the y-axis label, ticks and tick labels match the line color.
+        ax1.set_ylabel('Explained variance', color='b')
+        ax1.tick_params('y', colors='b')
+        ax1.grid()
+        ax2 = ax1.twinx()
+        ax2.plot(xPCAticks, pcaresult.eigenvalues,'b.-', label='Eigenvalue')
+        ax2.set_ylabel('Eigenvalue', color='b')
+        ax2.tick_params('y', colors='b')
+        fig.tight_layout()
+        plotfn=scratch_path+tmpname+'diagnostic-plot.pdf'
+        plt.savefig(plotfn)
+        pcaresult.fig = fig
     pcaresult.vectors = pcaresult.apply_coefficients_to_data(df[pcvars])
     return pcaresult
     

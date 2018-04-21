@@ -4038,6 +4038,8 @@ copy "%s" "%s", replace
             figlocation = r'\texdocs '
         else:
             figlocation += '/'
+            if not os.path.exists(figname+'.pdf'):
+                print(' Caution: Cannot find included figure file for LaTeX.')
 
         if caption == None:
             caption = ' (no caption) '
