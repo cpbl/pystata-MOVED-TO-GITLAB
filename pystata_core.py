@@ -3103,6 +3103,22 @@ F(  1,     9) =   10.82
         }  #'se':''}
     return (dict(estcoefs=estcoefs, eststats={'N': '', 'r2_p': ''}))
 
+def _drop_duplicate_keys_if_empty(coefss):
+    """ Until #9 is fixed, need to implement fix to #8.
+Goal is to drop rows only if they are (1) empty/"omitted" and (2) have a non-omitted version
+    """
+    df = pd.DataFrame(coefss)
+    coefOrder = [c[0] for c in coefss]
+    while len(coefOrder) > len(np.unique(coefOrder)):
+        # Treat first "omitted" case:
+        omit = [ii for ii,cc in enumerate(coefss) if cc[1].strip() in ['(omitted)'] and coefOrder.count(cc[0]) >1]
+        print(' omit {} len = {}. '.format(omit, len(omit)))
+        omit = omit[0]
+        print(' DROPPING DUPLICATE REGRESSOR from results: {}'.format(coefss[omit]))
+        coefss.pop(omit)
+        df = pd.DataFrame(coefss)
+        coefOrder = [c[0] for c in coefss]
+    
 
 ################################################################################################
 ################################################################################################
@@ -3242,12 +3258,12 @@ sigma                                             |
         # do the strip()'ing right in the regexp, although it makes it less readable:
         coefss = re.findall('\s*([^\s]+)\s*\|\s*_cons\s*\|(.*?)\n' + ''.join(
             (len(legendstats) - 1) * '\s*\|(.*?)\n'), varsS)
+        _drop_duplicate_keys_if_empty(coefss)        
         coefOrder = [c[0] for c in coefss]
+        assert len(coefOrder) == len(np.unique(coefOrder))
         coefs = dict(
             [[cc[0], dict(zip(legendstats, cc[1:]))] for cc in coefss])
-    elif len(
-            sections
-    ) == 2 or '\n\nOrdered probit regression' in logtxt or '\n\nOrdered logistic regression' in logtxt or '\n nl ' in '\n' + logtxt[:
+    elif len(sections) == 2 or '\n\nOrdered probit regression' in logtxt or '\n\nOrdered logistic regression' in logtxt or '\n nl ' in '\n' + logtxt[:
                                                                                                                                     20]:
         # This is OLS, quantile reg, oprobit, ologit, ...
 
@@ -3298,7 +3314,9 @@ sigma                                             |
         # March 2013:  I'm doing the same but allowing spaces in the variable name! This works, and is better:
         coefss = re.findall('\s*(.*?)\s*\|(.*?)\n' + ''.join(
             (len(legendstats) - 1) * '\s*\|(.*?)\n'), varsS)
+        _drop_duplicate_keys_if_empty(coefss)
         coefOrder = [c[0] for c in coefss]
+        assert len(coefOrder) == len(np.unique(coefOrder))
         coefs = dict(
             [[cc[0], dict(zip(legendstats, cc[1:]))] for cc in coefss])
 
@@ -3316,7 +3334,9 @@ sigma                                             |
             # do the strip()'ing right in the regexp, although it makes it less readable:
             coefss = re.findall('\s*([^\s]+)\s*\|(.*?)\n' + ''.join(
                 (len(legendstats) - 1) * '\s*\|(.*?)\n'), varsS)
+            _drop_duplicate_keys_if_empty(coefss)
             coefOrder = [c[0] for c in coefss]
+            assert len(coefOrder) == len(np.unique(coefOrder))
             coefs = dict(
                 [[cc[0], dict(zip(legendstats, cc[1:]))] for cc in coefss])
             oaxaca[sectionName] = coefs
