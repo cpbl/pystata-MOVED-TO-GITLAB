@@ -6974,7 +6974,8 @@ def models2df(models, latex=None):
     """ Correct way to put all models' estimates together is with a multiindex. 
     """
     collected = []
-    indexlist = ['modelNum', 'name', 'method', 'depvar']
+    indexlist = ['modelNum', 'name', 'method', 'depvar',]
+
     rhsvar = 'xvar'  #'rhsvar' # What should we call the regressors?
     for mm in models:
         if 'estcoefs' not in mm: continue
@@ -6987,12 +6988,15 @@ def models2df(models, latex=None):
             ]
             # Also add the flags for this model (rather than construct and merge a DataFrame at the model level (rather than the regressor/coefficient level)):
             collected[-1].update(mm.get('flags', {}))
+            if 'modelGroupName' in mm.keys():
+                collected[-1]['modelGroupName'] = mm['modelGroupName']
 
     import pandas as pd
     if not collected:
         return (pd.DataFrame())
 
-    coefsdf = pd.DataFrame(collected).set_index(indexlist + [rhsvar])
+    coefsdf = pd.DataFrame(collected)
+    coefsdf = coefsdf.set_index([cc for cc in indexlist if cc in coefsdf.columns] + [rhsvar])
     return (coefsdf)
 
     # Below is another method which gives a different, more derived, less useful, version.

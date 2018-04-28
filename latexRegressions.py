@@ -273,9 +273,9 @@ Allow specification of a "main survey" and a "main data file". This makes it eas
             tableFilePath.replace(defaults['paths']['tex'], r'\texdocs ')) +
                     '\n\n')
         # Also create a standalone PDF of this table
-        cpblTable_to_PDF(tableFilePath, aftertabulartex = r' \\ {\footnotesize\cpblColourLegend} ')
+        cpblTable_to_PDF(tableFilePath, aftertabulartex = r'  {\footnotesize\cpblColourLegend} ')
         if  transposed in ['both', True]:
-            cpblTable_to_PDF(tableFilePath, aftertabulartex = r' \\ {\footnotesize\cpblColourLegend} ', transposed=True)
+            cpblTable_to_PDF(tableFilePath, aftertabulartex = r'  {\footnotesize\cpblColourLegend} ', transposed=True)
         return
 
     ###########################################################################################
