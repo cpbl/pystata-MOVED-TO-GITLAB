@@ -2944,12 +2944,15 @@ This parses the output resulting from do_mlogit.
 def parseStataComments(txt):
     """
     Look for certain of my format of Stata comments, and extract them:
+
+CAUTION: this is not yet called by str2models... to do?
     """
     extraFields = {}
     precode = ''
     unparsed = ''
     for aline in txt.split('\n'):
         aline = aline.strip()
+        print aline
         if aline.startswith('*name:'):  # Syntax to add a flag to next model
             precode += aline + '\n'
             extraFields['name'] = ':'.join(aline.split(':')[1:])
