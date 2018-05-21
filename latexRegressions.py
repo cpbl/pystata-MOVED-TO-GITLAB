@@ -1445,7 +1445,7 @@ I've added various other flag/settings specified starting with *.
             ):  # Syntax to use Stata's "estimates store" after the regression [May 2011]
                 precode += aline + '\n'
                 sname = aline.split(':')[1]
-                if 'name' in extraFields:
+                if not sname and 'name' in extraFields:
                     sname = ''.join([
                         cc for cc in extraFields['name']
                         if cc.isalpha() or cc.isdigit()
