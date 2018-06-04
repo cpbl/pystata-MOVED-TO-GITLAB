@@ -3290,7 +3290,7 @@ sigma                                             |
         elif '\n\nOrdered logistic regression' in logtxt:
             assert command in [None, 'ologit']
             print 'Parsing ologit, saving/renaming cutpoints ...'
-            assert 'lnHHincome' in sections[0]
+            #assert 'lnHHincome' in sections[0]
             varsS, statss = sections[0], sections[-1]
 
         if 0:  # Following used until March 2013:
